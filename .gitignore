@@ -4,6 +4,6 @@ __pycache__/
 *.sqlite3
 *.db
 *.log
-services/ephe/   # se contiver efemérides grandes que não quer versionar
+services/ephe/
 venv/
 .env.local
