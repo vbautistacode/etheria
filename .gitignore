@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.env
+*.sqlite3
+*.db
+*.log
+services/ephe/   # se contiver efemérides grandes que não quer versionar
+venv/
+.env.local

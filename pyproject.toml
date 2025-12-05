@@ -1,0 +1,31 @@
+[project]
+name = "etheria"
+version = "0.1.0"
+description = "Etheria — Painel esotérico com numerologia, arcanos e ciclos"
+authors = [{ name = "Vitor Bautista", email = "vitorfbautista@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.11"
+
+# Dependências principais (pip)
+dependencies = [
+  "streamlit==1.30.0",
+  "pandas==2.2.0",
+  "openpyxl==3.1.2",
+  "plotly==5.23.0",
+  "pyswisseph==2.10.0",
+  "geopy==2.4.1",
+  "timezonefinder==6.0.1",
+  "pytz==2024.1",
+  "python-dotenv==1.0.0",
+  "requests==2.31.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff==0.14.0",
+  "pytest==7.4.0"
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

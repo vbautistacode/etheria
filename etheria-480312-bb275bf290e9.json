@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "etheria-480312",
+  "private_key_id": "bb275bf290e9793b547c110a6484cd915b7a87a0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCeqaiQPJRyj7Ns\nTst0/D4RFH9mrYXe8Ppsy4izH4DHemSfeQ4y7jZjJGOBZy/WrTjExAo+rr9W+fFD\nwQuARPMLHw8muoutIvLXA4tsjzKjOOakgZPOwWr0++9Js6nS/OucJ9lQtNcgpUDo\niuoiwAD2rI9FjPTgDiNvMTOOse30is+brfx9fpZ86/iYDcyL2fnJ6zjQwV9icEp9\n1RsnLuNWcfNga1f/T/Tnt+SJ8cCWmiHcbWF6IBdCNB9HFlVM6NYqTxmfUMJKhz4M\n0RXoe1k4DXCTf/W7SPm2Dcc36pVtuv1o5p0iuZb7fnP/ML4Gd9qVWERbAqK7O2Na\ntb+G0ni/AgMBAAECggEABwoTSXr2lx1Ft6DIqW27jznFQUKiSuGO1XQzohwxXtL7\nqJD6uUsVAfxjpyJzM+dxj6v8TGBSau3MmitJcwJxdLqHCzqBkfKYAEQkU8eyq8fi\n1m+ipYIIAyCJCFBpUMwZ4/lnTIu0HmWr5eVWkqjJd32bya6BpXiFx/F7ORyEfdyi\nLE84Ae9GZMeIaYnhPme7xkA830qi6Ge8+Hjj9xv4OtyxrNVjXS61bGhczuiTCsrp\nVjzjvxAAspgD5vPy6TmdO4WTJjIaUYP+8AOjFjTxsXpGmIWbRTV1MlgjhxgQRUg+\nQFCLdmMDV7jG3vK/oz2nos8am5Q2zMCY1yq06a/lMQKBgQDXexsRtdfYH31JqwxU\nPApXOEnl+/R5MA3By9xOTTu7RuyJDPMHZ3/lxykBkmrYh3F7NCzZgi/nKIlc8qgd\nPQBqLkid7JX2zzCb+/0M7MoOJ1zESWdDMqK+je299eHcCWTVeD2rlVasz63BRjbO\nf2TwDGcLFHEBs3atczG/WF/QCQKBgQC8f2umvQgtrQ8jwLHAXVelVDRQuvV/tgLb\nUd7RfQLqannzp/xcsVa9tNdxxz7kPbVVHb2GPb/JCY0TAmq1kSNmVnZqOiWpy30Y\n7ExpFM+8T2itN49tWSFHlpb23aRpNoJG/+FIC8ZATPe1LsC2+b0sSqj2XIlg2ZHM\nflgPaFakhwKBgQC003061oPkvUAxkxYMljoDSZxSIKbfECFrUT12hD+tAG688B3+\nR6+/zustg4agYMEtp/I/MY4riQwE8Sl9J9TyRhbwWDrc3LApJkUMFKXXTNb/ba33\naUXDbW1mLTI1qbhxn675D6Cl8r4YZGjXz3aQL4hFdwkCaW0dT38e2PXGqQKBgBjs\n2HVR5bT0f14A6wA+14obGlfagQAEN1h8+PPGjg4lSj735Zz0Lj4jnaGD8UMJDeNV\nbWxE2glhY/Axj562tHGh2UKusbBEIiSbincSs215KqRNBoA1Gvt2ZDv8jvMCrDNr\nPoTiWbLC+rZQmlcXqvYiYTlCfz/5RRg/VLGk4GAdAoGAO8uQ1Wi5R2unrDf9Vclz\n+y+sY+lYz4B7v7D35CGoi8irPcdXn55vrJ/vHxobuRNuuV2vdJA+v/Ekrh/BjTtQ\nemn5FgzgtdGq1+M9+joQ5wI+uOJEgNvJ8eC2bpfgeSx9YHd6p6rM4Cy65Cg//Bol\nj82RPfdj98FiBkBOAGM+cMw=\n-----END PRIVATE KEY-----\n",
+  "client_email": "vertex-ai-app-etheria@etheria-480312.iam.gserviceaccount.com",
+  "client_id": "115502430372933320880",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/vertex-ai-app-etheria%40etheria-480312.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
