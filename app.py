@@ -1,15 +1,30 @@
 # app.py
-import sys, os, json
+import os
+import json
+import logging
+import streamlit as st
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
+# Ler secrets do Streamlit (retorna None se não existir)
 sa_json = st.secrets.get("GCP_SA_JSON")
-if sa_json:
-    p = "/tmp/gcp_sa.json"
-    with open(p, "w", encoding="utf-8") as f:
-        f.write(sa_json)
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = p
+project_id = st.secrets.get("GCP_PROJECT_ID", "etheria-480312")
+location = st.secrets.get("GENAI_LOCATION", "us-central1")
+model_name = st.secrets.get("GENAI_MODEL", "models/text-bison@001")
 
-import streamlit as st
+# Se o secret não existir, logue e continue (evita NameError)
+if not sa_json:
+    logging.warning("GCP_SA_JSON não encontrado em st.secrets; verifique Streamlit Secrets.")
+else:
+    # escrever credencial em arquivo temporário e definir variável de ambiente
+    cred_path = "/tmp/gcp_sa.json" if os.name != "nt" else os.path.join(os.environ["TEMP"], "gcp_sa.json")
+    with open(cred_path, "w", encoding="utf-8") as f:
+        f.write(sa_json)
+    try:
+        os.chmod(cred_path, 0o600)
+    except Exception:
+        pass
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
+
 import pandas as pd
 from etheria import cycles
 from etheria import astrology
@@ -19,8 +34,7 @@ from pandas.io.formats.style import Styler
 from datetime import date, datetime
 from typing import Optional, Dict, List, Any
 from etheria.personal_year import analyze_personal_year_from_dob
-
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Import loaders and cycles (assume pacote local etheria)
 from etheria.loaders import (
