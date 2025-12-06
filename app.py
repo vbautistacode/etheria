@@ -1,6 +1,13 @@
 # app.py
-import sys, os
+import sys, os, json
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
+sa_json = st.secrets.get("GCP_SA_JSON")
+if sa_json:
+    p = "/tmp/gcp_sa.json"
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(sa_json)
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = p
 
 import streamlit as st
 import pandas as pd
