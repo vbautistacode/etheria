@@ -1,0 +1,51 @@
+name: etheria
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy=2.2.5
+  - pandas=2.2.3
+  - scipy=1.15.2
+  - matplotlib=3.10.1
+  - plotly=6.0.1
+  - pytz=2025.2
+  - tzdata=2025.2
+  - pyswisseph=2.8.0        # conda-forge binary para swisseph
+  - pip:
+    - streamlit==1.44.1
+    - python-dotenv==1.2.1
+    - flatlib==0.2.3
+    - geopy==2.4.1
+    - timezonefinder==8.1.0
+    - python-dateutil==2.9.0.post0
+    - requests==2.32.3
+    - googlemaps==4.10.0
+    - google-genai==1.53.0
+    - pyarrow==19.0.1
+    - openpyxl==3.1.5
+    - pillow==11.2.1
+    - scikit-learn==1.6.1
+    - joblib==1.4.2
+    - pyodbc==5.2.0
+    - psycopg2-binary==2.9.10
+    - selenium==4.34.0
+    - tiktoken==0.12.0
+    - protobuf==5.29.4
+    - pydantic==2.12.5
+    - pydantic_core==2.41.5
+    - jsonschema==4.23.0
+    - watchdog==6.0.0
+    - websocket-client==1.8.0
+    - websockets==15.0.1
+    - anyio==4.12.0
+    - httpx==0.28.1
+    - urllib3==2.4.0
+    - packaging==24.2
+    - typing_extensions==4.14.1
+    - pyparsing==3.2.3
+    - plotly==6.0.1
+    - requests==2.32.3
+    - flatlib==0.2.3
+    - pyswisseph==2.8.0.post1  # redundância segura para pip resolver se necessário
