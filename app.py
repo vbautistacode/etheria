@@ -754,113 +754,113 @@ with tab_num:
     if st.session_state.get("dob"):
         dob_input = st.session_state["dob"]
 
-# --- Calcular e renderizar (Pitagórica usa master_min=11) ---
-# Garantir chaves em session_state (não sobrescreve valores já definidos)
-st.session_state.setdefault("full_name", "")
-st.session_state.setdefault("dob", None)
-st.session_state.setdefault("full_name_input", st.session_state.get("full_name", ""))
-st.session_state.setdefault("dob_input", st.session_state.get("dob", None))
-st.session_state.setdefault("num_keep_masters", True)
-st.session_state.setdefault("last_calc_error", None)
+    # --- Calcular e renderizar (Pitagórica usa master_min=11) ---
+    # Garantir chaves em session_state (não sobrescreve valores já definidos)
+    st.session_state.setdefault("full_name", "")
+    st.session_state.setdefault("dob", None)
+    st.session_state.setdefault("full_name_input", st.session_state.get("full_name", ""))
+    st.session_state.setdefault("dob_input", st.session_state.get("dob", None))
+    st.session_state.setdefault("num_keep_masters", True)
+    st.session_state.setdefault("last_calc_error", None)
 
-# Ler valores de forma tolerante: prioriza input local, depois sidebar/session
-full_name_val = st.session_state.get("full_name_input") or st.session_state.get("full_name") or ""
-dob_val = st.session_state.get("dob_input") or st.session_state.get("dob") or None
-keep_masters = st.session_state.get("num_keep_masters", True)
+    # Ler valores de forma tolerante: prioriza input local, depois sidebar/session
+    full_name_val = st.session_state.get("full_name_input") or st.session_state.get("full_name") or ""
+    dob_val = st.session_state.get("dob_input") or st.session_state.get("dob") or None
+    keep_masters = st.session_state.get("num_keep_masters", True)
 
-# Mensagem informativa se dados faltarem
-if not full_name_val or not dob_val:
-    st.info("Preencha nome e data no sidebar para ver a numerologia automaticamente.")
-else:
-    # Tentar calcular sem deixar exceções vazarem para a UI
-    try:
-        rpt = numerology.full_numerology_report(
-            full_name_val,
-            dob_val,
-            method="pythagorean",
-            keep_masters=keep_masters
-        )
-
-        # Header com principais números
-        c1, c2, c3 = st.columns([2, 3, 2])
-        with c1:
-            st.markdown("**Nome**")
-            st.write(rpt.get("full_name", "—"))
-            st.markdown("**Nascimento**")
-            st.write(rpt.get("dob", "—"))
-        with c2:
-            st.markdown("### Principais números")
-            cols = st.columns(4)
-            cols[0].metric("Caminho de Vida", rpt.get("life_path", {}).get("value", "—"))
-            cols[1].metric("Expressão", rpt.get("expression", {}).get("value", "—"))
-            cols[2].metric("Desejo da Alma", rpt.get("soul_urge", {}).get("value", "—"))
-            cols[3].metric("Personalidade", rpt.get("personality", {}).get("value", "—"))
-        with c3:
-            st.markdown("**Maturidade**")
-            maturity = rpt.get("maturity", {})
-            st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
-            st.markdown("**Influência Anual**")
-            st.write(rpt.get("annual_influence_by_name", {}).get("value", "—"))
-
-        st.markdown("---")
-        # Totais brutos (antes da redução)
-        st.markdown("**Totais brutos (antes da redução)**")
-        raw_cols = st.columns(3)
-        raw_cols[0].write(f"Expressão (bruto): {rpt.get('expression', {}).get('raw_total')}")
-        raw_cols[1].write(f"Desejo da Alma (bruto): {rpt.get('soul_urge', {}).get('raw_total')}")
-        raw_cols[2].write(f"Personalidade (bruto): {rpt.get('personality', {}).get('raw_total')}")
-
-        # Pinnacles / Períodos
-        st.markdown("#### Pinnacles / Períodos")
-        pinn = rpt.get("pinnacles", {})
-        st.table({
-            "Pinnacle": ["P1", "P2", "P3", "P4"],
-            "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-        })
-
-        # Personal (Ano / Mês / Dia)
-        st.markdown("#### Personal (Ano / Mês / Dia)")
-        personal = rpt.get("personal", {})
-        st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
-        st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
-        st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
-
-        # Interpretações detalhadas
-        st.markdown("### Interpretações")
-        for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
-            block = rpt.get(key, {})
-            label = block.get('number') or block.get('value') or "—"
-            with st.expander(f"{key.replace('_',' ').title()} — {label}"):
-                st.markdown(f"**Curto:** {block.get('short','—')}")
-                st.markdown(f"**Médio:** {block.get('medium','—')}")
-
-        # limpar erro anterior se sucesso
-        st.session_state["last_calc_error"] = None
-
-        # dentro do fluxo onde você tem dob (date object)
+    # Mensagem informativa se dados faltarem
+    if not full_name_val or not dob_val:
+        st.info("Preencha nome e data no sidebar para ver a numerologia automaticamente.")
+    else:
+        # Tentar calcular sem deixar exceções vazarem para a UI
         try:
-            today_year = datetime.now().year
-            ann_analysis = analyze_personal_year_from_dob(dob, target_year=today_year)
+            rpt = numerology.full_numerology_report(
+                full_name_val,
+                dob_val,
+                method="pythagorean",
+                keep_masters=keep_masters
+            )
+
+            # Header com principais números
+            c1, c2, c3 = st.columns([2, 3, 2])
+            with c1:
+                st.markdown("**Nome**")
+                st.write(rpt.get("full_name", "—"))
+                st.markdown("**Nascimento**")
+                st.write(rpt.get("dob", "—"))
+            with c2:
+                st.markdown("### Principais números")
+                cols = st.columns(4)
+                cols[0].metric("Caminho de Vida", rpt.get("life_path", {}).get("value", "—"))
+                cols[1].metric("Expressão", rpt.get("expression", {}).get("value", "—"))
+                cols[2].metric("Desejo da Alma", rpt.get("soul_urge", {}).get("value", "—"))
+                cols[3].metric("Personalidade", rpt.get("personality", {}).get("value", "—"))
+            with c3:
+                st.markdown("**Maturidade**")
+                maturity = rpt.get("maturity", {})
+                st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
+                st.markdown("**Influência Anual**")
+                st.write(rpt.get("annual_influence_by_name", {}).get("value", "—"))
 
             st.markdown("---")
-            st.markdown("### Análise do Número do Ano")
-            st.write(f"**Data:** {ann_analysis.get('date','—')}")
-            st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
-            st.markdown("**Resumo:**")
-            st.write(ann_analysis.get('short','—'))
-            st.markdown("**Detalhe:**")
-            st.write(ann_analysis.get('long','—'))
-        except Exception:
-            # falha na análise do aniversário não interrompe o restante
-            pass
+            # Totais brutos (antes da redução)
+            st.markdown("**Totais brutos (antes da redução)**")
+            raw_cols = st.columns(3)
+            raw_cols[0].write(f"Expressão (bruto): {rpt.get('expression', {}).get('raw_total')}")
+            raw_cols[1].write(f"Desejo da Alma (bruto): {rpt.get('soul_urge', {}).get('raw_total')}")
+            raw_cols[2].write(f"Personalidade (bruto): {rpt.get('personality', {}).get('raw_total')}")
 
-    except Exception as exc:
-        # Não mostrar traceback; registrar resumo e avisar o usuário de forma amigável
-        st.session_state["last_calc_error"] = str(exc)
-        st.warning("Não foi possível calcular a numerologia no momento. Verifique os dados e tente novamente.")
-        # opcional: mostrar dica para debug sem expor stack
-        if st.session_state.get("debug_influences"):
-            st.write("DEBUG: erro resumido:", st.session_state["last_calc_error"])
+            # Pinnacles / Períodos
+            st.markdown("#### Pinnacles / Períodos")
+            pinn = rpt.get("pinnacles", {})
+            st.table({
+                "Pinnacle": ["P1", "P2", "P3", "P4"],
+                "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
+            })
+
+            # Personal (Ano / Mês / Dia)
+            st.markdown("#### Personal (Ano / Mês / Dia)")
+            personal = rpt.get("personal", {})
+            st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
+            st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
+            st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
+
+            # Interpretações detalhadas
+            st.markdown("### Interpretações")
+            for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
+                block = rpt.get(key, {})
+                label = block.get('number') or block.get('value') or "—"
+                with st.expander(f"{key.replace('_',' ').title()} — {label}"):
+                    st.markdown(f"**Curto:** {block.get('short','—')}")
+                    st.markdown(f"**Médio:** {block.get('medium','—')}")
+
+            # limpar erro anterior se sucesso
+            st.session_state["last_calc_error"] = None
+
+            # dentro do fluxo onde você tem dob (date object)
+            try:
+                today_year = datetime.now().year
+                ann_analysis = analyze_personal_year_from_dob(dob, target_year=today_year)
+
+                st.markdown("---")
+                st.markdown("### Análise do Número do Ano")
+                st.write(f"**Data:** {ann_analysis.get('date','—')}")
+                st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
+                st.markdown("**Resumo:**")
+                st.write(ann_analysis.get('short','—'))
+                st.markdown("**Detalhe:**")
+                st.write(ann_analysis.get('long','—'))
+            except Exception:
+                # falha na análise do aniversário não interrompe o restante
+                pass
+
+        except Exception as exc:
+            # Não mostrar traceback; registrar resumo e avisar o usuário de forma amigável
+            st.session_state["last_calc_error"] = str(exc)
+            st.warning("Não foi possível calcular a numerologia no momento. Verifique os dados e tente novamente.")
+            # opcional: mostrar dica para debug sem expor stack
+            if st.session_state.get("debug_influences"):
+                st.write("DEBUG: erro resumido:", st.session_state["last_calc_error"])
 
 # --- Aba: Numerologia Cabalística (refatorado, defensivo) ---
 with tab_cabalistica:
