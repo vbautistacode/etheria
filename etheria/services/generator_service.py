@@ -21,7 +21,7 @@ from datetime import datetime, date
 
 # Importações de serviços do projeto (ajuste caminhos se necessário)
 from services.swisseph_client import natal_positions
-from .chart_builder import build_chart_summary_from_natal, build_prompt_from_chart_summary
+from .chart_builder import build_chart_summary_from_natal  # manter apenas summary-from-natal
 from .astro_service import geocode_place, get_timezone_from_coords, parse_birth_time, compute_chart_positions
 
 # Integrações externas (stubs/implementações no projeto)
@@ -30,12 +30,23 @@ from . import chart_renderer
 
 logger = logging.getLogger(__name__)
 
+# -------------------------
 # Configurações
+# -------------------------
 _CACHE_TTL_SECONDS = int(os.getenv("GENERATOR_CACHE_TTL", "300"))
 _RATE_LIMIT_MIN_INTERVAL = float(os.getenv("GENERATOR_RATE_MIN_INTERVAL", "0.5"))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
+# Modelo: prioriza envs compatíveis com app.py e este serviço
+GEMINI_MODEL_DEFAULT = "gemini-2.5-flash"
+GEMINI_MODEL = (
+    os.getenv("GEMINI_MODEL")
+    or os.getenv("GENAI_MODEL")
+    or GEMINI_MODEL_DEFAULT
+)
+
+# -------------------------
 # Estado para cache e rate limiting
+# -------------------------
 _cache_lock = threading.Lock()
 _cache: Dict[str, Dict[str, Any]] = {}
 _rate_lock = threading.Lock()
@@ -94,27 +105,39 @@ def _init_genai_client():
             raise RuntimeError("Biblioteca 'genai' não encontrada. Instale 'genai' ou 'google-genai'.")
 
     api_key = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+    # Unificar fallback de região
+    location = (
+        os.getenv("GOOGLE_CLOUD_LOCATION")
+        or os.getenv("GOOGLE_CLOUD_REGION")
+        or os.getenv("GENAI_LOCATION")
+        or "us-central1"
+    )
+
     use_vertex = str(os.getenv("GENAI_VERTEXAI", "")).lower() in ("1", "true", "yes")
     project = os.getenv("GOOGLE_CLOUD_PROJECT")
-    location = os.getenv("GOOGLE_CLOUD_LOCATION") or os.getenv("GOOGLE_CLOUD_REGION") or "us-central1"
     cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
+    # API key mode
     if api_key:
         try:
             try:
                 genai.configure(api_key=api_key)
             except Exception:
                 pass
+            logger.info("Inicializando genai.Client com API key.")
             return genai.Client(api_key=api_key)
         except Exception as e:
             raise RuntimeError("Falha ao inicializar genai.Client com API key: " + str(e)) from e
 
+    # Vertex mode
     if use_vertex:
         if not project:
             raise RuntimeError("Para usar Vertex AI defina GENAI_VERTEXAI=1 e GOOGLE_CLOUD_PROJECT.")
         if not cred_path or not os.path.exists(cred_path) or not os.access(cred_path, os.R_OK):
             raise RuntimeError(f"GOOGLE_APPLICATION_CREDENTIALS inválido ou inacessível: {cred_path}")
         try:
+            logger.info("Inicializando genai.Client para Vertex AI: project=%s, location=%s", project, location)
             return genai.Client(vertexai=True, project=project, location=location)
         except Exception as e:
             raise RuntimeError("Falha ao inicializar genai.Client para Vertex AI: " + str(e)) from e
@@ -244,6 +267,7 @@ def build_prompt_from_chart_summary(
     """
     Recebe um chart_summary estruturado (ou parcial) e monta o prompt final.
     Espera keys: place, bdate (date), btime (str), lat, lon, timezone, chart_positions (dict).
+    Nunca assume hora padrão: se faltou hora, deixa explícito no contexto.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
@@ -255,6 +279,7 @@ def build_prompt_from_chart_summary(
     lon = chart_summary.get("lon")
     timezone = chart_summary.get("timezone")
     chart_positions = chart_summary.get("chart_positions")
+    birth_time_estimated = chart_summary.get("birth_time_estimated", False)
 
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
     time_text = btime.strip() if btime and btime.strip() else "Hora de nascimento não informada"
@@ -264,17 +289,21 @@ def build_prompt_from_chart_summary(
         f"Data de nascimento: {date_text}\n"
         f"Hora de nascimento (local): {time_text}\n"
     )
+    if birth_time_estimated:
+        # Por política do projeto, não estimamos hora — mas se essa flag vier de entradas cruas, alertar
+        context += "Observação: a hora informada é inválida/indisponível; interpretação das casas/ASC pode ficar comprometida.\n"
     if lat is not None and lon is not None:
         context += f"Coordenadas: {lat:.6f}, {lon:.6f}\n"
     if timezone:
         context += f"Timezone: {timezone}\n"
 
-    positions_text = ""
     if chart_positions:
         positions_text = "\nPosições calculadas:\n"
         for k, v in chart_positions.items():
             positions_text += f"- {k}: {v}\n"
         positions_text += "\n"
+    else:
+        positions_text = "\nPosições calculadas: indisponíveis (verifique cidade/hora/timezone). Sem hora precisa, não há casas/ASC.\n\n"
 
     return context + positions_text + prompt_template
 
@@ -291,20 +320,55 @@ def prepare_chart_summary_from_inputs(
     """
     Faz geocode, timezone, parse de hora e cálculo de posições.
     Retorna dict com keys: place, bdate, btime, lat, lon, timezone, chart_positions.
+    Nunca assume hora padrão: se btime faltar/for inválida, retorna sem chart_positions.
     """
+    # Validação rígida de hora: o usuário SEMPRE deve informar.
+    if not btime or not str(btime).strip():
+        logger.error("Hora de nascimento não informada. place=%r bdate=%r", place, bdate)
+        return {
+            "place": place,
+            "bdate": bdate,
+            "btime": "",
+            "lat": None,
+            "lon": None,
+            "timezone": None,
+            "chart_positions": None,
+            "birth_time_estimated": False,
+        }
+
     lat, lon, display = geocode_place(place)
-    timezone = get_timezone_from_coords(lat, lon) if lat and lon else None
-    local_dt = parse_birth_time(btime, bdate, timezone) if btime else None
-    chart_positions = compute_chart_positions(lat, lon, local_dt, house_system) if lat and lon else None
+    if not (lat and lon):
+        logger.warning("Geocode falhou para '%s'; lat/lon indisponíveis.", place)
+
+    timezone = get_timezone_from_coords(lat, lon) if (lat and lon) else None
+    if (lat and lon) and not timezone:
+        logger.warning("Timezone não resolvido para coords (%s, %s).", lat, lon)
+
+    # Hora: não estimamos. Se parse falhar, retornamos sem posições.
+    local_dt: Optional[datetime] = None
+    try:
+        local_dt = parse_birth_time(str(btime).strip(), bdate, timezone) if timezone else None
+        if local_dt is None:
+            logger.error("Falha ao parsear hora/local_dt (timezone ausente ou inválida).")
+    except Exception as e:
+        logger.exception("Erro ao parsear hora de nascimento: %s", e)
+
+    chart_positions = None
+    if lat and lon and local_dt:
+        try:
+            chart_positions = compute_chart_positions(lat, lon, local_dt, house_system)
+        except Exception as e:
+            logger.exception("Erro ao calcular chart_positions: %s", e)
 
     return {
-        "place": display or place,
+        "place": (display or place),
         "bdate": bdate,
-        "btime": btime,
+        "btime": str(btime).strip(),
         "lat": lat,
         "lon": lon,
         "timezone": timezone,
         "chart_positions": chart_positions,
+        "birth_time_estimated": False,  # nunca estimamos
     }
 
 
@@ -322,14 +386,14 @@ def generate_ai_text_from_chart(
     Aceita:
       - chart_summary já estruturado (com chart_positions), ou
       - dict bruto retornado por natal_positions (contendo 'planets'), ou
-      - dict com keys 'place' e 'bdate' (inputs do usuário) para preparar o summary.
+      - dict com keys 'place' e 'bdate' e 'btime' (inputs do usuário) para preparar o summary.
     Retorna dict com keys: raw_text, error, prompt, chart_summary.
     """
     result: Dict[str, Any] = {"raw_text": None, "error": None, "prompt": None, "chart_summary": None}
 
-    target_model = model or os.getenv("GEMINI_MODEL") or GEMINI_MODEL
+    target_model = model or os.getenv("GEMINI_MODEL") or os.getenv("GENAI_MODEL") or GEMINI_MODEL
     if not target_model:
-        err = "Nenhum modelo configurado (GEMINI_MODEL)."
+        err = "Nenhum modelo configurado (GEMINI_MODEL/GENAI_MODEL)."
         logger.error(err)
         return {"raw_text": "", "error": err, "prompt": None, "chart_summary": None}
 
@@ -349,16 +413,25 @@ def generate_ai_text_from_chart(
             try:
                 chart_summary_struct = build_chart_summary_from_natal(chart_summary)
             except Exception:
-                # fallback: tentar extrair posições mínimas
+                logger.warning("Fallback: usando 'planets' como chart_positions.")
                 chart_summary_struct = {"chart_positions": chart_summary.get("planets")}
+            # garantir campos mínimos (se vierem no input)
+            chart_summary_struct.setdefault("place", chart_summary.get("place", ""))
+            chart_summary_struct.setdefault("bdate", chart_summary.get("bdate"))
+            chart_summary_struct.setdefault("btime", chart_summary.get("btime", ""))
+
         elif isinstance(chart_summary, dict) and chart_summary.get("place") and chart_summary.get("bdate"):
-            # inputs simples do usuário
+            # inputs simples do usuário — exigir btime válido
             chart_summary_struct = prepare_chart_summary_from_inputs(
                 place=chart_summary.get("place"),
                 bdate=chart_summary.get("bdate"),
                 btime=chart_summary.get("btime", ""),
                 house_system=chart_summary.get("house_system", "Placidus"),
             )
+            if not chart_summary_struct.get("btime"):
+                err = "Hora de nascimento não informada. A interpretação exige hora precisa."
+                logger.error(err)
+                return {"raw_text": "", "error": err, "prompt": None, "chart_summary": chart_summary_struct}
         else:
             chart_summary_struct = chart_summary
     except Exception as e:
@@ -385,6 +458,16 @@ def generate_ai_text_from_chart(
     try:
         prompt = build_prompt_from_chart_summary(chart_summary_struct, prompt_template=prompt_template)
         result["prompt"] = prompt
+        logger.debug("Prompt (head): %s", (prompt or "")[:500])
+        if not chart_summary_struct.get("chart_positions"):
+            logger.warning(
+                "Sem chart_positions. place=%r lat=%r lon=%r tz=%r btime=%r",
+                chart_summary_struct.get("place"),
+                chart_summary_struct.get("lat"),
+                chart_summary_struct.get("lon"),
+                chart_summary_struct.get("timezone"),
+                chart_summary_struct.get("btime"),
+            )
     except Exception as e:
         logger.exception("Erro ao montar prompt")
         return {"raw_text": "", "error": f"Erro ao montar prompt: {e}", "prompt": None, "chart_summary": chart_summary_struct}
@@ -455,6 +538,13 @@ def generate_analysis(chart_input: Dict[str, Any], prefer: str = "auto", text_on
         try:
             summary = chart_input.get("summary")
             if not summary and chart_input.get("place") and chart_input.get("bdate"):
+                # exigir hora
+                if not chart_input.get("btime"):
+                    result["error"] = (result.get("error") or "") + "; Hora de nascimento não informada."
+                    result["analysis_text"] = ""
+                    result["analysis_json"] = None
+                    result["source"] = "local_ai"
+                    return result
                 summary = prepare_chart_summary_from_inputs(chart_input.get("place"), chart_input.get("bdate"), chart_input.get("btime", ""))
             if summary:
                 model = kwargs.get("model") or kwargs.get("model_choice")
@@ -505,6 +595,12 @@ def generate_analysis(chart_input: Dict[str, Any], prefer: str = "auto", text_on
     try:
         summary = chart_input.get("summary")
         if not summary and chart_input.get("place") and chart_input.get("bdate"):
+            # exigir hora
+            if not chart_input.get("btime"):
+                result["error"] = (result.get("error") or "") + "; Hora de nascimento não informada."
+                result["analysis_text"] = ""
+                result["analysis_json"] = None
+                return result
             summary = prepare_chart_summary_from_inputs(chart_input.get("place"), chart_input.get("bdate"), chart_input.get("btime", ""))
         if summary:
             model = kwargs.get("model") or kwargs.get("model_choice")
