@@ -1325,7 +1325,7 @@ if use_ai:
                 chart_input = build_chart_input(summary)
 
                 # chamada com spinner; usar text_only=True para NÃO re-renderizar o mapa
-                with st.spinner("Gerando sua interpretação personalizada por IA Etheria..."):
+                with st.spinner("Gerando sua interpretação personalizada com IA Etheria..."):
                     try:
                         res = generator_service.generate_analysis(
                             chart_input,

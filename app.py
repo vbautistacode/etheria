@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 sa_json = st.secrets.get("GCP_SA_JSON")
 project_id = st.secrets.get("GCP_PROJECT_ID", "etheria-480312")
 location = st.secrets.get("GENAI_LOCATION", "us-central1")
-model_name = st.secrets.get("GENAI_MODEL", "models/text-bison@001")
+model_name = st.secrets.get("GENAI_MODEL", "gemini-2.5-flash")
 
 # Se o secret não existir, logue e continue (evita NameError)
 if not sa_json:

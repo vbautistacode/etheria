@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # Configurações
 _CACHE_TTL_SECONDS = int(os.getenv("GENERATOR_CACHE_TTL", "300"))
 _RATE_LIMIT_MIN_INTERVAL = float(os.getenv("GENERATOR_RATE_MIN_INTERVAL", "0.5"))
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 # Estado para cache e rate limiting
 _cache_lock = threading.Lock()
