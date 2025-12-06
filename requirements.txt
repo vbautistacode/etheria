@@ -15,6 +15,7 @@ cycler==0.12.1
 dotenv==0.9.9
 et_xmlfile==2.0.0
 Flask==3.1.0
+flatlib==0.2.3
 flatbuffers==25.9.23
 fonttools==4.57.0
 fsspec==2025.3.2
