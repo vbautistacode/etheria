@@ -19,3 +19,4 @@ __pycache__/
 etheria-480312-bb275bf290e9.json
 
 .streamlit/secrets.toml
+.creds/

@@ -9,6 +9,11 @@ import json
 from datetime import datetime, date, time as dtime
 from typing import Tuple, Optional, Dict, Any, List
 from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
+from pathlib import Path
+# Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 import plotly.graph_objects as go
@@ -769,8 +774,256 @@ st.markdown("<h1 style='text-align:left'>Mapa Astral ♎ </h1>", unsafe_allow_ht
 st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
 
 # -------------------- UI --------------------
+# mapa_astral.py
+
+# Interface de captura do mapa natal e integração com generator_service.
+# - Valida e normaliza inputs do usuário.
+# - Resolve geocode e timezone com fallback.
+# - Calcula posições (swisseph ou API) e gera summary.
+# - Reaproveita summary para chamar generator_service (texto/AI).
+# - Mantém estado em st.session_state e fornece mensagens claras ao usuário.
+
+
+import logging
+from datetime import datetime, date, time as dt_time
+from typing import Optional, Tuple, Dict, Any
+
+import streamlit as st
+
+# Imports do projeto (ajuste caminhos se necessário)
+from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart
+from services.swisseph_client import natal_positions  # se disponível
+# Funções utilitárias do projeto (assumidas existentes)
+# geocode_place_safe, geocode_place_nominatim, to_local_datetime, fetch_natal_chart,
+# generate_chart_summary, positions_table, compute_aspects, render_wheel_plotly,
+# interpretations, rules, influences, astrology
+from etheria.services.astro_service import geocode_place, get_timezone_from_coords, parse_birth_time, compute_chart_positions
+# Substituição para usar services.astro_service (não precisa de services.timezone_utils)
+from etheria.services.astro_service import parse_birth_time, get_timezone_from_coords
+import pytz
+from datetime import datetime, date, time as dt_time
+import logging
+
+logger = logging.getLogger(__name__)
+
+def to_local_datetime(bdate: date, btime: dt_time | str, timezone_str: str):
+    """
+    Converte data (bdate) e hora (btime) para datetime timezone-aware.
+    - btime pode ser datetime.time ou string (ex.: '14:30' ou '2:30 PM').
+    - timezone_str é algo como 'America/Sao_Paulo' (pode ser None).
+    Retorna datetime aware ou None se não for possível.
+    """
+    # Se timezone não informado, tentar resolver via get_timezone_from_coords foi feito antes;
+    if not timezone_str:
+        logger.debug("to_local_datetime: timezone_str ausente")
+        return None
+
+    # Se btime for string, delegar ao parse_birth_time (que já localiza)
+    try:
+        if isinstance(btime, str):
+            # parse_birth_time espera string, date e timezone
+            local_dt = parse_birth_time(btime, bdate, timezone_str)
+            return local_dt
+        elif isinstance(btime, dt_time):
+            try:
+                tz = pytz.timezone(timezone_str)
+            except Exception:
+                logger.exception("Timezone inválido em to_local_datetime: %s", timezone_str)
+                return None
+            naive = datetime.combine(bdate, btime)
+            return tz.localize(naive)
+        else:
+            logger.debug("to_local_datetime: tipo de btime inesperado: %s", type(btime))
+            return None
+    except Exception as e:
+        logger.exception("Erro em to_local_datetime: %s", e)
+        return None
+
+logger = logging.getLogger(__name__)
+
+# -------------------------
+# Utilitários locais
+# -------------------------
+def _is_arcano_text_block(text: str) -> bool:
+    """Heurística simples para detectar texto de arcano já presente."""
+    if not text:
+        return False
+    t = text.lower()
+    return "arcano" in t or "o arcano" in t or "a arcano" in t
+
+
+def enrich_summary_with_astrology(summary: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Garante que summary['readings'] tenha interpretações astrológicas por planeta.
+    - Normaliza chaves para canonical (via influences._to_canonical)
+    - Preenche sign/degree/longitude usando summary['planets'] quando disponível
+    - Gera interpretation_short/interpretation_long via interpretations.classic_for_planet
+      quando ausentes ou quando os textos existentes parecem ser apenas o arcano
+    Retorna o summary modificado.
+    """
+    if not summary or not isinstance(summary.get("readings"), dict):
+        return summary
+
+    readings = summary.get("readings", {})
+    planets_map = summary.get("planets", {}) or {}
+    normalized: Dict[str, Any] = {}
+
+    for raw_key, r in readings.items():
+        if not r:
+            continue
+        canonical = influences._to_canonical(raw_key)
+        rd = dict(r)  # cópia rasa
+
+        # preencher posição a partir de summary['planets'] por canonical ou raw_key
+        planet_entry = None
+        if planets_map.get(canonical):
+            planet_entry = planets_map.get(canonical)
+        elif planets_map.get(raw_key):
+            planet_entry = planets_map.get(raw_key)
+
+        if planet_entry:
+            lon_val = planet_entry.get("longitude") if isinstance(planet_entry, dict) else planet_entry
+            try:
+                lon = float(lon_val)
+                rd.setdefault("longitude", round(lon, 4))
+                # usar astrology.lon_to_sign_degree para preencher sign/degree/sign_index
+                try:
+                    sign, degree, sign_index = astrology.lon_to_sign_degree(lon)
+                    rd.setdefault("sign", sign)
+                    rd.setdefault("degree", round(degree, 4))
+                    rd.setdefault("sign_index", sign_index)
+                except Exception:
+                    rd.setdefault("degree", rd.get("degree"))
+            except Exception:
+                pass
+
+        # garantir campos de interpretação mínimos
+        short_text = rd.get("interpretation_short") or ""
+        long_text = rd.get("interpretation_long") or ""
+
+        arcano_present = bool(rd.get("arcano_info") or rd.get("arcano"))
+        arcano_like = _is_arcano_text_block(short_text) or _is_arcano_text_block(long_text)
+
+        need_astrology = False
+        if not short_text and not long_text:
+            need_astrology = True
+        elif arcano_present and arcano_like:
+            need_astrology = True
+
+        if need_astrology:
+            try:
+                classic = interpretations.classic_for_planet(summary, canonical)
+                rd["interpretation_short"] = rd.get("interpretation_short") or classic.get("short") or ""
+                rd["interpretation_long"] = rd.get("interpretation_long") or classic.get("long") or rd["interpretation_short"]
+            except Exception:
+                try:
+                    rd["interpretation_short"] = rd.get("interpretation_short") or rules.synthesize_export_text(summary, canonical, summary.get("name", "Consulente"))
+                    rd["interpretation_long"] = rd.get("interpretation_long") or rd["interpretation_short"]
+                except Exception:
+                    rd.setdefault("interpretation_short", "")
+                    rd.setdefault("interpretation_long", "")
+
+        normalized[canonical] = rd
+
+    summary["readings"] = normalized
+    return summary
+
+
+def _parse_time_string(t: str) -> Optional[dt_time]:
+    """
+    Normaliza a hora informada pelo usuário para datetime.time.
+    Aceita formatos: '14:30', '2:30 PM', '02:30pm', '1430', '2 PM', '2pm', '14', etc.
+    Retorna datetime.time ou None se não conseguir parsear.
+    """
+    if not t or not str(t).strip():
+        return None
+    s = str(t).strip()
+    s = " ".join(s.split())
+    fmts = [
+        "%H:%M", "%H.%M", "%H%M",
+        "%I:%M %p", "%I:%M%p", "%I %p", "%I%p",
+        "%I.%M %p", "%I.%M%p"
+    ]
+    for f in fmts:
+        try:
+            dt = datetime.strptime(s, f)
+            return dt.time()
+        except Exception:
+            continue
+    # tentativa manual
+    try:
+        low = s.lower().replace(".", "")
+        if low.endswith("am") or low.endswith("pm"):
+            num = low[:-2].strip()
+            ampm = low[-2:]
+            h = int(num)
+            if ampm == "pm" and h < 12:
+                h += 12
+            if ampm == "am" and h == 12:
+                h = 0
+            return dt_time(hour=h, minute=0)
+        if low.isdigit():
+            h = int(low)
+            if 0 <= h < 24:
+                return dt_time(hour=h, minute=0)
+    except Exception:
+        pass
+    return None
+
+
+def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
+    """
+    Tenta resolver lat/lon/timezone/address usando múltiplos provedores.
+    Retorna (lat, lon, tz_name, address). Pode retornar None para cada item se não resolvido.
+    """
+    lat = st.session_state.get("lat_manual")
+    lon = st.session_state.get("lon_manual")
+    tz_name = st.session_state.get("tz_manual")
+    address = None
+
+    if place and place.strip():
+        # Primeiro: geocode seguro (ex.: provider com API key)
+        try:
+            lat_r, lon_r, tz_r, address_r = geocode_place_safe(place)
+            if lat_r is not None and lon_r is not None:
+                return lat_r, lon_r, tz_r, address_r
+        except Exception as e:
+            logger.warning("geocode_place_safe falhou: %s", e)
+
+        # Fallback: Nominatim
+        try:
+            lat_r, lon_r, address_r = geocode_place_nominatim(place)
+            try:
+                from timezonefinder import TimezoneFinder
+                tf = TimezoneFinder()
+                tz_r = tf.timezone_at(lat=lat_r, lng=lon_r) or st.session_state.get("tz_manual")
+            except Exception:
+                tz_r = st.session_state.get("tz_manual")
+            if lat_r is not None and lon_r is not None:
+                return lat_r, lon_r, tz_r, address_r
+        except Exception as e:
+            logger.warning("geocode_place_nominatim falhou: %s", e)
+
+    # Se não conseguiu, retornar valores manuais (podem ser None)
+    return lat, lon, tz_name, address
+
+
+# -------------------------
+# UI: formulário lateral
+# -------------------------
+HOUSE_CHOICES = [
+    ("Placidus", "P"),
+    ("Koch", "K"),
+    ("Campanus", "C"),
+    ("Porphyry", "O"),
+    ("Equal", "E"),
+    ("Whole Sign", "W"),
+    ("Regiomontanus", "R")
+]
+house_labels = [f"{name} ({code})" for name, code in HOUSE_CHOICES]
+HOUSE_NAME_MAP = {code: name for name, code in HOUSE_CHOICES}
+
 with st.sidebar:
-    
     with st.form("birth_form_sidebar", border=False):
         name = st.text_input("Nome", value="")
         place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="Santo André, São Paulo, Brasil")
@@ -778,246 +1031,152 @@ with st.sidebar:
         btime_free = st.text_input("Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)", value="")
         source = st.radio("Fonte de cálculo", ["swisseph", "api"], index=0)
 
-        HOUSE_CHOICES = [
-            ("Placidus", "P"),
-            ("Koch", "K"),
-            ("Campanus", "C"),
-            ("Porphyry", "O"),
-            ("Equal", "E"),
-            ("Whole Sign", "W"),
-            ("Regiomontanus", "R")
-        ]
-        house_labels = [f"{n} ({c})" for n, c in HOUSE_CHOICES]
-        HOUSE_NAME_MAP = {code: name for name, code in HOUSE_CHOICES}
-        HOUSE_CODE_MAP = {code: code for _, code in HOUSE_CHOICES}
-
-        default_index = next(
-            (i for i, (_, code) in enumerate(HOUSE_CHOICES)
-             if code == st.session_state.get("house_system", "P")),
-            0
-        )
-        selected_label = st.selectbox(
-            "Sistema de casas",
-            house_labels,
-            index=default_index,
-            help="Escolha o sistema de casas."
-        )
+        default_code = st.session_state.get("house_system", "P")
+        default_index = next((i for i, (_, code) in enumerate(HOUSE_CHOICES) if code == default_code), 0)
+        selected_label = st.selectbox("Sistema de casas", house_labels, index=default_index, help="Escolha o sistema de casas.")
         selected_code = selected_label.split("(")[-1].strip(")")
         st.session_state["house_system"] = selected_code
         st.write("Sistema selecionado:", HOUSE_NAME_MAP.get(selected_code, selected_code))
 
         submitted = st.form_submit_button("Gerar Mapa")
 
-    # --- processamento após submit (Parte 3 logic) ---
-    if submitted:
-        # hora
-        parsed_free = parse_time_input(btime_free)
-        if parsed_free:
-            btime = parsed_free
-        else:
-            btime = btime_free
+# -------------------------
+# Processamento após submit
+# -------------------------
+if submitted:
+    # 1) Normalizar e validar hora (obrigatória)
+    parsed_time = _parse_time_string(btime_free)
+    if parsed_time is None:
+        st.error("Hora de nascimento inválida ou não informada. Por favor informe no formato 'HH:MM' ou '2:30 PM'.")
+    else:
+        btime = parsed_time  # datetime.time
 
-        # geocoding
-        lat = st.session_state.get("lat_manual")
-        lon = st.session_state.get("lon_manual")
-        tz_name = st.session_state.get("tz_manual")
-        address = None
+        # 2) Resolver local/coords/timezone
+        lat, lon, tz_name, address = _resolve_place_and_tz(place)
+        # salvar valores resolvidos na sessão para reutilização
+        if lat is not None:
+            st.session_state["lat"] = lat
+        if lon is not None:
+            st.session_state["lon"] = lon
+        if tz_name:
+            st.session_state["tz_name"] = tz_name
+        if address:
+            st.session_state["address"] = address
 
-        if place and place.strip():
-            if GEOCODE_AVAILABLE:
-                try:
-                    lat, lon, tz_name, address = geocode_place_safe(place)
-                    st.session_state["lat"] = lat
-                    st.session_state["lon"] = lon
-                    st.session_state["tz_name"] = tz_name
-                    st.session_state["address"] = address
-                    st.success("Local encontrado automaticamente")
-                except Exception as e:
-                    logger.warning("geopy falhou: %s", e)
-                    try:
-                        lat, lon, address = geocode_place_nominatim(place)
-                        try:
-                            from timezonefinder import TimezoneFinder
-                            tf = TimezoneFinder()
-                            tz_name = tf.timezone_at(lat=lat, lng=lon) or st.session_state.get("tz_manual")
-                        except Exception:
-                            tz_name = st.session_state.get("tz_manual")
-                        st.session_state["lat"] = lat
-                        st.session_state["lon"] = lon
-                        st.session_state["tz_name"] = tz_name
-                        st.session_state["address"] = address
-                        st.success("Local encontrado via Nominatim")
-                    except Exception as e2:
-                        logger.warning("Nominatim fallback falhou: %s", e2)
-                        st.warning("Não foi possível resolver o local automaticamente. Usando valores manuais.")
-                        lat = st.session_state.get("lat_manual")
-                        lon = st.session_state.get("lon_manual")
-                        tz_name = st.session_state.get("tz_manual")
-            else:
-                try:
-                    lat, lon, address = geocode_place_nominatim(place)
-                    try:
-                        from timezonefinder import TimezoneFinder
-                        tf = TimezoneFinder()
-                        tz_name = tf.timezone_at(lat=lat, lng=lon) or st.session_state.get("tz_manual")
-                    except Exception:
-                        tz_name = st.session_state.get("tz_manual")
-                    st.session_state["lat"] = lat
-                    st.session_state["lon"] = lon
-                    st.session_state["tz_name"] = tz_name
-                    st.session_state["address"] = address
-                    st.success("Local encontrado via Nominatim")
-                except Exception as e:
-                    logger.warning("Nominatim falhou: %s", e)
-                    st.warning("Não foi possível resolver o local automaticamente. Usando valores manuais.")
-                    lat = st.session_state.get("lat_manual")
-                    lon = st.session_state.get("lon_manual")
-                    tz_name = st.session_state.get("tz_manual")
-        else:
-            lat = st.session_state.get("lat_manual")
-            lon = st.session_state.get("lon_manual")
-            tz_name = st.session_state.get("tz_manual")
-
-        # validação
-        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        # 3) Validar lat/lon
+        if lat is None or lon is None:
+            st.warning("Latitude/Longitude não resolvidas automaticamente. Informe manualmente ou corrija o local.")
+            # não prosseguir com cálculo local; permitir que usuário corrija
+        elif not (-90 <= lat <= 90 and -180 <= lon <= 180):
             st.error("Latitude/Longitude inválidas. Corrija os valores antes de gerar o mapa.")
-            st.stop()
+        else:
+            # 4) Construir datetime local (timezone-aware preferencialmente)
+            try:
+                dt_local = to_local_datetime(bdate, btime, tz_name)
+                if dt_local is None:
+                    raise ValueError("to_local_datetime retornou None")
+            except Exception as e:
+                logger.warning("to_local_datetime falhou: %s", e)
+                st.warning(f"Falha ao aplicar timezone '{tz_name}'. Verifique o timezone. Não será possível calcular posições precisas sem timezone.")
+                dt_local = None
 
-        # datetime local
-        try:
-            dt_local = to_local_datetime(bdate, btime, tz_name)
-        except Exception as e:
-            logger.warning("to_local_datetime falhou: %s", e)
-            st.warning(f"Falha ao aplicar timezone '{tz_name}'. Usando datetime sem tz.")
-            dt_local = datetime.combine(bdate, btime)
+            # 5) Obter posições (swisseph ou API)
+            planets = {}
+            cusps = []
+            data = None
+            try:
+                if source == "api":
+                    if dt_local is None:
+                        st.error("Não é possível usar a fonte 'api' sem um datetime local válido com timezone.")
+                    else:
+                        with st.spinner("Buscando mapa via API..."):
+                            data = fetch_natal_chart(name, dt_local, lat, lon, tz_name)
+                            planets = data.get("planets") or {}
+                            cusps = data.get("cusps") or []
+                else:
+                    if dt_local is None:
+                        st.error("Não é possível calcular localmente sem datetime timezone-aware. Ajuste o timezone.")
+                    else:
+                        with st.spinner("Calculando mapa local (swisseph)..."):
+                            data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
+                            planets = data.get("planets", {})
+                            cusps = data.get("cusps", [])
+            except Exception as e:
+                logger.exception("Erro ao obter posições natales: %s", e)
+                st.error("Erro ao calcular posições natales. Verifique dependências (pyswisseph) ou tente a opção 'api'.")
 
-        # obter posições
-        try:
-            if source == "api":
-                data = fetch_natal_chart(name, dt_local, lat, lon, tz_name)
-                planets = data.get("planets") or {}
-                cusps = data.get("cusps") or []
+            # 6) Se obtivemos planets, gerar summary e enriquecer
+            if planets:
+                try:
+                    table = positions_table(planets)
+                    aspects = compute_aspects(planets)
+                    summary = generate_chart_summary(planets, name or "Consulente", bdate)
+                    summary["table"] = table
+                    summary["cusps"] = cusps
+                    summary["aspects"] = aspects
+                    # preencher campos úteis no summary
+                    summary.setdefault("place", place)
+                    summary.setdefault("bdate", bdate)
+                    summary.setdefault("btime", btime)
+                    summary.setdefault("lat", lat)
+                    summary.setdefault("lon", lon)
+                    summary.setdefault("timezone", tz_name)
+                    # enriquecer leituras se necessário
+                    summary = enrich_summary_with_astrology(summary)
+                except Exception as e:
+                    logger.exception("Erro ao gerar summary: %s", e)
+                    st.error("Erro ao processar dados astrológicos.")
+                    summary = None
+
+                # 7) Renderizar figura e salvar em session_state
+                if summary:
+                    try:
+                        fig = render_wheel_plotly(summary.get("planets", {}), [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else [])
+                        st.session_state["map_fig"] = fig
+                        st.session_state["map_summary"] = summary
+                        st.session_state["map_ready"] = True
+                        st.success("Mapa gerado e salvo em sessão")
+                    except Exception as e:
+                        logger.exception("Erro ao renderizar figura: %s", e)
+                        st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")
+                        st.session_state["map_ready"] = False
+                        st.session_state["map_fig"] = None
+
+                    # 8) Montar chart_input e chamar generator_service (texto)
+                    chart_input = {
+                        "name": name,
+                        "place": summary.get("place") or place,
+                        "bdate": bdate,
+                        "btime": btime,
+                        "lat": lat,
+                        "lon": lon,
+                        "timezone": tz_name,
+                        "summary": summary,
+                        "house_system": st.session_state.get("house_system", "P"),
+                    }
+                    res = generate_analysis(chart_input, prefer="auto", text_only=True)
+
+                    try:
+                        with st.spinner("Gerando interpretação astrológica..."):
+                            res = generate_analysis(chart_input, prefer="auto", text_only=True)
+                    except Exception as e:
+                        logger.exception("Erro ao chamar generate_analysis: %s", e)
+                        st.error(f"Erro ao gerar interpretação: {e}")
+                    else:
+                        if res.get("error"):
+                            st.error(res["error"])
+                        else:
+                            analysis_text = res.get("analysis_text", "")
+                            if analysis_text:
+                                st.markdown("### Interpretação gerada")
+                                st.markdown(analysis_text)
+                            else:
+                                st.info("Nenhuma interpretação retornada pelo serviço.")
+                else:
+                    st.warning("Resumo do mapa não pôde ser gerado; verifique logs.")
             else:
-                data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
-                planets = data.get("planets", {})
-                cusps = data.get("cusps", [])
-        except Exception as e:
-            logger.exception("Erro ao obter posições natales: %s", e)
-            st.error("Erro ao calcular posições natales. Verifique dependências (pyswisseph) ou tente a opção 'api'.")
-            st.stop()
+                st.warning("Não foi possível obter posições planetárias. Verifique timezone, lat/lon e hora informada.")
 
-        # montar summary
-        try:
-            table = positions_table(planets)
-            aspects = compute_aspects(planets)
-            summary = generate_chart_summary(planets, name or "Consulente", bdate)
-        except Exception as e:
-            logger.exception("Erro ao gerar summary: %s", e)
-            st.error("Erro ao processar dados astrológicos.")
-            st.stop()
-
-            def _is_arcano_text_block(text: str) -> bool:
-                """Heurística simples para detectar texto de arcano já presente."""
-                if not text:
-                    return False
-                t = text.lower()
-                return "arcano" in t or "o arcano" in t or "a arcano" in t
-
-            def enrich_summary_with_astrology(summary: Dict[str, Any]) -> Dict[str, Any]:
-                """
-                Garante que summary['readings'] tenha interpretações astrológicas por planeta.
-                - Normaliza chaves para canonical (via influences._to_canonical)
-                - Preenche sign/degree/longitude usando summary['planets'] quando disponível
-                - Gera interpretation_short/interpretation_long via interpretations.classic_for_planet
-                quando ausentes ou quando os textos existentes parecem ser apenas o arcano
-                Retorna o summary modificado.
-                """
-                if not summary or not isinstance(summary.get("readings"), dict):
-                    return summary
-
-                readings = summary.get("readings", {})
-                planets_map = summary.get("planets", {}) or {}
-                normalized: Dict[str, Any] = {}
-
-                for raw_key, r in readings.items():
-                    if not r:
-                        continue
-                    canonical = influences._to_canonical(raw_key)
-                    rd = dict(r)  # cópia rasa
-
-                    # preencher posição a partir de summary['planets'] por canonical ou raw_key
-                    planet_entry = None
-                    if planets_map.get(canonical):
-                        planet_entry = planets_map.get(canonical)
-                    elif planets_map.get(raw_key):
-                        planet_entry = planets_map.get(raw_key)
-
-                    if planet_entry:
-                        lon_val = planet_entry.get("longitude") if isinstance(planet_entry, dict) else planet_entry
-                        try:
-                            lon = float(lon_val)
-                            rd.setdefault("longitude", round(lon, 4))
-                            # usar astrology.lon_to_sign_degree para preencher sign/degree/sign_index
-                            try:
-                                sign, degree, sign_index = astrology.lon_to_sign_degree(lon)
-                                rd.setdefault("sign", sign)
-                                rd.setdefault("degree", round(degree, 4))
-                                rd.setdefault("sign_index", sign_index)
-                            except Exception:
-                                # se astrology falhar, manter valores existentes ou apenas longitude
-                                rd.setdefault("degree", rd.get("degree"))
-                        except Exception:
-                            # não conseguiu parsear longitude; manter o que já existe
-                            pass
-
-                    # garantir campos de interpretação mínimos
-                    short_text = rd.get("interpretation_short") or ""
-                    long_text = rd.get("interpretation_long") or ""
-
-                    # detectar se os textos existentes são apenas o arcano; se sim, gerar astrológico
-                    arcano_present = bool(rd.get("arcano_info") or rd.get("arcano"))
-                    arcano_like = _is_arcano_text_block(short_text) or _is_arcano_text_block(long_text)
-
-                    need_astrology = False
-                    if not short_text and not long_text:
-                        need_astrology = True
-                    elif arcano_present and arcano_like:
-                        need_astrology = True
-
-                    if need_astrology:
-                        # gerar via interpretations.classic_for_planet (usa templates/rules)
-                        try:
-                            classic = interpretations.classic_for_planet(summary, canonical)
-                            rd["interpretation_short"] = rd.get("interpretation_short") or classic.get("short") or ""
-                            rd["interpretation_long"] = rd.get("interpretation_long") or classic.get("long") or rd["interpretation_short"]
-                        except Exception:
-                            # fallback simples via rules.synthesize_export_text (curto)
-                            try:
-                                rd["interpretation_short"] = rd.get("interpretation_short") or rules.synthesize_export_text(summary, canonical, summary.get("name", "Consulente"))
-                                rd["interpretation_long"] = rd.get("interpretation_long") or rd["interpretation_short"]
-                            except Exception:
-                                rd.setdefault("interpretation_short", "")
-                                rd.setdefault("interpretation_long", "")
-
-                    # preservar arcano_info e demais campos; salvar com chave canonical
-                    normalized[canonical] = rd
-
-                # substituir readings no summary e retornar
-                summary["readings"] = normalized
-                return summary
-
-        # gerar figura UMA VEZ e salvar em session_state
-        try:
-            fig = render_wheel_plotly(summary.get("planets", {}), [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else [])
-            st.session_state["map_fig"] = fig
-            st.session_state["map_summary"] = summary
-            st.session_state["map_ready"] = True
-            st.success("Mapa gerado e salvo em sessão")
-        except Exception as e:
-            logger.exception("Erro ao renderizar figura: %s", e)
-            st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")
-            st.session_state["map_ready"] = False
-            st.session_state["map_fig"] = None
 
 # -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
 

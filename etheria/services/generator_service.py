@@ -93,9 +93,6 @@ def _make_cache_key(model: str, payload: Any) -> str:
 # GenAI client + SDK caller
 # -------------------------
 def _init_genai_client():
-    """
-    Inicializa genai.Client (API key ou Vertex). Lança RuntimeError em falha.
-    """
     try:
         import genai
     except Exception:
@@ -106,7 +103,6 @@ def _init_genai_client():
 
     api_key = os.getenv("GENAI_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 
-    # Unificar fallback de região
     location = (
         os.getenv("GOOGLE_CLOUD_LOCATION")
         or os.getenv("GOOGLE_CLOUD_REGION")
@@ -118,32 +114,29 @@ def _init_genai_client():
     project = os.getenv("GOOGLE_CLOUD_PROJECT")
     cred_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
-    # API key mode
     if api_key:
         try:
             try:
                 genai.configure(api_key=api_key)
             except Exception:
                 pass
-            logger.info("Inicializando genai.Client com API key.")
+            logger.info("Inicializando genai.Client (API key).")
             return genai.Client(api_key=api_key)
         except Exception as e:
             raise RuntimeError("Falha ao inicializar genai.Client com API key: " + str(e)) from e
 
-    # Vertex mode
     if use_vertex:
         if not project:
             raise RuntimeError("Para usar Vertex AI defina GENAI_VERTEXAI=1 e GOOGLE_CLOUD_PROJECT.")
         if not cred_path or not os.path.exists(cred_path) or not os.access(cred_path, os.R_OK):
             raise RuntimeError(f"GOOGLE_APPLICATION_CREDENTIALS inválido ou inacessível: {cred_path}")
         try:
-            logger.info("Inicializando genai.Client para Vertex AI: project=%s, location=%s", project, location)
+            logger.info("Inicializando genai.Client (Vertex): project=%s, location=%s", project, location)
             return genai.Client(vertexai=True, project=project, location=location)
         except Exception as e:
             raise RuntimeError("Falha ao inicializar genai.Client para Vertex AI: " + str(e)) from e
 
     raise RuntimeError("Defina GENAI_API_KEY (modo API) ou GENAI_VERTEXAI=1 com GOOGLE_CLOUD_PROJECT.")
-
 
 def _extract_text_from_response(resp) -> str:
     """Extrai texto de várias formas de resposta do SDK."""
@@ -249,6 +242,11 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
 # Prompt template e builder
 # -------------------------
 DEFAULT_PROMPT = (
+    "A partir dos dados de:\n"
+    "Cidade: {place}\n"
+    "Data de nascimento: {bdate}\n"
+    "Hora de nascimento (local): {btime}\n\n"
+    "Interprete o meu mapa astral:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: ASC, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
     "3) Interprete o posicionamento da segunda tríade de planetas pessoais, com o detalhe de cada casa: Marte, Mercúrio e Vênus (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -259,54 +257,54 @@ DEFAULT_PROMPT = (
     "Por favor, responda apenas com o texto interpretativo numerado conforme as seções acima."
 )
 
-
 def build_prompt_from_chart_summary(
     chart_summary: Dict[str, Any],
     prompt_template: Optional[str] = None,
 ) -> str:
     """
-    Recebe um chart_summary estruturado (ou parcial) e monta o prompt final.
-    Espera keys: place, bdate (date), btime (str), lat, lon, timezone, chart_positions (dict).
-    Nunca assume hora padrão: se faltou hora, deixa explícito no contexto.
+    Monta o prompt final. Substitui placeholders {place},{bdate},{btime} no template.
+    Anexa 'Posições calculadas' quando chart_positions estiver disponível.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
 
-    place = chart_summary.get("place", "")
+    place = chart_summary.get("place", "") or ""
     bdate = chart_summary.get("bdate")
     btime = chart_summary.get("btime", "") or ""
     lat = chart_summary.get("lat")
     lon = chart_summary.get("lon")
     timezone = chart_summary.get("timezone")
     chart_positions = chart_summary.get("chart_positions")
-    birth_time_estimated = chart_summary.get("birth_time_estimated", False)
 
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
-    time_text = btime.strip() if btime and btime.strip() else "Hora de nascimento não informada"
+    time_text = str(btime).strip() if btime else "Hora não informada"
 
-    context = (
-        f"Cidade de nascimento: {place}\n"
-        f"Data de nascimento: {date_text}\n"
-        f"Hora de nascimento (local): {time_text}\n"
-    )
-    if birth_time_estimated:
-        # Por política do projeto, não estimamos hora — mas se essa flag vier de entradas cruas, alertar
-        context += "Observação: a hora informada é inválida/indisponível; interpretação das casas/ASC pode ficar comprometida.\n"
+    # Formata o template com os dados básicos (se o template tiver placeholders)
+    try:
+        prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
+    except Exception:
+        # Se o template não for formatável, concatena manualmente
+        header = f"Cidade: {place}\nData de nascimento: {date_text}\nHora de nascimento (local): {time_text}\n\n"
+        prompt_body = header + prompt_template
+
+    # Anexa coordenadas/timezone se houver
+    context_extra = ""
     if lat is not None and lon is not None:
-        context += f"Coordenadas: {lat:.6f}, {lon:.6f}\n"
+        context_extra += f"Coordenadas: {lat:.6f}, {lon:.6f}\n"
     if timezone:
-        context += f"Timezone: {timezone}\n"
+        context_extra += f"Timezone: {timezone}\n"
 
+    # Anexa posições calculadas (se houver)
+    positions_text = ""
     if chart_positions:
         positions_text = "\nPosições calculadas:\n"
         for k, v in chart_positions.items():
             positions_text += f"- {k}: {v}\n"
         positions_text += "\n"
     else:
-        positions_text = "\nPosições calculadas: indisponíveis (verifique cidade/hora/timezone). Sem hora precisa, não há casas/ASC.\n\n"
+        positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
-    return context + positions_text + prompt_template
-
+    return context_extra + positions_text + prompt_body
 
 # -------------------------
 # Preparação do chart a partir de inputs simples
@@ -370,7 +368,6 @@ def prepare_chart_summary_from_inputs(
         "chart_positions": chart_positions,
         "birth_time_estimated": False,  # nunca estimamos
     }
-
 
 # -------------------------
 # Função principal: gerar texto via GenAI
