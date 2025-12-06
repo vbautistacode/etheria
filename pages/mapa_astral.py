@@ -8,6 +8,7 @@ import traceback
 import json
 from datetime import datetime, date, time as dtime
 from typing import Tuple, Optional, Dict, Any, List
+from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
 
 import streamlit as st
 import plotly.graph_objects as go

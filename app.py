@@ -876,7 +876,10 @@ with tab_cabalistica:
         full_name = st.session_state["full_name"]
     else:
         # usar valor do input local (já definido acima)
-        full_name = full_name_input_c or st.session_state.get("numc_full_name", "")
+        try:
+            full_name = full_name_input_c
+        except NameError:
+            full_name = st.session_state.get("numc_full_name", "")
 
     if st.session_state.get("dob"):
         dob = st.session_state["dob"]

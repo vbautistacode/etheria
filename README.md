@@ -53,10 +53,5 @@ pip install -r requirements.txt
 # ou instale manualmente
 pip install geopy timezonefinder plotly pytz pyswisseph streamlit
 
-# configurar credenciais (local)
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/sa.json"
-export GOOGLE_CLOUD_PROJECT="etheria-480312"
-export GOOGLE_CLOUD_LOCATION="us-central1"
-
 Custo de criação e implantação de modelos de IA na Vertex AI
 https://cloud.google.com/vertex-ai/generative-ai/pricing?hl=pt-br&_gl=1*fg9ai9*_ga*MTMzNjA1OTU2LjE3NjQ5Mzg2NDQ.*_ga_WH2QY8WWF5*czE3NjQ5NjQwMjAkbzUkZzEkdDE3NjQ5NjQwMjUkajU1JGwwJGgw
