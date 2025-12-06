@@ -62,7 +62,7 @@ pyinstaller-hooks-contrib==2025.3
 pyodbc==5.2.0
 pyparsing==3.2.3
 PySocks==1.7.1
-pyswisseph==2.08.00-1
+pyswisseph==2.08.0.post1
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
 pytz==2025.2
