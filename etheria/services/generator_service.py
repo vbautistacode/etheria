@@ -284,6 +284,21 @@ def _call_gemini_sdk(
     _init_genai_client = globals().get("_init_genai_client")
     _extract_text_from_response = globals().get("_extract_text_from_response")
 
+
+
+    logger.debug("DEBUG tipo prompt: %s", type(prompt))
+    logger.debug("DEBUG prompt preview (trunc 8000): %s", str(prompt)[:8000])
+    if not isinstance(prompt, str):
+        logger.error("PROMPT NÃO É STRING ao chamar SDK: %s", type(prompt))
+    
+    logger.debug("SDK branches: models=%s responses=%s generate=%s",
+             hasattr(client, "models") and hasattr(client.models, "generate_content"),
+             hasattr(client, "responses") and hasattr(client.responses, "create"),
+             hasattr(client, "generate"))
+
+    logger.debug("Resposta bruta SDK (preview): %s", str(resp)[:4000])
+
+
     # aplicar rate limit se disponível
     if callable(_rate_limit_wait):
         try:
