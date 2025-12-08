@@ -389,8 +389,8 @@ def _call_gemini_sdk(
 # Prompt template e builder
 # -------------------------
 DEFAULT_PROMPT = (
-    "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree e house.\n\n"
+    "A partir das posições calculadas, gere uma interpretação do mapa astral:\n\n"
+    "Lista de planetas com campos planet, longitude, sign, degree e house.\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
