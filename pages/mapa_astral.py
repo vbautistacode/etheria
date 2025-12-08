@@ -1424,8 +1424,18 @@ if use_ai:
         model_choice = st.selectbox("Modelo IA", options=["gemini-2.5-flash", "gemini-default"], index=0)
         st.write("Revise as posições no preview antes de enviar para a IA.")
         
-        logger.debug("TYPE prompt before SDK call: %s", type(prompt))
-        logger.debug("PROMPT FINAL (preview, truncated): %s", str(prompt)[:8000])
+        # em vez de: logger.debug("TYPE prompt before SDK call: %s", type(prompt))
+
+        if "prompt" in locals() or "prompt" in globals():
+            try:
+                logger.debug("TYPE prompt before SDK call: %s", type(prompt))
+                logger.debug("PROMPT preview (trunc): %s", str(prompt)[:4000])
+            except Exception:
+                # evitar que logging quebre o fluxo
+                logger.exception("Erro ao logar prompt")
+        else:
+            logger.debug("Variável 'prompt' não definida no escopo no momento do log.")
+
 
         # preparar preview_positions normalizado a partir do summary
         preview_table = summary.get("table", []) if summary else []
