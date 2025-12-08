@@ -291,23 +291,6 @@ def _call_gemini_sdk(
         except Exception:
             logger.debug("Rate limit wait falhou ou não implementado", exc_info=True)
 
-
-                        # 1) confirmar tipo do prompt
-            logger.debug("DEBUG: tipo do prompt recebido por _call_gemini_sdk: %s", type(prompt))
-
-            # 2) mostrar preview truncado do prompt que será enviado
-            try:
-                logger.debug("DEBUG: prompt (preview 8000 chars): %s", str(prompt)[:8000])
-            except Exception:
-                logger.exception("DEBUG: falha ao converter prompt para str")
-
-            # 3) confirmar que, se for dict, contém chart_positions
-            if isinstance(prompt, dict):
-                logger.debug("DEBUG: dict keys: %s", list(prompt.keys()))
-                if "chart_positions" in prompt:
-                    logger.debug("DEBUG: chart_positions type: %s", type(prompt['chart_positions']))
-
-
     client = None
     if callable(_init_genai_client):
         try:
@@ -315,26 +298,92 @@ def _call_gemini_sdk(
         except Exception as e:
             logger.debug("Falha ao inicializar genai client: %s", e, exc_info=True)
 
-    # Helper: monta bloco curto de posições (textual)
-    def _positions_block_from_records(records: List[Dict[str, Any]]) -> str:
-        lines = ["Posições (planet, longitude, sign, degree, house):"]
-        for r in records or []:
-            planet = r.get("planet") or r.get("name") or ""
-            lon = r.get("longitude", r.get("lon", ""))
-            sign = r.get("sign", "") or ""
-            degree = r.get("degree", r.get("deg", ""))
-            house = r.get("house", r.get("casa", ""))
+    # --- coercion defensiva: garantir prompt string com bloco de posições ---
+def _positions_block_from_records(records):
+    lines = ["Posições (planet, longitude, sign, degree, house):"]
+    for r in records or []:
+        planet = r.get("planet") or r.get("name") or ""
+        lon = r.get("longitude", r.get("lon", ""))
+        sign = r.get("sign", "")
+        degree = r.get("degree", r.get("deg", ""))
+        house = r.get("house", r.get("casa", ""))
+        try:
+            lon_s = f"{float(lon):.6f}" if lon not in (None, "") else ""
+        except Exception:
+            lon_s = str(lon)
+        try:
+            deg_s = f"{float(degree):.6f}" if degree not in (None, "") else ""
+        except Exception:
+            deg_s = str(degree)
+        house_s = str(int(house)) if house not in (None, "") and house != "" else ""
+        lines.append(f"- {planet}, {lon_s}, {sign}, {deg_s}, {house_s}")
+    return "\n".join(lines)
+
+def _ensure_prompt_is_string(p):
+    if isinstance(p, str):
+        return p
+    try:
+        # lista direta de registros
+        if isinstance(p, list):
+            records = p
+            normalize_fn = globals().get("normalize_chart_positions")
+            if callable(normalize_fn):
+                try:
+                    records = normalize_fn(records)
+                except Exception:
+                    logger.debug("normalize_chart_positions falhou ao normalizar lista", exc_info=True)
+            return _positions_block_from_records(records) + "\n\n" + DEFAULT_PROMPT
+
+        # dict: priorizar chart_positions
+        if isinstance(p, dict):
+            if "chart_positions" in p and isinstance(p["chart_positions"], (list, dict)):
+                cp = p["chart_positions"]
+                if isinstance(cp, dict):
+                    records = []
+                    for k, v in cp.items():
+                        if isinstance(v, dict):
+                            rec = {
+                                "planet": k,
+                                "longitude": v.get("longitude", v.get("lon", v.get("deg", v.get("degree", "")))),
+                                "sign": v.get("sign", v.get("zodiac", "")),
+                                "degree": v.get("degree", v.get("deg", "")),
+                                "house": v.get("house", v.get("casa", "")),
+                            }
+                        else:
+                            rec = {"planet": k, "value": str(v)}
+                        records.append(rec)
+                else:
+                    records = list(cp)
+                normalize_fn = globals().get("normalize_chart_positions")
+                if callable(normalize_fn):
+                    try:
+                        records = normalize_fn(records)
+                    except Exception:
+                        logger.debug("normalize_chart_positions falhou ao normalizar dict chart_positions", exc_info=True)
+                instruction = p.get("instruction") or ""
+                positions_block = _positions_block_from_records(records)
+                if instruction:
+                    return positions_block + "\n\n" + "Instrução:\n" + instruction
+                return positions_block + "\n\n" + DEFAULT_PROMPT
+
+            # fallback: serializar dict como JSON e anexar DEFAULT_PROMPT
             try:
-                lon_s = f"{float(lon):.6f}" if lon not in (None, "") else ""
+                return "Contexto:\n" + json.dumps(p, ensure_ascii=False, indent=2) + "\n\n" + DEFAULT_PROMPT
             except Exception:
-                lon_s = str(lon)
-            try:
-                deg_s = f"{float(degree):.6f}" if degree not in (None, "") else ""
-            except Exception:
-                deg_s = str(degree)
-            house_s = str(int(house)) if house not in (None, "") and house != "" else ""
-            lines.append(f"- {planet}, {lon_s}, {sign}, {deg_s}, {house_s}")
-        return "\n".join(lines)
+                return str(p) + "\n\n" + DEFAULT_PROMPT
+    except Exception:
+        logger.exception("Falha ao converter prompt para string; usando str(prompt) como fallback")
+        try:
+            return json.dumps(p, ensure_ascii=False)
+        except Exception:
+            return str(p)
+    return str(p)
+
+    # aplicar coercion e logar
+    prompt = _ensure_prompt_is_string(prompt)
+    logger.debug("PROMPT FINAL (após coercion) type=%s len=%d", type(prompt), len(str(prompt)))
+    logger.debug("PROMPT FINAL (preview): %s", str(prompt)[:8000])
+    # --- fim coercion defensiva ---
 
     # Serializar estrutura para texto legível e compor com DEFAULT_PROMPT quando aplicável
     if not isinstance(prompt, str):
