@@ -296,7 +296,7 @@ def _call_gemini_sdk(
 # -------------------------
 DEFAULT_PROMPT = (
     "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos {planet}, {longitude}, {sign} e {house}.\n\n"
+    "Posições fornecidas: lista de planetas com campos planet, longitude, sign e house.\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -394,6 +394,26 @@ def build_prompt_from_chart_summary(
 
     return header + positions_text + prompt_body
 
+def normalize_chart_positions(records):
+    for r in records:
+        # longitude -> float 0..360
+        lon = r.get("longitude")
+        if lon is not None:
+            try:
+                lon = float(lon)
+                lon = lon % 360
+                r["longitude"] = lon
+            except Exception:
+                r["longitude"] = None
+        # degree -> 0..30
+        if r.get("degree") is None and r.get("longitude") is not None:
+            r["degree"] = r["longitude"] % 30
+        # house -> int or None
+        try:
+            r["house"] = int(r["house"]) if r.get("house") is not None else None
+        except Exception:
+            r["house"] = None
+    return records
 
 # -------------------------
 # prepare_chart_summary_from_inputs (garante chart_positions como lista de dicts)
