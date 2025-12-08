@@ -1425,6 +1425,9 @@ if use_ai:
     else:
         model_choice = st.selectbox("Modelo IA", options=["gemini-2.5-flash", "gemini-default"], index=0)
         st.write("Revise as posições no preview antes de enviar para a IA.")
+        
+        logger.debug("TYPE prompt before SDK call: %s", type(prompt))
+        logger.debug("PROMPT FINAL (preview, truncated): %s", str(prompt)[:8000])
 
         # preparar preview_positions normalizado a partir do summary
         preview_table = summary.get("table", []) if summary else []
