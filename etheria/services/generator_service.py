@@ -53,7 +53,6 @@ _cache: Dict[str, Dict[str, Any]] = {}
 _rate_lock = threading.Lock()
 _last_call_ts = 0.0
 
-
 # -------------------------
 # Utilitários: cache & rate
 # -------------------------
@@ -67,11 +66,9 @@ def _cache_get(key: str):
             return None
         return entry["value"]
 
-
 def _cache_set(key: str, value: Any):
     with _cache_lock:
         _cache[key] = {"ts": time.time(), "value": value}
-
 
 def _rate_limit_wait():
     global _last_call_ts
@@ -83,12 +80,10 @@ def _rate_limit_wait():
             time.sleep(wait_for)
         _last_call_ts = time.time()
 
-
 def _make_cache_key(model: str, payload: Any) -> str:
     rep = repr(payload).encode("utf-8")
     h = hashlib.sha256(rep).hexdigest()[:16]
     return f"ai_text:{model}:{h}"
-
 
 # -------------------------
 # GenAI client + SDK caller
@@ -296,13 +291,12 @@ def _call_gemini_sdk(
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
-
 # -------------------------
 # Prompt template e builder (ajustado para receber posições)
 # -------------------------
 DEFAULT_PROMPT = (
     "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree, house.\n\n"
+    "Posições fornecidas: lista de planetas com campos {planet}, {longitude}, {sign} e {house}.\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
