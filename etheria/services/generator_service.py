@@ -16,8 +16,9 @@ import time
 import threading
 import hashlib
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional, Union, List
 from datetime import datetime, date
+from __future__ import annotations  # opcional, evita avaliação imediata de anotações
 
 # Importações de serviços do projeto (ajuste caminhos se necessário)
 from services.swisseph_client import natal_positions
