@@ -274,9 +274,11 @@ def _call_gemini_sdk(
     max_tokens: int = 2000,
 ) -> str:
     """
-    Chama o SDK google-genai (várias assinaturas). Se receber estrutura (dict/list),
-    converte para texto legível antes de chamar o cliente. Usa funções auxiliares
-    definidas em globals(): _rate_limit_wait, _init_genai_client, _extract_text_from_response.
+    Chama o SDK google-genai (várias assinaturas).
+    - Se receber string: envia diretamente.
+    - Se receber lista: interpreta como lista de posições e monta bloco de posições + DEFAULT_PROMPT.
+    - Se receber dict: prioriza prompt["chart_positions"] (list|dict) e opcional prompt["instruction"].
+    - Usa funções auxiliares definidas em globals(): _rate_limit_wait, _init_genai_client, _extract_text_from_response.
     """
     _rate_limit_wait = globals().get("_rate_limit_wait")
     _init_genai_client = globals().get("_init_genai_client")
@@ -296,45 +298,85 @@ def _call_gemini_sdk(
         except Exception as e:
             logger.debug("Falha ao inicializar genai client: %s", e, exc_info=True)
 
-    # serializar estrutura para texto legível
+    # Helper: monta bloco curto de posições (textual)
+    def _positions_block_from_records(records: List[Dict[str, Any]]) -> str:
+        lines = ["Posições (planet, longitude, sign, degree, house):"]
+        for r in records or []:
+            planet = r.get("planet") or r.get("name") or ""
+            lon = r.get("longitude", r.get("lon", ""))
+            sign = r.get("sign", "") or ""
+            degree = r.get("degree", r.get("deg", ""))
+            house = r.get("house", r.get("casa", ""))
+            try:
+                lon_s = f"{float(lon):.6f}" if lon not in (None, "") else ""
+            except Exception:
+                lon_s = str(lon)
+            try:
+                deg_s = f"{float(degree):.6f}" if degree not in (None, "") else ""
+            except Exception:
+                deg_s = str(degree)
+            house_s = str(int(house)) if house not in (None, "") and house != "" else ""
+            lines.append(f"- {planet}, {lon_s}, {sign}, {deg_s}, {house_s}")
+        return "\n".join(lines)
+
+    # Serializar estrutura para texto legível e compor com DEFAULT_PROMPT quando aplicável
     if not isinstance(prompt, str):
         try:
+            # Caso: lista de registros (assumir lista de posições)
             if isinstance(prompt, list):
-                lines = ["Posições calculadas (lista de planetas):"]
-                for p in prompt:
-                    planet = p.get("planet") or p.get("name") or ""
-                    longitude = p.get("longitude", "")
-                    sign = p.get("sign", "")
-                    degree = p.get("degree", "")
-                    house = p.get("house", "")
-                    lines.append(f"- {planet}: longitude={longitude}; sign={sign}; degree={degree}; house={house}")
-                prompt_text = "\n".join(lines)
+                # normalizar se função disponível
+                normalize_fn = globals().get("normalize_chart_positions")
+                records = prompt
+                if callable(normalize_fn):
+                    try:
+                        records = normalize_fn(records)
+                    except Exception:
+                        logger.debug("normalize_chart_positions falhou ao normalizar lista", exc_info=True)
+                prompt_text = _positions_block_from_records(records) + "\n\n" + DEFAULT_PROMPT
+                prompt = prompt_text
             else:
-                # dict genérico: priorizar chart_positions
+                # prompt é dict: priorizar chart_positions
                 if "chart_positions" in prompt and isinstance(prompt["chart_positions"], (list, dict)):
                     cp = prompt["chart_positions"]
+                    # converter dict -> lista de registros se necessário
                     if isinstance(cp, dict):
                         records = []
                         for k, v in cp.items():
                             if isinstance(v, dict):
                                 rec = {
                                     "planet": k,
-                                    "longitude": v.get("longitude", ""),
-                                    "sign": v.get("sign", ""),
-                                    "degree": v.get("degree", ""),
-                                    "house": v.get("house", ""),
+                                    "longitude": v.get("longitude", v.get("lon", v.get("deg", v.get("degree", "")))),
+                                    "sign": v.get("sign", v.get("zodiac", "")),
+                                    "degree": v.get("degree", v.get("deg", "")),
+                                    "house": v.get("house", v.get("casa", "")),
                                 }
                             else:
                                 rec = {"planet": k, "value": str(v)}
                             records.append(rec)
-                        prompt_text = "Posições calculadas:\n" + "\n".join(
-                            [f"- {r.get('planet')}: {r.get('value','longitude='+str(r.get('longitude','')))}" for r in records]
-                        )
                     else:
-                        prompt_text = "Posições calculadas:\n" + json.dumps(cp, ensure_ascii=False, indent=2)
+                        records = list(cp)
+                    # normalizar se possível
+                    normalize_fn = globals().get("normalize_chart_positions")
+                    if callable(normalize_fn):
+                        try:
+                            records = normalize_fn(records)
+                        except Exception:
+                            logger.debug("normalize_chart_positions falhou ao normalizar dict chart_positions", exc_info=True)
+                    # instrução customizável
+                    instruction = prompt.get("instruction") or ""
+                    positions_block = _positions_block_from_records(records)
+                    if instruction:
+                        prompt_text = positions_block + "\n\n" + "Instrução:\n" + instruction
+                    else:
+                        prompt_text = positions_block + "\n\n" + DEFAULT_PROMPT
+                    prompt = prompt_text
                 else:
-                    prompt_text = "Contexto:\n" + json.dumps(prompt, ensure_ascii=False, indent=2)
-            prompt = prompt_text
+                    # fallback: serializar dict como JSON legível (contexto) e anexar DEFAULT_PROMPT
+                    try:
+                        prompt_text = "Contexto:\n" + json.dumps(prompt, ensure_ascii=False, indent=2)
+                        prompt = prompt_text + "\n\n" + DEFAULT_PROMPT
+                    except Exception:
+                        prompt = str(prompt) + "\n\n" + DEFAULT_PROMPT
         except Exception:
             try:
                 prompt = json.dumps(prompt, ensure_ascii=False)
@@ -363,22 +405,24 @@ def _call_gemini_sdk(
     except Exception as e:
         last_exc = e
 
-    try:
-        if client and hasattr(client, "responses") and hasattr(client.responses, "create"):
-            try:
-                resp = client.responses.create(model=model, input=prompt)
-            except TypeError:
-                resp = client.responses.create(model=model, prompt=prompt)
-            return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
-    except Exception as e:
-        last_exc = e
+    if not isinstance(last_exc, ValueError):
+        try:
+            if client and hasattr(client, "responses") and hasattr(client.responses, "create"):
+                try:
+                    resp = client.responses.create(model=model, input=prompt)
+                except TypeError:
+                    resp = client.responses.create(model=model, prompt=prompt)
+                return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
+        except Exception as e:
+            last_exc = e
 
-    try:
-        if client and hasattr(client, "generate"):
-            resp = client.generate(model=model, prompt=prompt, max_output_tokens=max_tokens)
-            return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
-    except Exception as e:
-        last_exc = e
+    if not isinstance(last_exc, ValueError):
+        try:
+            if client and hasattr(client, "generate"):
+                resp = client.generate(model=model, prompt=prompt, max_output_tokens=max_tokens)
+                return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
+        except Exception as e:
+            last_exc = e
 
     msg = "Não foi possível chamar o SDK google-genai com as assinaturas conhecidas."
     if last_exc:
