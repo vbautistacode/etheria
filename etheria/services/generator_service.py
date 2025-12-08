@@ -291,6 +291,23 @@ def _call_gemini_sdk(
         except Exception:
             logger.debug("Rate limit wait falhou ou não implementado", exc_info=True)
 
+
+                        # 1) confirmar tipo do prompt
+            logger.debug("DEBUG: tipo do prompt recebido por _call_gemini_sdk: %s", type(prompt))
+
+            # 2) mostrar preview truncado do prompt que será enviado
+            try:
+                logger.debug("DEBUG: prompt (preview 8000 chars): %s", str(prompt)[:8000])
+            except Exception:
+                logger.exception("DEBUG: falha ao converter prompt para str")
+
+            # 3) confirmar que, se for dict, contém chart_positions
+            if isinstance(prompt, dict):
+                logger.debug("DEBUG: dict keys: %s", list(prompt.keys()))
+                if "chart_positions" in prompt:
+                    logger.debug("DEBUG: chart_positions type: %s", type(prompt['chart_positions']))
+
+
     client = None
     if callable(_init_genai_client):
         try:
