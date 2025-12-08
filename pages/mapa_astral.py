@@ -1030,7 +1030,7 @@ with st.sidebar:
 # Processamento após submit
 # -------------------------
 if submitted:
-    st.success("Mapa gerado e salvo em sessão")
+    st.sidebar.success("Mapa gerado e salvo em sessão")
     # 1) Normalizar e validar hora (obrigatória)
     parsed_time = _parse_time_string(btime_free)
     if parsed_time is None:
