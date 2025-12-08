@@ -9,6 +9,7 @@ Gerador unificado de análise astrológica (SVG + texto).
     - generate_ai_text_from_chart(chart_summary, ...)
     - generate_analysis(chart_input, prefer="auto", text_only=False, ...)
 """
+from __future__ import annotations  # opcional, evita avaliação imediata de anotações
 
 import os
 import json
@@ -18,7 +19,6 @@ import hashlib
 import logging
 from typing import Any, Dict, Optional, Union, List
 from datetime import datetime, date
-from __future__ import annotations  # opcional, evita avaliação imediata de anotações
 
 # Importações de serviços do projeto (ajuste caminhos se necessário)
 from services.swisseph_client import natal_positions
