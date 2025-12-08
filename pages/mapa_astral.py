@@ -829,8 +829,6 @@ def to_local_datetime(bdate: date, btime: dt_time | str, timezone_str: str):
         logger.exception("Erro em to_local_datetime: %s", e)
         return None
 
-logger = logging.getLogger(__name__)
-
 # -------------------------
 # Utilitários locais
 # -------------------------
