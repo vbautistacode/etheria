@@ -410,11 +410,9 @@ def build_prompt_from_chart_summary(
 ) -> str:
     """
     Monta o prompt final a partir de um chart_summary.
-    - Prioriza enviar chart_positions (lista de registros).
-    - Aceita chart_positions como lista ou summary.table (dict/list).
-    - Normaliza posições antes de serializar (usa normalize_chart_positions).
-    - Não usa str.format() no template para evitar KeyError com placeholders
-      desconhecidos; faz substituições seguras apenas para place/bdate/btime.
+    - Prioriza chart_positions (lista de registros) ou summary.table.
+    - Normaliza posições (chama normalize_chart_positions quando disponível).
+    - Não usa str.format() no template para evitar KeyError com placeholders desconhecidos.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
@@ -426,10 +424,11 @@ def build_prompt_from_chart_summary(
     lon = chart_summary.get("lon")
     timezone = chart_summary.get("timezone")
 
-    # Preferir chart_positions explícito, senão tentar summary.table
+    # Preferir chart_positions explícito, senão tentar summary.table ou chart_summary['table']
     chart_positions = chart_summary.get("chart_positions")
     if not chart_positions:
-        chart_positions = chart_summary.get("summary", {}).get("table") if isinstance(chart_summary.get("summary"), dict) else chart_summary.get("table")
+        summary_obj = chart_summary.get("summary") if isinstance(chart_summary.get("summary"), dict) else chart_summary
+        chart_positions = summary_obj.get("table") if isinstance(summary_obj, dict) else chart_summary.get("table")
 
     # formatar data/hora para exibição
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
@@ -452,8 +451,7 @@ def build_prompt_from_chart_summary(
         header_lines.append(f"Timezone: {timezone}")
     header = ("\n".join(header_lines) + "\n\n") if header_lines else ""
 
-    # preparar positions_text a partir de chart_positions (aceita dict/list)
-    positions_text = ""
+    # preparar records a partir de chart_positions (aceita dict/list)
     records: List[Dict[str, Any]] = []
     if chart_positions:
         if isinstance(chart_positions, dict):
@@ -470,42 +468,41 @@ def build_prompt_from_chart_summary(
                     rec = {"planet": k, "value": str(v)}
                 records.append(rec)
         elif isinstance(chart_positions, list):
-            # assumir que já é lista de registros
             records = list(chart_positions)
         else:
             records = []
 
-        if records:
-            # normalizar (garante longitude 0..360, degree 0..30, house int ou None)
+    # normalizar registros se possível
+    if records:
+        try:
+            # normalize_chart_positions deve estar definido no módulo; usar via globals() para evitar import circular
+            normalize_fn = globals().get("normalize_chart_positions")
+            if callable(normalize_fn):
+                records = normalize_fn(records)
+        except Exception:
+            _logger.exception("normalize_chart_positions falhou; prosseguindo com registros originais")
+
+    # montar positions_text legível
+    if records:
+        lines = ["Posições calculadas:"]
+        for r in records:
+            planet = r.get("planet") or r.get("name") or ""
+            longitude = r.get("longitude", r.get("value", ""))
+            sign = r.get("sign", "") or ""
+            degree = r.get("degree", "")
+            house = r.get("house", "")
             try:
-                records = normalize_chart_positions(records)
+                lon_str = f"{float(longitude):.6f}" if longitude not in (None, "") else ""
             except Exception:
-                # se normalize falhar, manter records originais para diagnóstico
-                logger.exception("normalize_chart_positions falhou ao normalizar records")
-            # montar texto legível
-            lines = ["Posições calculadas:"]
-            for r in records:
-                planet = r.get("planet") or r.get("name") or ""
-                longitude = r.get("longitude", r.get("value", ""))
-                sign = r.get("sign", "") or ""
-                degree = r.get("degree", "")
-                house = r.get("house", "")
-                # formatar valores para legibilidade
-                try:
-                    lon_str = f"{float(longitude):.6f}" if longitude is not None and longitude != "" else str(longitude)
-                except Exception:
-                    lon_str = str(longitude)
-                deg_str = f"{float(degree):.6f}" if degree not in (None, "") else ""
-                house_str = str(int(house)) if house not in (None, "") else ""
-                lines.append(f"- {planet}: longitude={lon_str}; sign={sign}; degree={deg_str}; house={house_str}")
-            positions_text = "\n".join(lines) + "\n\n"
-        else:
-            positions_text = "\nPosições calculadas: indisponíveis ou em formato inesperado.\n\n"
+                lon_str = str(longitude)
+            deg_str = f"{float(degree):.6f}" if degree not in (None, "") else ""
+            house_str = str(int(house)) if house not in (None, "") else ""
+            lines.append(f"- {planet}: longitude={lon_str}; sign={sign}; degree={deg_str}; house={house_str}")
+        positions_text = "\n".join(lines) + "\n\n"
     else:
         positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
     # Substituições seguras no template apenas para compatibilidade com templates antigos
-    # (evita usar prompt_template.format(...) que pode lançar KeyError)
     try:
         prompt_body = (
             prompt_template
