@@ -283,21 +283,11 @@ def _call_gemini_sdk(
     _rate_limit_wait = globals().get("_rate_limit_wait")
     _init_genai_client = globals().get("_init_genai_client")
     _extract_text_from_response = globals().get("_extract_text_from_response")
-    normalize_fn = globals().get("normalize_chart_positions")
-
-
-    logger.debug("Entrando em _call_gemini_sdk (model=%s max_tokens=%s)", model, max_tokens)
-
-
+    
     # aplicar rate limit se disponível
     if callable(_rate_limit_wait):
         try:
             _rate_limit_wait()
-
-
-            logger.debug("Rate limit wait executado com sucesso")
-
-
         except Exception:
             logger.debug("Rate limit wait falhou ou não implementado", exc_info=True)
 
@@ -305,16 +295,8 @@ def _call_gemini_sdk(
     if callable(_init_genai_client):
         try:
             client = _init_genai_client()
-
-
-            logger.debug("GenAI client inicializado com sucesso: %s", type(client))
-
-
         except Exception as e:
-            logger.exception("Falha ao inicializar genai client: %s", e)
-            client = None
-    else:
-        logger.debug("_init_genai_client não disponível nas globals()")
+            logger.debug("Falha ao inicializar genai client: %s", e, exc_info=True)
 
     # --- coercion defensiva: garantir prompt string com bloco de posições ---
 def _positions_block_from_records(records):
