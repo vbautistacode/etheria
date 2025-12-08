@@ -175,8 +175,6 @@ def _extract_text_from_response(resp) -> str:
     except Exception:
         return ""
 
-from __future__ import annotations
-
 import json
 import logging
 from datetime import date
