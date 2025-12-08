@@ -6,6 +6,9 @@ import logging
 import importlib
 import traceback
 import json
+import pytz
+import plotly.graph_objects as go
+import streamlit as st
 from datetime import datetime, date, time as dtime
 from typing import Tuple, Optional, Dict, Any, List
 from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
@@ -14,9 +17,18 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-import streamlit as st
-import plotly.graph_objects as go
+from datetime import datetime, date, time as dt_time
+from typing import Optional, Tuple, Dict, Any
+# Imports do projeto (ajuste caminhos se necessário)
+from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart
+from services.swisseph_client import natal_positions  # se disponível
+# Funções utilitárias do projeto (assumidas existentes)
+# geocode_place_safe, geocode_place_nominatim, to_local_datetime, fetch_natal_chart,
+# generate_chart_summary, positions_table, compute_aspects, render_wheel_plotly,
+# interpretations, rules, influences, astrology
+from etheria.services.astro_service import geocode_place, get_timezone_from_coords, parse_birth_time, compute_chart_positions
+# Substituição para usar services.astro_service (não precisa de services.timezone_utils)
+from etheria.services.astro_service import parse_birth_time, get_timezone_from_coords
 
 # logging
 logging.basicConfig(level=logging.INFO)
@@ -760,8 +772,8 @@ def render_wheel_plotly(planets: dict, cusps: list):
         polar=dict(
             radialaxis=dict(visible=False),
             angularaxis=dict(direction="clockwise", rotation=90,
-                             tickmode="array", tickvals=tickvals, ticktext=ticktext,
-                             tickfont=dict(size=11), gridcolor="#eee")
+                            tickmode="array", tickvals=tickvals, ticktext=ticktext,
+                            tickfont=dict(size=11), gridcolor="#eee")
         ),
         showlegend=False,
         margin=dict(l=10, r=10, t=30, b=10),
@@ -782,29 +794,6 @@ st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 
 # - Calcula posições (swisseph ou API) e gera summary.
 # - Reaproveita summary para chamar generator_service (texto/AI).
 # - Mantém estado em st.session_state e fornece mensagens claras ao usuário.
-
-
-import logging
-from datetime import datetime, date, time as dt_time
-from typing import Optional, Tuple, Dict, Any
-
-import streamlit as st
-
-# Imports do projeto (ajuste caminhos se necessário)
-from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart
-from services.swisseph_client import natal_positions  # se disponível
-# Funções utilitárias do projeto (assumidas existentes)
-# geocode_place_safe, geocode_place_nominatim, to_local_datetime, fetch_natal_chart,
-# generate_chart_summary, positions_table, compute_aspects, render_wheel_plotly,
-# interpretations, rules, influences, astrology
-from etheria.services.astro_service import geocode_place, get_timezone_from_coords, parse_birth_time, compute_chart_positions
-# Substituição para usar services.astro_service (não precisa de services.timezone_utils)
-from etheria.services.astro_service import parse_birth_time, get_timezone_from_coords
-import pytz
-from datetime import datetime, date, time as dt_time
-import logging
-
-logger = logging.getLogger(__name__)
 
 def to_local_datetime(bdate: date, btime: dt_time | str, timezone_str: str):
     """
@@ -851,14 +840,13 @@ def _is_arcano_text_block(text: str) -> bool:
     t = text.lower()
     return "arcano" in t or "o arcano" in t or "a arcano" in t
 
-
 def enrich_summary_with_astrology(summary: Dict[str, Any]) -> Dict[str, Any]:
     """
     Garante que summary['readings'] tenha interpretações astrológicas por planeta.
     - Normaliza chaves para canonical (via influences._to_canonical)
     - Preenche sign/degree/longitude usando summary['planets'] quando disponível
     - Gera interpretation_short/interpretation_long via interpretations.classic_for_planet
-      quando ausentes ou quando os textos existentes parecem ser apenas o arcano
+    quando ausentes ou quando os textos existentes parecem ser apenas o arcano
     Retorna o summary modificado.
     """
     if not summary or not isinstance(summary.get("readings"), dict):
@@ -928,7 +916,6 @@ def enrich_summary_with_astrology(summary: Dict[str, Any]) -> Dict[str, Any]:
     summary["readings"] = normalized
     return summary
 
-
 def _parse_time_string(t: str) -> Optional[dt_time]:
     """
     Normaliza a hora informada pelo usuário para datetime.time.
@@ -970,7 +957,6 @@ def _parse_time_string(t: str) -> Optional[dt_time]:
         pass
     return None
 
-
 def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
     """
     Tenta resolver lat/lon/timezone/address usando múltiplos provedores.
@@ -1006,7 +992,6 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 
     # Se não conseguiu, retornar valores manuais (podem ser None)
     return lat, lon, tz_name, address
-
 
 # -------------------------
 # UI: formulário lateral
@@ -1176,7 +1161,6 @@ if submitted:
                     st.warning("Resumo do mapa não pôde ser gerado; verifique logs.")
             else:
                 st.warning("Não foi possível obter posições planetárias. Verifique timezone, lat/lon e hora informada.")
-
 
 # -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
 
