@@ -1,4 +1,5 @@
 # services/generator_service.py
+from __future__ import annotations
 """
 Gerador unificado de análise astrológica (SVG + texto).
 - Prepara dados do mapa (geocode, timezone, parse hora, posições).
@@ -9,7 +10,6 @@ Gerador unificado de análise astrológica (SVG + texto).
     - generate_ai_text_from_chart(chart_summary, ...)
     - generate_analysis(chart_input, prefer="auto", text_only=False, ...)
 """
-from __future__ import annotations  # opcional, evita avaliação imediata de anotações
 
 import os
 import json
