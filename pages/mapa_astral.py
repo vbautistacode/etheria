@@ -1132,40 +1132,42 @@ if submitted:
                         st.session_state["map_ready"] = False
                         st.session_state["map_fig"] = None
 
-                    # 8) Montar chart_input e chamar generator_service (texto)
-                    chart_input = {
-                        "name": name,
-                        "place": summary.get("place") or place,
-                        "bdate": bdate,
-                        "btime": btime,
-                        "lat": lat,
-                        "lon": lon,
-                        "timezone": tz_name,
-                        "summary": summary,
-                        "house_system": st.session_state.get("house_system", "P"),
-                    }
-                    res = generate_analysis(chart_input, prefer="auto", text_only=True)
+# --- Substituir chamadas automáticas por preparação e delegação ao botão de IA ---
+# após salvar st.session_state["map_summary"] e st.session_state["map_ready"] = True
+# NÃO chamar generate_analysis aqui. Apenas preparar e salvar summary.
 
-                    try:
-                        with st.spinner("Gerando interpretação astrológica..."):
-                            res = generate_analysis(chart_input, prefer="auto", text_only=True)
-                    except Exception as e:
-                        logger.exception("Erro ao chamar generate_analysis: %s", e)
-                        st.error(f"Erro ao gerar interpretação: {e}")
-                    else:
-                        if res.get("error"):
-                            st.error(res["error"])
-                        else:
-                            analysis_text = res.get("analysis_text", "")
-                            if analysis_text:
-                                st.markdown("### Interpretação gerada")
-                                st.markdown(analysis_text)
-                            else:
-                                st.info("Nenhuma interpretação retornada pelo serviço.")
-                else:
-                    st.warning("Resumo do mapa não pôde ser gerado; verifique logs.")
+# preparar preview_positions para o sidebar (usar normalize do generator_service)
+try:
+    from etheria.services import generator_service as gs
+except Exception:
+    gs = None
+
+if st.session_state.get("map_ready"):
+    st.sidebar.markdown("**Preview: posições calculadas**")
+    preview_table = st.session_state["map_summary"].get("table", []) or []
+    if gs and hasattr(gs, "normalize_chart_positions"):
+        preview_positions = gs.normalize_chart_positions(preview_table)
+    else:
+        # fallback simples (sem normalização completa)
+        preview_positions = preview_table
+    st.sidebar.json(preview_positions)
+
+    # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
+    if st.sidebar.button("Gerar interpretação IA"):
+        if not gs or not hasattr(gs, "generate_interpretation_from_summary"):
+            st.error("Serviço de geração não disponível. Verifique generator_service.")
+        else:
+            # chamar rotina que normaliza, valida, mostra prompt preview e executa com timeout
+            res = gs.generate_interpretation_from_summary(st.session_state["map_summary"], generate_analysis, timeout_seconds=60)
+            if res.get("error"):
+                st.error(res["error"])
             else:
-                st.warning("Não foi possível obter posições planetárias. Verifique timezone, lat/lon e hora informada.")
+                analysis_text = res.get("analysis_text") or res.get("text") or ""
+                if analysis_text:
+                    st.markdown("### Interpretação gerada")
+                    st.markdown(analysis_text)
+                else:
+                    st.info("Nenhuma interpretação retornada pelo serviço.")
 
 # -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
 
@@ -1408,139 +1410,114 @@ with center_col:
                 general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
                 st.write(general)
 
-# UI: geração IA com proteção contra cliques repetidos e preview (refatorado)
+# UI: geração IA com proteção, preview e envio controlado
 if use_ai:
     st.markdown("#### Interpretação IA Etheria")
-        
-    # import resiliente do serviço
-    try:
-        from etheria.services import generator_service
-    except Exception:
-        generator_service = None
 
-    if not generator_service:
+    # importar generator_service de forma resiliente
+    try:
+        from etheria.services import generator_service as gs
+    except Exception:
+        gs = None
+
+    if not gs:
         st.info("Serviço de geração não disponível.")
     else:
-        # opções do usuário
-        model_choice = "gemini-2.5-flash"
+        model_choice = st.selectbox("Modelo IA", options=["gemini-2.5-flash", "gemini-default"], index=0)
+        st.write("Revise as posições no preview antes de enviar para a IA.")
 
-        def build_chart_input(summary_obj):
-            ci = {}
-            ci["name"] = (
-                (summary_obj.get("name") if summary_obj and isinstance(summary_obj, dict) else None)
-                or st.session_state.get("chart_name") or ""
-            )
-            ci["summary"] = summary_obj if summary_obj and isinstance(summary_obj, dict) else None
+        # preparar preview_positions normalizado a partir do summary
+        preview_table = summary.get("table", []) if summary else []
+        preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
+        st.sidebar.markdown("**Preview: posições calculadas**")
+        try:
+            st.sidebar.json(preview_positions)
+        except Exception:
+            st.sidebar.text(str(preview_positions)[:4000])
 
-            # extrair posições de forma segura
-            positions = {}
-            if summary_obj and isinstance(summary_obj, dict):
-                planets_map = summary_obj.get("planets") or summary_obj.get("readings") or {}
-                if isinstance(planets_map, dict):
-                    for pname, pdata in planets_map.items():
-                        try:
-                            if isinstance(pdata, dict) and pdata.get("longitude") is not None:
-                                positions[pname] = float(pdata.get("longitude"))
-                            elif isinstance(pdata, (int, float)):
-                                positions[pname] = float(pdata)
-                        except Exception:
-                            continue
-            if positions:
-                ci["positions"] = positions
+        # mostrar prompt preview (curto) antes de enviar
+        chart_input_preview = {
+            "name": summary.get("name") if summary else "",
+            "place": summary.get("place") if summary else "",
+            "bdate": summary.get("bdate") if summary else None,
+            "btime": summary.get("btime") if summary else None,
+            "lat": summary.get("lat") if summary else None,
+            "lon": summary.get("lon") if summary else None,
+            "timezone": summary.get("timezone") if summary else None,
+            "chart_positions": preview_positions,
+            "summary": summary
+        }
+        try:
+            prompt_preview = gs.build_prompt_from_chart_summary(chart_input_preview) if hasattr(gs, "build_prompt_from_chart_summary") else ""
+            st.sidebar.text_area("Prompt preview (início)", value=prompt_preview[:4000], height=200)
+        except Exception:
+            pass
 
-            # datetime seguro
-            try:
-                ci["dt"] = summary_obj.get("datetime") if summary_obj and isinstance(summary_obj, dict) else None
-            except Exception:
-                ci["dt"] = None
-
-            # opcional: manter svg já presente na UI (não será re-renderizado pelo serviço)
-            if "svg" in st.session_state:
-                ci["svg"] = st.session_state.get("svg")
-
-            return ci
-
-        # inicializar flag de geração
+        # flag para evitar cliques repetidos
         if "generating" not in st.session_state:
             st.session_state["generating"] = False
 
-        # botão e fluxo de geração
+        # botão de geração
         if st.session_state["generating"]:
             st.button("Gerando... (aguarde)", disabled=True)
         else:
-            if st.button("Gerar interpretação", key="gen_ai_button"):
+            if st.button("Gerar interpretação IA", key="gen_ai_button"):
                 st.session_state["generating"] = True
-                chart_input = build_chart_input(summary)
 
-                # chamada com spinner; usar text_only=True para NÃO re-renderizar o mapa
-                with st.spinner("Gerando sua interpretação personalizada com IA Etheria..."):
-                    try:
-                        res = generator_service.generate_analysis(
-                            chart_input,
-                            prefer="auto",
-                            text_only=True,
-                            model=model_choice
-                        )
-                    except Exception as e:
-                        res = {
-                            "svg": "",
-                            "analysis_text": "",
-                            "analysis_json": None,
-                            "source": "none",
-                            "error": str(e)
-                        }
-
-                # liberar flag
-                st.session_state["generating"] = False
-
-                # preparar label para downloads (definir antes de usar)
-                try:
-                    label_selected = (
-                        influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected)
-                        if canonical_selected else "mapa"
-                    )
-                except Exception:
-                    label_selected = "mapa"
-
-                # exibir resultado: priorizar erros claros
-                if res.get("error") and not (res.get("analysis_text") or res.get("analysis_json")):
-                    with st.expander("Detalhes do erro"):
-                        st.warning("Não foi possível gerar a interpretação via serviço.")
-                        st.write(res.get("error"))
+                # validar posições antes de enviar
+                warnings = gs.validate_chart_positions(preview_positions) if hasattr(gs, "validate_chart_positions") else []
+                if warnings:
+                    for w in warnings:
+                        st.sidebar.warning(w)
+                    st.error("Dados incompletos. Verifique avisos no sidebar antes de enviar.")
+                    st.session_state["generating"] = False
                 else:
-                    # NÃO replotar o mapa aqui; UI já mostra o mapa
-                    ai_text = res.get("analysis_text") or ""
-                    parsed = res.get("analysis_json")
+                    # usar rotina centralizada se disponível (faz normalização/preview/timeout)
+                    try:
+                        with st.spinner("Gerando sua interpretação personalizada com IA..."):
+                            if hasattr(gs, "generate_interpretation_from_summary"):
+                                res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                            else:
+                                # fallback: chamar generate_analysis diretamente com chart_input validado
+                                res = gs.generate_analysis(chart_input_preview, prefer="auto", text_only=True, model=model_choice) if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
+                    except Exception as e:
+                        res = {"error": str(e)}
 
-                    if ai_text:
-                        st.success("Interpretação IA gerada")
-                        st.markdown("#### Interpretação IA")
-                        st.write(ai_text)
-                        # download do texto
-                        st.download_button(
-                            "Exportar interpretação(.txt)",
-                            data=ai_text,
-                            file_name=f"interpretacao_ia_{label_selected}.txt",
-                            mime="text/plain"
-                        )
+                    st.session_state["generating"] = False
 
-                    if parsed:
-                        with st.expander("Ver JSON estruturado (expandir)"):
-                            st.json(parsed)
+                    # exibir resultado
+                    if res.get("error"):
+                        with st.expander("Detalhes do erro"):
+                            st.warning("Não foi possível gerar a interpretação via serviço.")
+                            st.write(res.get("error"))
+                    else:
+                        ai_text = res.get("analysis_text") or res.get("text") or ""
+                        parsed = res.get("analysis_json") or res.get("analysis") or None
+
+                        if ai_text:
+                            st.success("Interpretação IA gerada")
+                            st.markdown("#### Interpretação IA")
+                            st.write(ai_text)
+                            # download do texto
                             st.download_button(
-                                "Baixar JSON",
-                                data=json.dumps(parsed, ensure_ascii=False, indent=2),
-                                file_name=f"interpretacao_ia_{label_selected}.json",
-                                mime="application/json"
+                                "Exportar interpretação(.txt)",
+                                data=ai_text,
+                                file_name=f"interpretacao_ia.txt",
+                                mime="text/plain"
                             )
 
-                    # se não houve texto nem JSON, mostrar aviso ou info
-                    if not ai_text and not parsed:
-                        if res.get("error"):
-                            st.warning("Geração concluída com problemas: " + str(res.get("error")))
-                        else:
-                            st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
+                        if parsed:
+                            with st.expander("Ver JSON estruturado (expandir)"):
+                                st.json(parsed)
+                                st.download_button(
+                                    "Baixar JSON",
+                                    data=json.dumps(parsed, ensure_ascii=False, indent=2),
+                                    file_name=f"interpretacao_ia.json",
+                                    mime="application/json"
+                                )
 
+                        if not ai_text and not parsed:
+                            st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
 
 # RIGHT: painel de análise e numerologia
 with right_col:

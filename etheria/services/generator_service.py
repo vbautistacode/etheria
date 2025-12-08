@@ -175,13 +175,30 @@ def _extract_text_from_response(resp) -> str:
     except Exception:
         return ""
 
+from __future__ import annotations
+
+import json
+import logging
+from datetime import date
+from typing import Any, Dict, List, Optional, Union
+import concurrent.futures
+
+logger = logging.getLogger(__name__)
+
+# Nome do modelo (defina em outro lugar do módulo se necessário)
+GEMINI_MODEL = globals().get("GEMINI_MODEL", "gemini-default")
+
+# -------------------------
+# Normalização e validação
+# -------------------------
 def normalize_chart_positions(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Normaliza uma lista de registros de posições garantindo:
-    - longitude em float 0..360 (ou None)
-    - degree em float 0..30 (ou None)
-    - house em int 1..12 (ou None)
-    Retorna a lista modificada (mutável).
+    Normaliza uma lista de registros garantindo:
+      - longitude em float 0..360 (ou None)
+      - degree em float 0..30 (ou None)
+      - house em int 1..12 (ou None)
+      - planet e sign como strings
+    Retorna nova lista (não modifica a original).
     """
     def parse_float(v: Any) -> Optional[float]:
         try:
@@ -204,38 +221,37 @@ def normalize_chart_positions(records: List[Dict[str, Any]]) -> List[Dict[str, A
         except Exception:
             return None
 
-    for r in records:
-        lon = r.get("longitude") or r.get("lon") or r.get("long") or r.get("ecl_lon")
-        longitude = parse_float(lon) if lon is not None else None
-        if longitude is None and isinstance(lon, str):
-            longitude = parse_degree_string(lon)
+    out: List[Dict[str, Any]] = []
+    for row in records or []:
+        planet = row.get("planet") or row.get("name") or ""
+        lon_raw = row.get("longitude") or row.get("lon") or row.get("long") or row.get("ecl_lon") or row.get("deg") or row.get("degree")
+        longitude = parse_float(lon_raw) if lon_raw is not None else None
+        if longitude is None and isinstance(lon_raw, str):
+            longitude = parse_degree_string(lon_raw)
         if longitude is not None:
-            longitude = float(longitude) % 360
-        r["longitude"] = longitude
+            longitude = float(longitude) % 360.0
 
-        degree = r.get("degree")
-        degree_val = parse_float(degree) if degree is not None else None
-        if degree_val is None and longitude is not None:
-            degree_val = longitude % 30
-        r["degree"] = degree_val
+        degree_raw = row.get("degree")
+        degree = parse_float(degree_raw) if degree_raw is not None else None
+        if degree is None and longitude is not None:
+            degree = float(longitude) % 30.0
 
-        sign = r.get("sign") or r.get("zodiac") or ""
-        r["sign"] = sign
-
-        house = r.get("house") or r.get("casa")
+        sign = row.get("sign") or row.get("zodiac") or ""
         try:
-            r["house"] = int(house) if house is not None else None
+            house_raw = row.get("house") or row.get("casa")
+            house = int(float(house_raw)) if house_raw not in (None, "", "None") else None
         except Exception:
-            r["house"] = None
+            house = None
 
-        # ensure planet name exists
-        r["planet"] = r.get("planet") or r.get("name") or ""
+        out.append({
+            "planet": str(planet) if planet is not None else "",
+            "longitude": longitude,
+            "sign": str(sign) if sign is not None else "",
+            "degree": degree,
+            "house": house,
+        })
+    return out
 
-    return records
-
-# -------------------------
-# Helper: normalização e validação de posições
-# -------------------------
 def validate_chart_positions(records: List[Dict[str, Any]]) -> List[str]:
     """
     Retorna lista de avisos (strings). Lista vazia significa OK.
@@ -251,7 +267,6 @@ def validate_chart_positions(records: List[Dict[str, Any]]) -> List[str]:
             warnings.append(f"House ausente para {planet}")
     return warnings
 
-
 # -------------------------
 # Compatibilidade com SDK: aceita prompt str ou estrutura
 # -------------------------
@@ -261,37 +276,29 @@ def _call_gemini_sdk(
     max_tokens: int = 2000,
 ) -> str:
     """
-    Chama o SDK google-genai de forma compatível com várias versões.
-    Aceita prompt como string ou como estrutura (dict/list). Se receber
-    estrutura, converte para texto legível antes de chamar o SDK.
-    Aplica rate limiting e retorna o texto gerado.
+    Chama o SDK google-genai (várias assinaturas). Se receber estrutura (dict/list),
+    converte para texto legível antes de chamar o cliente. Usa funções auxiliares
+    definidas em globals(): _rate_limit_wait, _init_genai_client, _extract_text_from_response.
     """
-    # Dependências externas do módulo: implemente/importe estas funções no seu módulo
     _rate_limit_wait = globals().get("_rate_limit_wait")
     _init_genai_client = globals().get("_init_genai_client")
     _extract_text_from_response = globals().get("_extract_text_from_response")
 
-    if _rate_limit_wait:
+    # aplicar rate limit se disponível
+    if callable(_rate_limit_wait):
         try:
             _rate_limit_wait()
         except Exception:
-            logger.debug("Rate limit wait failed or not implemented", exc_info=True)
+            logger.debug("Rate limit wait falhou ou não implementado", exc_info=True)
 
     client = None
-    if _init_genai_client:
-        client = _init_genai_client()
+    if callable(_init_genai_client):
+        try:
+            client = _init_genai_client()
+        except Exception as e:
+            logger.debug("Falha ao inicializar genai client: %s", e, exc_info=True)
 
-    last_exc = None
-
-    def _handle_api_error(e: Exception, model_name: str) -> Exception:
-        err_str = str(e)
-        if "404" in err_str and ("Publisher Model" in err_str or "NOT_FOUND" in err_str):
-            raise ValueError(
-                f"Erro Crítico: O modelo '{model_name}' não foi encontrado. Verifique nome e região. Detalhes: {err_str}"
-            )
-        return e
-
-    # Serializar estrutura para texto legível
+    # serializar estrutura para texto legível
     if not isinstance(prompt, str):
         try:
             if isinstance(prompt, list):
@@ -336,13 +343,15 @@ def _call_gemini_sdk(
             except Exception:
                 prompt = str(prompt)
 
-    # Debug: log preview do prompt (cortar para evitar logs enormes)
+    # debug: preview do prompt (cortar)
     try:
         logger.debug("Prompt preview: %s", str(prompt)[:4000])
     except Exception:
         pass
 
-    # Chamadas ao SDK (compatibilidade com várias assinaturas)
+    last_exc = None
+
+    # tentar assinaturas conhecidas do SDK
     try:
         if client and hasattr(client, "models") and hasattr(client.models, "generate_content"):
             try:
@@ -352,41 +361,38 @@ def _call_gemini_sdk(
                     resp = client.models.generate_content(model=model, content=prompt)
                 except TypeError:
                     resp = client.models.generate_content(model=model, input=prompt)
-            return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
+            return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
     except Exception as e:
-        last_exc = _handle_api_error(e, model)
+        last_exc = e
 
-    if not isinstance(last_exc, ValueError):
-        try:
-            if client and hasattr(client, "responses") and hasattr(client.responses, "create"):
-                try:
-                    resp = client.responses.create(model=model, input=prompt)
-                except TypeError:
-                    resp = client.responses.create(model=model, prompt=prompt)
-                return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
-        except Exception as e:
-            last_exc = _handle_api_error(e, model)
+    try:
+        if client and hasattr(client, "responses") and hasattr(client.responses, "create"):
+            try:
+                resp = client.responses.create(model=model, input=prompt)
+            except TypeError:
+                resp = client.responses.create(model=model, prompt=prompt)
+            return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
+    except Exception as e:
+        last_exc = e
 
-    if not isinstance(last_exc, ValueError):
-        try:
-            if client and hasattr(client, "generate"):
-                resp = client.generate(model=model, prompt=prompt, max_output_tokens=max_tokens)
-                return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
-        except Exception as e:
-            last_exc = _handle_api_error(e, model)
+    try:
+        if client and hasattr(client, "generate"):
+            resp = client.generate(model=model, prompt=prompt, max_output_tokens=max_tokens)
+            return _extract_text_from_response(resp) if callable(_extract_text_from_response) else str(resp)
+    except Exception as e:
+        last_exc = e
 
     msg = "Não foi possível chamar o SDK google-genai com as assinaturas conhecidas."
     if last_exc:
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
-
 # -------------------------
-# Prompt template e builder (sem placeholders ambíguos)
+# Prompt template e builder
 # -------------------------
 DEFAULT_PROMPT = (
     "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree e house.\n\n"
+    "Posições fornecidas: lista de planetas com campos planet, longitude (graus eclípticos 0-360), sign, degree (0-30) e house (1-12).\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -398,14 +404,12 @@ DEFAULT_PROMPT = (
     "Por favor, responda apenas com o texto interpretativo numerado conforme as seções acima."
 )
 
-
 def build_prompt_from_chart_summary(
     chart_summary: Dict[str, Any],
     prompt_template: Optional[str] = None,
 ) -> str:
     """
     Monta o prompt final. Prioriza enviar chart_positions (lista de registros).
-    Garante que o template não dependa de chaves não fornecidas.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
@@ -429,7 +433,10 @@ def build_prompt_from_chart_summary(
     if time_text:
         header_lines.append(f"Hora de nascimento (local): {time_text}")
     if lat is not None and lon is not None:
-        header_lines.append(f"Coordenadas: {lat:.6f}, {lon:.6f}")
+        try:
+            header_lines.append(f"Coordenadas: {float(lat):.6f}, {float(lon):.6f}")
+        except Exception:
+            header_lines.append(f"Coordenadas: {lat}, {lon}")
     if timezone:
         header_lines.append(f"Timezone: {timezone}")
     header = "\n".join(header_lines) + "\n\n" if header_lines else ""
@@ -457,7 +464,6 @@ def build_prompt_from_chart_summary(
             records = []
 
         if records:
-            # normalizar para garantir consistência textual
             records = normalize_chart_positions(records)
             positions_text = "Posições calculadas:\n"
             for r in records:
@@ -473,14 +479,13 @@ def build_prompt_from_chart_summary(
     else:
         positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
-    # O template não contém placeholders planet/longitude etc., então format() é seguro para place/bdate/btime
+    # format safe for place/bdate/btime
     try:
         prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
     except Exception:
         prompt_body = prompt_template
 
     return header + positions_text + prompt_body
-
 
 # -------------------------
 # Função utilitária para gerar interpretação (validação + preview + chamada)
@@ -500,7 +505,6 @@ def generate_interpretation_from_summary(
         st = None
 
     table = summary.get("table") or summary.get("planets") or []
-    # se table for dict de planetas, converter para lista simples
     if isinstance(table, dict):
         table = [{"planet": k, **(v if isinstance(v, dict) else {"value": str(v)})} for k, v in table.items()]
 
@@ -543,10 +547,14 @@ def generate_interpretation_from_summary(
         except Exception:
             pass
 
-    # chamar a função de geração (espera que generate_fn aceite (chart_input, prefer, text_only))
+    # chamar a função de geração com timeout em executor
     try:
-        # chamada direta (assume generate_fn lida com timeout internamente) — se não, o caller pode usar executor
-        res = generate_fn(chart_input, prefer="auto", text_only=True)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            future = ex.submit(generate_fn, chart_input, prefer="auto", text_only=True)
+            res = future.result(timeout=timeout_seconds)
+    except concurrent.futures.TimeoutError:
+        logger.exception("Timeout ao chamar generate_fn")
+        return {"error": f"Timeout: o serviço demorou mais que {timeout_seconds} segundos."}
     except Exception as e:
         logger.exception("Erro ao chamar generate_fn: %s", e)
         return {"error": str(e)}
@@ -757,7 +765,6 @@ def generate_ai_text_from_chart(
         logger.exception("Erro ao gravar cache (ignorando)")
 
     return result
-
 
 # -------------------------
 # Função de alto nível: gerar SVG + texto (usa API externa quando disponível)

@@ -709,7 +709,7 @@ with tab_influencias:
             st.markdown(f"_Período: {age_range} — {year_range}_")
             if is_current:
                 st.markdown(
-                    "<div style='padding:6px;border-left:4px solid #8a2be2;background:#fff9e6'>"
+                    "<div style='padding:6px;border-left:4px solid #8a2be2;background:#fff3b0'>"
                     "<strong>Você está neste período agora.</strong></div>",
                     unsafe_allow_html=True
                 )
@@ -804,19 +804,19 @@ with tab_num:
 
             st.markdown("---")
             # Totais brutos (antes da redução)
-            st.markdown("**Totais brutos (antes da redução)**")
-            raw_cols = st.columns(3)
-            raw_cols[0].write(f"Expressão (bruto): {rpt.get('expression', {}).get('raw_total')}")
-            raw_cols[1].write(f"Desejo da Alma (bruto): {rpt.get('soul_urge', {}).get('raw_total')}")
-            raw_cols[2].write(f"Personalidade (bruto): {rpt.get('personality', {}).get('raw_total')}")
+            # st.markdown("**Totais brutos (antes da redução)**")
+            # raw_cols = st.columns(3)
+            # raw_cols[0].write(f"Expressão (bruto): {rpt.get('expression', {}).get('raw_total')}")
+            # raw_cols[1].write(f"Desejo da Alma (bruto): {rpt.get('soul_urge', {}).get('raw_total')}")
+            # raw_cols[2].write(f"Personalidade (bruto): {rpt.get('personality', {}).get('raw_total')}")
 
-            # Pinnacles / Períodos
-            st.markdown("#### Pinnacles / Períodos")
-            pinn = rpt.get("pinnacles", {})
-            st.table({
-                "Pinnacle": ["P1", "P2", "P3", "P4"],
-                "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-            })
+            # # Pinnacles / Períodos
+            # st.markdown("#### Pinnacles / Períodos")
+            # pinn = rpt.get("pinnacles", {})
+            # st.table({
+            #     "Pinnacle": ["P1", "P2", "P3", "P4"],
+            #     "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
+            # })
 
             # Personal (Ano / Mês / Dia)
             st.markdown("#### Personal (Ano / Mês / Dia)")
@@ -938,14 +938,14 @@ with tab_cabalistica:
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
-    def _render_pinnacles(report):
-        st.markdown("---")
-        st.markdown("#### Pinnacles / Períodos")
-        pinn = report.get("pinnacles", {})
-        st.table({
-            "Pinnacle": ["P1", "P2", "P3", "P4"],
-            "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-        })
+    # def _render_pinnacles(report):
+    #     st.markdown("---")
+    #     st.markdown("#### Pinnacles / Períodos")
+    #     pinn = report.get("pinnacles", {})
+    #     st.table({
+    #         "Pinnacle": ["P1", "P2", "P3", "P4"],
+    #         "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
+    #     })
 
     def _render_personal(report):
         st.markdown("#### Personal (Ano / Mês / Dia)")
