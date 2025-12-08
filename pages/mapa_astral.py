@@ -1013,7 +1013,10 @@ with st.sidebar:
     with st.form("birth_form_sidebar", border=False):
         name = st.text_input("Nome", value="")
         place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="São Paulo, São Paulo, Brasil")
-        bdate = st.date_input("Data de nascimento", value=date(1990, 4, 25))
+        bdate = st.date_input("Data de nascimento",
+            value=date(1990, 4, 25),
+            min_value=date(1900, 1, 1),
+            max_value=date(2100, 12, 31))
         btime_free = st.text_input("Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)", value="")
         source = st.radio("Fonte de cálculo", ["swisseph", "api"], index=0)
 

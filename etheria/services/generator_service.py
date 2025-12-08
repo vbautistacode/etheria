@@ -175,11 +175,90 @@ def _extract_text_from_response(resp) -> str:
     except Exception:
         return ""
 
-# ---------- _call_gemini_sdk (aceita prompt str ou estrutura) ----------
+def normalize_chart_positions(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Normaliza uma lista de registros de posições garantindo:
+    - longitude em float 0..360 (ou None)
+    - degree em float 0..30 (ou None)
+    - house em int 1..12 (ou None)
+    Retorna a lista modificada (mutável).
+    """
+    def parse_float(v: Any) -> Optional[float]:
+        try:
+            return float(v)
+        except Exception:
+            return None
+
+    def parse_degree_string(s: Any) -> Optional[float]:
+        if not s:
+            return None
+        try:
+            t = str(s).replace("°", " ").replace("'", " ").replace('"', " ").replace(",", ".")
+            parts = [p for p in t.split() if p.strip()]
+            if len(parts) == 1:
+                return float(parts[0])
+            deg = float(parts[0])
+            minutes = float(parts[1]) if len(parts) > 1 else 0.0
+            seconds = float(parts[2]) if len(parts) > 2 else 0.0
+            return deg + minutes / 60.0 + seconds / 3600.0
+        except Exception:
+            return None
+
+    for r in records:
+        lon = r.get("longitude") or r.get("lon") or r.get("long") or r.get("ecl_lon")
+        longitude = parse_float(lon) if lon is not None else None
+        if longitude is None and isinstance(lon, str):
+            longitude = parse_degree_string(lon)
+        if longitude is not None:
+            longitude = float(longitude) % 360
+        r["longitude"] = longitude
+
+        degree = r.get("degree")
+        degree_val = parse_float(degree) if degree is not None else None
+        if degree_val is None and longitude is not None:
+            degree_val = longitude % 30
+        r["degree"] = degree_val
+
+        sign = r.get("sign") or r.get("zodiac") or ""
+        r["sign"] = sign
+
+        house = r.get("house") or r.get("casa")
+        try:
+            r["house"] = int(house) if house is not None else None
+        except Exception:
+            r["house"] = None
+
+        # ensure planet name exists
+        r["planet"] = r.get("planet") or r.get("name") or ""
+
+    return records
+
+# -------------------------
+# Helper: normalização e validação de posições
+# -------------------------
+def validate_chart_positions(records: List[Dict[str, Any]]) -> List[str]:
+    """
+    Retorna lista de avisos (strings). Lista vazia significa OK.
+    """
+    warnings: List[str] = []
+    for r in records:
+        planet = r.get("planet", "<unknown>")
+        if r.get("longitude") is None:
+            warnings.append(f"Longitude ausente para {planet}")
+        if r.get("degree") is None:
+            warnings.append(f"Degree ausente para {planet}")
+        if r.get("house") is None:
+            warnings.append(f"House ausente para {planet}")
+    return warnings
+
+
+# -------------------------
+# Compatibilidade com SDK: aceita prompt str ou estrutura
+# -------------------------
 def _call_gemini_sdk(
     prompt: Union[str, Dict[str, Any], List[Dict[str, Any]]],
     model: str = GEMINI_MODEL,
-    max_tokens: int = 2000
+    max_tokens: int = 2000,
 ) -> str:
     """
     Chama o SDK google-genai de forma compatível com várias versões.
@@ -187,11 +266,24 @@ def _call_gemini_sdk(
     estrutura, converte para texto legível antes de chamar o SDK.
     Aplica rate limiting e retorna o texto gerado.
     """
-    _rate_limit_wait()
-    client = _init_genai_client()
+    # Dependências externas do módulo: implemente/importe estas funções no seu módulo
+    _rate_limit_wait = globals().get("_rate_limit_wait")
+    _init_genai_client = globals().get("_init_genai_client")
+    _extract_text_from_response = globals().get("_extract_text_from_response")
+
+    if _rate_limit_wait:
+        try:
+            _rate_limit_wait()
+        except Exception:
+            logger.debug("Rate limit wait failed or not implemented", exc_info=True)
+
+    client = None
+    if _init_genai_client:
+        client = _init_genai_client()
+
     last_exc = None
 
-    def _handle_api_error(e, model_name):
+    def _handle_api_error(e: Exception, model_name: str) -> Exception:
         err_str = str(e)
         if "404" in err_str and ("Publisher Model" in err_str or "NOT_FOUND" in err_str):
             raise ValueError(
@@ -199,14 +291,12 @@ def _call_gemini_sdk(
             )
         return e
 
-    # Se prompt for estrutura, serializar para texto legível
+    # Serializar estrutura para texto legível
     if not isinstance(prompt, str):
         try:
-            # Se for lista de planetas, formatar de forma amigável
             if isinstance(prompt, list):
                 lines = ["Posições calculadas (lista de planetas):"]
                 for p in prompt:
-                    # garantir chaves esperadas
                     planet = p.get("planet") or p.get("name") or ""
                     longitude = p.get("longitude", "")
                     sign = p.get("sign", "")
@@ -215,21 +305,19 @@ def _call_gemini_sdk(
                     lines.append(f"- {planet}: longitude={longitude}; sign={sign}; degree={degree}; house={house}")
                 prompt_text = "\n".join(lines)
             else:
-                # dict genérico: tentar extrair chart_positions ou serializar JSON
+                # dict genérico: priorizar chart_positions
                 if "chart_positions" in prompt and isinstance(prompt["chart_positions"], (list, dict)):
                     cp = prompt["chart_positions"]
                     if isinstance(cp, dict):
-                        # converter dict para lista de registros
                         records = []
                         for k, v in cp.items():
-                            # v pode ser string ou dict; tentar parse
                             if isinstance(v, dict):
                                 rec = {
                                     "planet": k,
                                     "longitude": v.get("longitude", ""),
                                     "sign": v.get("sign", ""),
                                     "degree": v.get("degree", ""),
-                                    "house": v.get("house", "")
+                                    "house": v.get("house", ""),
                                 }
                             else:
                                 rec = {"planet": k, "value": str(v)}
@@ -238,24 +326,25 @@ def _call_gemini_sdk(
                             [f"- {r.get('planet')}: {r.get('value','longitude='+str(r.get('longitude','')))}" for r in records]
                         )
                     else:
-                        # cp é lista
                         prompt_text = "Posições calculadas:\n" + json.dumps(cp, ensure_ascii=False, indent=2)
                 else:
-                    # fallback: serializar o dict inteiro de forma legível
                     prompt_text = "Contexto:\n" + json.dumps(prompt, ensure_ascii=False, indent=2)
             prompt = prompt_text
         except Exception:
-            # fallback seguro: JSON
             try:
                 prompt = json.dumps(prompt, ensure_ascii=False)
             except Exception:
                 prompt = str(prompt)
 
-    # -------------------------
-    # chamadas ao SDK (mesma lógica anterior)
-    # -------------------------
+    # Debug: log preview do prompt (cortar para evitar logs enormes)
     try:
-        if hasattr(client, "models") and hasattr(client.models, "generate_content"):
+        logger.debug("Prompt preview: %s", str(prompt)[:4000])
+    except Exception:
+        pass
+
+    # Chamadas ao SDK (compatibilidade com várias assinaturas)
+    try:
+        if client and hasattr(client, "models") and hasattr(client.models, "generate_content"):
             try:
                 resp = client.models.generate_content(model=model, contents=prompt)
             except TypeError:
@@ -263,26 +352,26 @@ def _call_gemini_sdk(
                     resp = client.models.generate_content(model=model, content=prompt)
                 except TypeError:
                     resp = client.models.generate_content(model=model, input=prompt)
-            return _extract_text_from_response(resp)
+            return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
     except Exception as e:
         last_exc = _handle_api_error(e, model)
 
     if not isinstance(last_exc, ValueError):
         try:
-            if hasattr(client, "responses") and hasattr(client.responses, "create"):
+            if client and hasattr(client, "responses") and hasattr(client.responses, "create"):
                 try:
                     resp = client.responses.create(model=model, input=prompt)
                 except TypeError:
                     resp = client.responses.create(model=model, prompt=prompt)
-                return _extract_text_from_response(resp)
+                return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
         except Exception as e:
             last_exc = _handle_api_error(e, model)
 
     if not isinstance(last_exc, ValueError):
         try:
-            if hasattr(client, "generate"):
+            if client and hasattr(client, "generate"):
                 resp = client.generate(model=model, prompt=prompt, max_output_tokens=max_tokens)
-                return _extract_text_from_response(resp)
+                return _extract_text_from_response(resp) if _extract_text_from_response else str(resp)
         except Exception as e:
             last_exc = _handle_api_error(e, model)
 
@@ -291,12 +380,13 @@ def _call_gemini_sdk(
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
+
 # -------------------------
-# Prompt template e builder (ajustado para receber posições)
+# Prompt template e builder (sem placeholders ambíguos)
 # -------------------------
 DEFAULT_PROMPT = (
     "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos {planet}, {longitude}, {sign} e {house}.\n\n"
+    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree e house.\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -308,15 +398,14 @@ DEFAULT_PROMPT = (
     "Por favor, responda apenas com o texto interpretativo numerado conforme as seções acima."
 )
 
+
 def build_prompt_from_chart_summary(
     chart_summary: Dict[str, Any],
     prompt_template: Optional[str] = None,
 ) -> str:
     """
-    Monta o prompt final. Se chart_summary contém 'chart_positions' como lista de registros
-    (cada registro com planet, longitude, sign, degree, house), anexa essa lista de forma
-    legível antes do template. Mantém compatibilidade com templates antigos que usam
-    placeholders {place},{bdate},{btime} — mas prioriza enviar as posições calculadas.
+    Monta o prompt final. Prioriza enviar chart_positions (lista de registros).
+    Garante que o template não dependa de chaves não fornecidas.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
@@ -327,12 +416,11 @@ def build_prompt_from_chart_summary(
     lat = chart_summary.get("lat")
     lon = chart_summary.get("lon")
     timezone = chart_summary.get("timezone")
-    chart_positions = chart_summary.get("chart_positions")
+    chart_positions = chart_summary.get("chart_positions") or chart_summary.get("summary", {}).get("table")
 
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
     time_text = str(btime).strip() if btime else "Hora não informada"
 
-    # Header com contexto geográfico/temporal (se disponível)
     header_lines = []
     if place:
         header_lines.append(f"Cidade: {place}")
@@ -346,12 +434,10 @@ def build_prompt_from_chart_summary(
         header_lines.append(f"Timezone: {timezone}")
     header = "\n".join(header_lines) + "\n\n" if header_lines else ""
 
-    # Formata as posições calculadas: preferimos lista de registros
     positions_text = ""
     if chart_positions:
-        # Se for dict, tentar converter para lista de registros
+        # converter dict -> lista se necessário
         if isinstance(chart_positions, dict):
-            # converter dict -> lista de registros
             records = []
             for k, v in chart_positions.items():
                 if isinstance(v, dict):
@@ -360,10 +446,9 @@ def build_prompt_from_chart_summary(
                         "longitude": v.get("longitude", ""),
                         "sign": v.get("sign", ""),
                         "degree": v.get("degree", ""),
-                        "house": v.get("house", "")
+                        "house": v.get("house", ""),
                     }
                 else:
-                    # v é string/valor simples
                     rec = {"planet": k, "value": str(v)}
                 records.append(rec)
         elif isinstance(chart_positions, list):
@@ -372,6 +457,8 @@ def build_prompt_from_chart_summary(
             records = []
 
         if records:
+            # normalizar para garantir consistência textual
+            records = normalize_chart_positions(records)
             positions_text = "Posições calculadas:\n"
             for r in records:
                 planet = r.get("planet") or r.get("name") or ""
@@ -386,7 +473,7 @@ def build_prompt_from_chart_summary(
     else:
         positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
-    # Tenta formatar o template com placeholders antigos, mas não é obrigatório
+    # O template não contém placeholders planet/longitude etc., então format() é seguro para place/bdate/btime
     try:
         prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
     except Exception:
@@ -394,26 +481,77 @@ def build_prompt_from_chart_summary(
 
     return header + positions_text + prompt_body
 
-def normalize_chart_positions(records):
-    for r in records:
-        # longitude -> float 0..360
-        lon = r.get("longitude")
-        if lon is not None:
-            try:
-                lon = float(lon)
-                lon = lon % 360
-                r["longitude"] = lon
-            except Exception:
-                r["longitude"] = None
-        # degree -> 0..30
-        if r.get("degree") is None and r.get("longitude") is not None:
-            r["degree"] = r["longitude"] % 30
-        # house -> int or None
+
+# -------------------------
+# Função utilitária para gerar interpretação (validação + preview + chamada)
+# -------------------------
+def generate_interpretation_from_summary(
+    summary: Dict[str, Any],
+    generate_fn,
+    timeout_seconds: int = 60,
+) -> Dict[str, Any]:
+    """
+    Normaliza e valida chart_positions, exibe preview via streamlit sidebar (se disponível),
+    monta prompt e chama generate_fn (ex: generate_analysis). Retorna o dict de resposta.
+    """
+    try:
+        import streamlit as st  # opcional, usado apenas para preview/avisos
+    except Exception:
+        st = None
+
+    table = summary.get("table") or summary.get("planets") or []
+    # se table for dict de planetas, converter para lista simples
+    if isinstance(table, dict):
+        table = [{"planet": k, **(v if isinstance(v, dict) else {"value": str(v)})} for k, v in table.items()]
+
+    chart_positions = normalize_chart_positions(table)
+
+    # preview no sidebar para depuração
+    if st:
+        st.sidebar.markdown("**Preview: chart_positions**")
         try:
-            r["house"] = int(r["house"]) if r.get("house") is not None else None
+            st.sidebar.json(chart_positions)
         except Exception:
-            r["house"] = None
-    return records
+            st.sidebar.text(str(chart_positions)[:4000])
+
+    warnings = validate_chart_positions(chart_positions)
+    if warnings:
+        if st:
+            for w in warnings:
+                st.sidebar.warning(w)
+            st.sidebar.info("Corrija os dados ou confirme manualmente antes de enviar à IA.")
+        return {"error": "Dados incompletos: verifique chart_positions no sidebar.", "warnings": warnings}
+
+    chart_input = {
+        "name": summary.get("name"),
+        "place": summary.get("place"),
+        "bdate": summary.get("bdate"),
+        "btime": summary.get("btime"),
+        "lat": summary.get("lat"),
+        "lon": summary.get("lon"),
+        "timezone": summary.get("timezone"),
+        "chart_positions": chart_positions,
+        "summary": summary,
+    }
+
+    # prompt preview (curto) para debug
+    prompt_preview = build_prompt_from_chart_summary(chart_input)
+    logger.debug("Prompt preview (first 2000 chars): %s", prompt_preview[:2000])
+    if st:
+        try:
+            st.sidebar.text_area("Prompt preview (início)", value=prompt_preview[:4000], height=200)
+        except Exception:
+            pass
+
+    # chamar a função de geração (espera que generate_fn aceite (chart_input, prefer, text_only))
+    try:
+        # chamada direta (assume generate_fn lida com timeout internamente) — se não, o caller pode usar executor
+        res = generate_fn(chart_input, prefer="auto", text_only=True)
+    except Exception as e:
+        logger.exception("Erro ao chamar generate_fn: %s", e)
+        return {"error": str(e)}
+
+    return res
 
 # -------------------------
 # prepare_chart_summary_from_inputs (garante chart_positions como lista de dicts)
