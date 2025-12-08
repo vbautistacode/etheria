@@ -392,7 +392,7 @@ def _call_gemini_sdk(
 # -------------------------
 DEFAULT_PROMPT = (
     "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
-    "Posições fornecidas: lista de planetas com campos planet, longitude (graus eclípticos 0-360), sign, degree (0-30) e house (1-12).\n\n"
+    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree e house.\n\n"
     "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -409,23 +409,34 @@ def build_prompt_from_chart_summary(
     prompt_template: Optional[str] = None,
 ) -> str:
     """
-    Monta o prompt final. Prioriza enviar chart_positions (lista de registros).
+    Monta o prompt final a partir de um chart_summary.
+    - Prioriza enviar chart_positions (lista de registros).
+    - Aceita chart_positions como lista ou summary.table (dict/list).
+    - Normaliza posições antes de serializar (usa normalize_chart_positions).
+    - Não usa str.format() no template para evitar KeyError com placeholders
+      desconhecidos; faz substituições seguras apenas para place/bdate/btime.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
 
-    place = chart_summary.get("place", "") or ""
+    place = chart_summary.get("place") or ""
     bdate = chart_summary.get("bdate")
-    btime = chart_summary.get("btime", "") or ""
+    btime = chart_summary.get("btime") or ""
     lat = chart_summary.get("lat")
     lon = chart_summary.get("lon")
     timezone = chart_summary.get("timezone")
-    chart_positions = chart_summary.get("chart_positions") or chart_summary.get("summary", {}).get("table")
 
+    # Preferir chart_positions explícito, senão tentar summary.table
+    chart_positions = chart_summary.get("chart_positions")
+    if not chart_positions:
+        chart_positions = chart_summary.get("summary", {}).get("table") if isinstance(chart_summary.get("summary"), dict) else chart_summary.get("table")
+
+    # formatar data/hora para exibição
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
     time_text = str(btime).strip() if btime else "Hora não informada"
 
-    header_lines = []
+    # montar header com contexto geográfico/temporal
+    header_lines: List[str] = []
     if place:
         header_lines.append(f"Cidade: {place}")
     if date_text:
@@ -439,49 +450,69 @@ def build_prompt_from_chart_summary(
             header_lines.append(f"Coordenadas: {lat}, {lon}")
     if timezone:
         header_lines.append(f"Timezone: {timezone}")
-    header = "\n".join(header_lines) + "\n\n" if header_lines else ""
+    header = ("\n".join(header_lines) + "\n\n") if header_lines else ""
 
+    # preparar positions_text a partir de chart_positions (aceita dict/list)
     positions_text = ""
+    records: List[Dict[str, Any]] = []
     if chart_positions:
-        # converter dict -> lista se necessário
         if isinstance(chart_positions, dict):
-            records = []
             for k, v in chart_positions.items():
                 if isinstance(v, dict):
                     rec = {
                         "planet": k,
-                        "longitude": v.get("longitude", ""),
-                        "sign": v.get("sign", ""),
-                        "degree": v.get("degree", ""),
-                        "house": v.get("house", ""),
+                        "longitude": v.get("longitude", v.get("lon", v.get("deg", v.get("degree", "")))),
+                        "sign": v.get("sign", v.get("zodiac", "")),
+                        "degree": v.get("degree", v.get("deg", "")),
+                        "house": v.get("house", v.get("casa", "")),
                     }
                 else:
                     rec = {"planet": k, "value": str(v)}
                 records.append(rec)
         elif isinstance(chart_positions, list):
-            records = chart_positions
+            # assumir que já é lista de registros
+            records = list(chart_positions)
         else:
             records = []
 
         if records:
-            records = normalize_chart_positions(records)
-            positions_text = "Posições calculadas:\n"
+            # normalizar (garante longitude 0..360, degree 0..30, house int ou None)
+            try:
+                records = normalize_chart_positions(records)
+            except Exception:
+                # se normalize falhar, manter records originais para diagnóstico
+                logger.exception("normalize_chart_positions falhou ao normalizar records")
+            # montar texto legível
+            lines = ["Posições calculadas:"]
             for r in records:
                 planet = r.get("planet") or r.get("name") or ""
                 longitude = r.get("longitude", r.get("value", ""))
-                sign = r.get("sign", "")
+                sign = r.get("sign", "") or ""
                 degree = r.get("degree", "")
                 house = r.get("house", "")
-                positions_text += f"- {planet}: longitude={longitude}; sign={sign}; degree={degree}; house={house}\n"
-            positions_text += "\n"
+                # formatar valores para legibilidade
+                try:
+                    lon_str = f"{float(longitude):.6f}" if longitude is not None and longitude != "" else str(longitude)
+                except Exception:
+                    lon_str = str(longitude)
+                deg_str = f"{float(degree):.6f}" if degree not in (None, "") else ""
+                house_str = str(int(house)) if house not in (None, "") else ""
+                lines.append(f"- {planet}: longitude={lon_str}; sign={sign}; degree={deg_str}; house={house_str}")
+            positions_text = "\n".join(lines) + "\n\n"
         else:
             positions_text = "\nPosições calculadas: indisponíveis ou em formato inesperado.\n\n"
     else:
         positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
-    # format safe for place/bdate/btime
+    # Substituições seguras no template apenas para compatibilidade com templates antigos
+    # (evita usar prompt_template.format(...) que pode lançar KeyError)
     try:
-        prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
+        prompt_body = (
+            prompt_template
+            .replace("{place}", place)
+            .replace("{bdate}", date_text)
+            .replace("{btime}", time_text)
+        )
     except Exception:
         prompt_body = prompt_template
 
