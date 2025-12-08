@@ -1024,7 +1024,8 @@ with st.sidebar:
         st.write("Sistema selecionado:", HOUSE_NAME_MAP.get(selected_code, selected_code))
 
         submitted = st.form_submit_button("Gerar Mapa")
-
+        st.success("Mapa gerado e salvo em sessão")
+        
 # -------------------------
 # Processamento após submit
 # -------------------------
@@ -1120,7 +1121,7 @@ if submitted:
                         st.session_state["map_fig"] = fig
                         st.session_state["map_summary"] = summary
                         st.session_state["map_ready"] = True
-                        st.success("Mapa gerado e salvo em sessão")
+                        
                     except Exception as e:
                         logger.exception("Erro ao renderizar figura: %s", e)
                         st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")

@@ -179,7 +179,6 @@ def _extract_text_from_response(resp) -> str:
     except Exception:
         return ""
 
-
 def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2000) -> str:
     """
     Chama o SDK google-genai de forma compatível com várias versões.
@@ -237,7 +236,6 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
-
 # -------------------------
 # Prompt template e builder
 # -------------------------
@@ -248,12 +246,12 @@ DEFAULT_PROMPT = (
     "Hora de nascimento (local): {btime}\n\n"
     "Interprete o meu mapa astral:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
-    "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: ASC, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
+    "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
     "3) Interprete o posicionamento da segunda tríade de planetas pessoais, com o detalhe de cada casa: Marte, Mercúrio e Vênus (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
-    "4) Interprete o posicionamento da tríade de planetas sociais, com o detalhe de cada casa: Júpiter e Saturno (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
+    "4) Interprete o posicionamento dos planetas sociais, com o detalhe de cada casa: Júpiter e Saturno (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
     "5) Interprete o posicionamento da tríade de planetas geracionais, com o detalhe de cada casa: Urano, Netuno e Plutão (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
-    "6) Para encerrar esta análise, foque nos quatro elementos (Terra, Água, Fogo, Ar) e indique qual energia domina o temperamento; explique brevemente como isso se manifesta (máx. 6 linhas), fornecendo aplicações práticas.\n\n"
-    "7) Informação adicional sobre astrologia cármica: comente sobre Sol, Lua, Nodo Sul, Nodo Norte e Roda da Fortuna e Planetas Retrógrados (máx. 6 linhas), fornecendo aplicações práticas.\n\n"
+    "6) Para encerrar esta análise, foque nos quatro elementos (Terra, Água, Fogo, Ar) e indique qual energia domina o temperamento; explique brevemente como isso se manifesta (máx. 8 linhas), fornecendo aplicações práticas.\n\n"
+    "7) Informação adicional sobre astrologia cármica: comente sobre Sol, Lua, Nodo Sul, Nodo Norte e Roda da Fortuna e Planetas Retrógrados (máx. 10 linhas), fornecendo aplicações práticas.\n\n"
     "Por favor, responda apenas com o texto interpretativo numerado conforme as seções acima."
 )
 
