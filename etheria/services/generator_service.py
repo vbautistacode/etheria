@@ -179,9 +179,16 @@ def _extract_text_from_response(resp) -> str:
     except Exception:
         return ""
 
-def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2000) -> str:
+# ---------- _call_gemini_sdk (aceita prompt str ou estrutura) ----------
+def _call_gemini_sdk(
+    prompt: Union[str, Dict[str, Any], List[Dict[str, Any]]],
+    model: str = GEMINI_MODEL,
+    max_tokens: int = 2000
+) -> str:
     """
     Chama o SDK google-genai de forma compatível com várias versões.
+    Aceita prompt como string ou como estrutura (dict/list). Se receber
+    estrutura, converte para texto legível antes de chamar o SDK.
     Aplica rate limiting e retorna o texto gerado.
     """
     _rate_limit_wait()
@@ -196,7 +203,61 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
             )
         return e
 
-    # Tentativa 1: client.models.generate_content
+    # Se prompt for estrutura, serializar para texto legível
+    if not isinstance(prompt, str):
+        try:
+            # Se for lista de planetas, formatar de forma amigável
+            if isinstance(prompt, list):
+                lines = ["Posições calculadas (lista de planetas):"]
+                for p in prompt:
+                    # garantir chaves esperadas
+                    planet = p.get("planet") or p.get("name") or ""
+                    longitude = p.get("longitude", "")
+                    sign = p.get("sign", "")
+                    degree = p.get("degree", "")
+                    house = p.get("house", "")
+                    lines.append(f"- {planet}: longitude={longitude}; sign={sign}; degree={degree}; house={house}")
+                prompt_text = "\n".join(lines)
+            else:
+                # dict genérico: tentar extrair chart_positions ou serializar JSON
+                if "chart_positions" in prompt and isinstance(prompt["chart_positions"], (list, dict)):
+                    cp = prompt["chart_positions"]
+                    if isinstance(cp, dict):
+                        # converter dict para lista de registros
+                        records = []
+                        for k, v in cp.items():
+                            # v pode ser string ou dict; tentar parse
+                            if isinstance(v, dict):
+                                rec = {
+                                    "planet": k,
+                                    "longitude": v.get("longitude", ""),
+                                    "sign": v.get("sign", ""),
+                                    "degree": v.get("degree", ""),
+                                    "house": v.get("house", "")
+                                }
+                            else:
+                                rec = {"planet": k, "value": str(v)}
+                            records.append(rec)
+                        prompt_text = "Posições calculadas:\n" + "\n".join(
+                            [f"- {r.get('planet')}: {r.get('value','longitude='+str(r.get('longitude','')))}" for r in records]
+                        )
+                    else:
+                        # cp é lista
+                        prompt_text = "Posições calculadas:\n" + json.dumps(cp, ensure_ascii=False, indent=2)
+                else:
+                    # fallback: serializar o dict inteiro de forma legível
+                    prompt_text = "Contexto:\n" + json.dumps(prompt, ensure_ascii=False, indent=2)
+            prompt = prompt_text
+        except Exception:
+            # fallback seguro: JSON
+            try:
+                prompt = json.dumps(prompt, ensure_ascii=False)
+            except Exception:
+                prompt = str(prompt)
+
+    # -------------------------
+    # chamadas ao SDK (mesma lógica anterior)
+    # -------------------------
     try:
         if hasattr(client, "models") and hasattr(client.models, "generate_content"):
             try:
@@ -210,7 +271,6 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
     except Exception as e:
         last_exc = _handle_api_error(e, model)
 
-    # Tentativa 2: client.responses.create
     if not isinstance(last_exc, ValueError):
         try:
             if hasattr(client, "responses") and hasattr(client.responses, "create"):
@@ -222,7 +282,6 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
         except Exception as e:
             last_exc = _handle_api_error(e, model)
 
-    # Tentativa 3: client.generate (antigo)
     if not isinstance(last_exc, ValueError):
         try:
             if hasattr(client, "generate"):
@@ -236,15 +295,14 @@ def _call_gemini_sdk(prompt: str, model: str = GEMINI_MODEL, max_tokens: int = 2
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
+
 # -------------------------
-# Prompt template e builder
+# Prompt template e builder (ajustado para receber posições)
 # -------------------------
 DEFAULT_PROMPT = (
-    "A partir dos dados de:\n"
-    "Cidade: {place}\n"
-    "Data de nascimento: {bdate}\n"
-    "Hora de nascimento (local): {btime}\n\n"
-    "Interprete o meu mapa astral:\n\n"
+    "A partir das posições calculadas abaixo, gere uma interpretação do mapa astral:\n\n"
+    "Posições fornecidas: lista de planetas com campos planet, longitude, sign, degree, house.\n\n"
+    "Interprete o meu mapa astral seguindo as seções numeradas:\n\n"
     "1) Me explique com analogia ao teatro, o que é o planeta, o signo e a casa na astrologia (máx. 8 linhas) de forma clara.\n\n"
     "2) Interprete o posicionamento da primeira tríade de planetas pessoais, com o detalhe de cada casa: Ascendente, Sol e Lua (máx.8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
     "3) Interprete o posicionamento da segunda tríade de planetas pessoais, com o detalhe de cada casa: Marte, Mercúrio e Vênus (máx. 8-10 linhas por planeta), fornecendo aplicações práticas.\n\n"
@@ -260,8 +318,10 @@ def build_prompt_from_chart_summary(
     prompt_template: Optional[str] = None,
 ) -> str:
     """
-    Monta o prompt final. Substitui placeholders {place},{bdate},{btime} no template.
-    Anexa 'Posições calculadas' quando chart_positions estiver disponível.
+    Monta o prompt final. Se chart_summary contém 'chart_positions' como lista de registros
+    (cada registro com planet, longitude, sign, degree, house), anexa essa lista de forma
+    legível antes do template. Mantém compatibilidade com templates antigos que usam
+    placeholders {place},{bdate},{btime} — mas prioriza enviar as posições calculadas.
     """
     if not prompt_template:
         prompt_template = DEFAULT_PROMPT
@@ -277,35 +337,71 @@ def build_prompt_from_chart_summary(
     date_text = bdate.strftime("%d/%m/%Y") if isinstance(bdate, date) else str(bdate or "")
     time_text = str(btime).strip() if btime else "Hora não informada"
 
-    # Formata o template com os dados básicos (se o template tiver placeholders)
-    try:
-        prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
-    except Exception:
-        # Se o template não for formatável, concatena manualmente
-        header = f"Cidade: {place}\nData de nascimento: {date_text}\nHora de nascimento (local): {time_text}\n\n"
-        prompt_body = header + prompt_template
-
-    # Anexa coordenadas/timezone se houver
-    context_extra = ""
+    # Header com contexto geográfico/temporal (se disponível)
+    header_lines = []
+    if place:
+        header_lines.append(f"Cidade: {place}")
+    if date_text:
+        header_lines.append(f"Data de nascimento: {date_text}")
+    if time_text:
+        header_lines.append(f"Hora de nascimento (local): {time_text}")
     if lat is not None and lon is not None:
-        context_extra += f"Coordenadas: {lat:.6f}, {lon:.6f}\n"
+        header_lines.append(f"Coordenadas: {lat:.6f}, {lon:.6f}")
     if timezone:
-        context_extra += f"Timezone: {timezone}\n"
+        header_lines.append(f"Timezone: {timezone}")
+    header = "\n".join(header_lines) + "\n\n" if header_lines else ""
 
-    # Anexa posições calculadas (se houver)
+    # Formata as posições calculadas: preferimos lista de registros
     positions_text = ""
     if chart_positions:
-        positions_text = "\nPosições calculadas:\n"
-        for k, v in chart_positions.items():
-            positions_text += f"- {k}: {v}\n"
-        positions_text += "\n"
+        # Se for dict, tentar converter para lista de registros
+        if isinstance(chart_positions, dict):
+            # converter dict -> lista de registros
+            records = []
+            for k, v in chart_positions.items():
+                if isinstance(v, dict):
+                    rec = {
+                        "planet": k,
+                        "longitude": v.get("longitude", ""),
+                        "sign": v.get("sign", ""),
+                        "degree": v.get("degree", ""),
+                        "house": v.get("house", "")
+                    }
+                else:
+                    # v é string/valor simples
+                    rec = {"planet": k, "value": str(v)}
+                records.append(rec)
+        elif isinstance(chart_positions, list):
+            records = chart_positions
+        else:
+            records = []
+
+        if records:
+            positions_text = "Posições calculadas:\n"
+            for r in records:
+                planet = r.get("planet") or r.get("name") or ""
+                longitude = r.get("longitude", r.get("value", ""))
+                sign = r.get("sign", "")
+                degree = r.get("degree", "")
+                house = r.get("house", "")
+                positions_text += f"- {planet}: longitude={longitude}; sign={sign}; degree={degree}; house={house}\n"
+            positions_text += "\n"
+        else:
+            positions_text = "\nPosições calculadas: indisponíveis ou em formato inesperado.\n\n"
     else:
         positions_text = "\nPosições calculadas: indisponíveis (sem hora precisa ou erro no cálculo).\n\n"
 
-    return context_extra + positions_text + prompt_body
+    # Tenta formatar o template com placeholders antigos, mas não é obrigatório
+    try:
+        prompt_body = prompt_template.format(place=place, bdate=date_text, btime=time_text)
+    except Exception:
+        prompt_body = prompt_template
+
+    return header + positions_text + prompt_body
+
 
 # -------------------------
-# Preparação do chart a partir de inputs simples
+# prepare_chart_summary_from_inputs (garante chart_positions como lista de dicts)
 # -------------------------
 def prepare_chart_summary_from_inputs(
     place: str,
@@ -315,7 +411,7 @@ def prepare_chart_summary_from_inputs(
 ) -> Dict[str, Any]:
     """
     Faz geocode, timezone, parse de hora e cálculo de posições.
-    Retorna dict com keys: place, bdate, btime, lat, lon, timezone, chart_positions.
+    Retorna dict com keys: place, bdate, btime, lat, lon, timezone, chart_positions (lista de dicts).
     Nunca assume hora padrão: se btime faltar/for inválida, retorna sem chart_positions.
     """
     # Validação rígida de hora: o usuário SEMPRE deve informar.
@@ -352,9 +448,34 @@ def prepare_chart_summary_from_inputs(
     chart_positions = None
     if lat and lon and local_dt:
         try:
-            chart_positions = compute_chart_positions(lat, lon, local_dt, house_system)
+            raw_positions = compute_chart_positions(lat, lon, local_dt, house_system)
+            # Normalizar para lista de dicts com as chaves esperadas
+            if isinstance(raw_positions, list):
+                # assumir que já está no formato correto
+                chart_positions = raw_positions
+            elif isinstance(raw_positions, dict):
+                # converter dict -> lista de registros
+                records = []
+                for k, v in raw_positions.items():
+                    if isinstance(v, dict):
+                        rec = {
+                            "planet": k,
+                            "longitude": v.get("longitude", v.get("lon", "")),
+                            "sign": v.get("sign", ""),
+                            "degree": v.get("degree", v.get("deg", "")),
+                            "house": v.get("house", v.get("casa", ""))
+                        }
+                    else:
+                        # v é string/valor simples; armazenar em 'value'
+                        rec = {"planet": k, "value": str(v)}
+                    records.append(rec)
+                chart_positions = records
+            else:
+                # formato inesperado: serializar para fallback
+                chart_positions = [{"planet": "unknown", "value": str(raw_positions)}]
         except Exception as e:
             logger.exception("Erro ao calcular chart_positions: %s", e)
+            chart_positions = None
 
     return {
         "place": (display or place),
