@@ -1025,12 +1025,12 @@ with st.sidebar:
         st.write("Sistema selecionado:", HOUSE_NAME_MAP.get(selected_code, selected_code))
 
         submitted = st.form_submit_button("Gerar Mapa")
-        st.success("Mapa gerado e salvo em sessão")
         
 # -------------------------
 # Processamento após submit
 # -------------------------
 if submitted:
+    st.success("Mapa gerado e salvo em sessão")
     # 1) Normalizar e validar hora (obrigatória)
     parsed_time = _parse_time_string(btime_free)
     if parsed_time is None:
