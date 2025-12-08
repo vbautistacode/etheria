@@ -1012,7 +1012,7 @@ HOUSE_NAME_MAP = {code: name for name, code in HOUSE_CHOICES}
 with st.sidebar:
     with st.form("birth_form_sidebar", border=False):
         name = st.text_input("Nome", value="")
-        place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="Santo André, São Paulo, Brasil")
+        place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="São Paulo, São Paulo, Brasil")
         bdate = st.date_input("Data de nascimento", value=date(1990, 4, 25))
         btime_free = st.text_input("Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)", value="")
         source = st.radio("Fonte de cálculo", ["swisseph", "api"], index=0)
