@@ -1058,6 +1058,8 @@ with tab_cabalistica:
                 _render_header(rptc)
                 _render_interpretations(rptc)
 
+                st.markdown("### Análise do Número do Ano")
+                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                 # análise da data de aniversário vigente (ex.: aniversário deste ano)
                 try:
                     # controle de ano: escolha livre pelo usuário (padrão: ano atual)
@@ -1090,8 +1092,6 @@ with tab_cabalistica:
                         if st.session_state.get("debug_influences"):
                             st.exception(e)
 
-                    st.markdown("### Análise do Número do Ano")
-                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                     # criar colunas: texto à esquerda, imagem à direita
                     col_text, col_img = st.columns([2, 1])
                     with col_text:
