@@ -904,7 +904,7 @@ with tab_num:
             # with col_ctrl:
                 current_year = datetime.now().year
                 selected_year = st.number_input(
-                    "",  # rótulo vazio porque o contexto está no título
+                    "Escolha o ano para análise:",
                     min_value=1900,
                     max_value=2100,
                     value=current_year,
