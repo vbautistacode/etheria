@@ -1060,36 +1060,60 @@ with tab_cabalistica:
 
                 # análise da data de aniversário vigente (ex.: aniversário deste ano)
                 try:
-                    today_year = datetime.now().year
-                    try:
-                        ann_date = date(today_year, dob.month, dob.day)
-                    except ValueError:
-                        # trata 29/02 em ano não bissexto: usar 28/02 como fallback
-                        ann_date = date(today_year, dob.month, min(dob.day, 28))
+                    # controle de ano: escolha livre pelo usuário (padrão: ano atual)
+                    current_year = datetime.now().year
+                    selected_year = st.number_input(
+                        "Ano base para a análise (escolha livre)",
+                        min_value=1900,
+                        max_value=2100,
+                        value=current_year,
+                        step=1,
+                        key="cabalistic_ann_year"
+                    )
 
+                    # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
+                    def _ann_date_for_year(dob, year):
+                        try:
+                            return date(year, dob.month, dob.day)
+                        except ValueError:
+                            # 29/02 em ano não bissexto -> fallback para 28/02
+                            return date(year, dob.month, min(dob.day, 28))
+
+                    # recalcular a data e a análise usando o ano selecionado
+                    ann_date = _ann_date_for_year(dob, int(selected_year))
                     ann_str = ann_date.strftime("%d/%m/%Y")
-                    ann_analysis = numerology.analyze_date_str(ann_str) or {}
+
+                    try:
+                        ann_analysis = numerology.analyze_date_str(ann_str) or {}
+                    except Exception as e:
+                        ann_analysis = {}
+                        if st.session_state.get("debug_influences"):
+                            st.exception(e)
 
                     st.markdown("### Análise do Número do Ano")
-                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
+                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
 
-                    # criar colunas: texto à esquerda, imagem à direita
-                    col_text, col_img = st.columns([2, 1])
+                    # exibição (mesma ordem e formato que você tinha)
+                    st.write(f"**Data:** {ann_analysis.get('date', ann_str)}")
+                    st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
+                    st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
+                    st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
+                    st.markdown("**Qualidade:**")
+                    st.write(ann_analysis.get('short','—'))
+                    st.markdown("**Definição:**")
+                    st.write(ann_analysis.get('medium','—'))
+                    st.markdown("**Detalhe:**")
+                    st.write(ann_analysis.get('long','—'))
 
-                    with col_text:
-                        st.write(f"**Data:** {ann_analysis.get('date','—')}")
-                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
-                        st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
-                        st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
-                        st.markdown("**Qualidade:**")
-                        st.write(ann_analysis.get('short','—'))
-                        st.markdown("**Definição:**")
-                        st.write(ann_analysis.get('medium','—'))
-                        st.markdown("**Detalhe:**")
-                        st.write(ann_analysis.get('long','—'))
-
-                    # renderizar apenas a imagem do chakra na coluna direita (sem duplicar texto)
-                    render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras", target_col=col_img)
+                    # renderizar apenas a imagem do chakra (sem duplicar texto)
+                    try:
+                        render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras")
+                    except Exception:
+                        if st.session_state.get("debug_influences"):
+                            import traceback
+                            st.text(traceback.format_exc())
+                        else:
+                            pass
 
                 except Exception as e:
                     if st.session_state.get("debug_influences"):
