@@ -737,8 +737,8 @@ with tab_num:
     from datetime import date, datetime
 
     # garantir session_state básicos (uma única vez)
-    # st.session_state.setdefault("full_name", "")
-    # st.session_state.setdefault("dob", date(1990, 4, 25))
+    st.session_state.setdefault("full_name", "")
+    st.session_state.setdefault("dob", date(1990, 4, 25))
     st.session_state.setdefault("num_keep_masters", True)
 
     # chaves locais para inputs visíveis nesta aba (evitam conflito com sidebar)
@@ -746,8 +746,8 @@ with tab_num:
     st.session_state.setdefault("num_dob", st.session_state.get("dob", date(1990, 4, 25)))
 
     # Input visível (opcional). Se preferir oculto, comente estas linhas.
-    full_name_input = st.text_input("Nome completo", value=st.session_state.get("num_full_name", ""), key="num_full_name_input")
-    dob_input = st.date_input("Data de nascimento", value=st.session_state.get("num_dob", date(1990, 4, 25)), key="num_dob_input")
+    # full_name_input = st.text_input("Nome completo", value=st.session_state.get("num_full_name", ""), key="num_full_name_input")
+    # dob_input = st.date_input("Data de nascimento", value=st.session_state.get("num_dob", date(1990, 4, 25)), key="num_dob_input")
 
     # checkbox (usar chave única)
     keep_masters = st.checkbox(
@@ -795,16 +795,53 @@ with tab_num:
                 cols[3].metric("Personalidade", rpt.get("personality", {}).get("value", "—"))
             with c3:
                 st.markdown("**Maturidade**")
-                maturity = rpt.get("maturity", {})
+                maturity = rpt.get("maturity", {}) or {}
                 st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
+
                 st.markdown("**Número de Poder**")
-                pv = rpt.get("power_number") or power_num or {}
-                pv_value = pv.get("value", "—")
-                pv_raw = pv.get("raw")
-                if pv_raw is not None:
-                    st.write(f"{pv_value} (soma bruta: {pv_raw})")
+
+                # 1) preferir campo no relatório (se foi adicionado)
+                pv = rpt.get("power_number")
+                # 2) se não existir, usar valor calculado localmente (power_num) se disponível
+                if not pv:
+                    # garantir que usamos dob_val (variável usada no fluxo)
+                    dob_for_calc = dob_val if 'dob_val' in locals() else (st.session_state.get("dob") or None)
+                    # tentar usar função do módulo de forma defensiva
+                    power_fn = getattr(numerology, "power_number_from_dob", None)
+                    if callable(power_fn) and dob_for_calc:
+                        try:
+                            pv = power_fn(dob_for_calc, keep_masters=keep_masters, master_min=11) or {}
+                        except Exception as e:
+                            # logar sem quebrar UI
+                            try:
+                                logger.exception("Erro ao calcular power_number: %s", e)
+                            except Exception:
+                                pass
+                            pv = {}
+                    else:
+                        # fallback simples: soma dos dígitos do dia e mês sem redução
+                        try:
+                            d = getattr(dob_for_calc, "day", None)
+                            m = getattr(dob_for_calc, "month", None)
+                            if d is not None and m is not None:
+                                raw_digits = numerology._to_digit_list((d, m)) if hasattr(numerology, "_to_digit_list") else [int(ch) for ch in f"{d}{m}"]
+                                raw_sum = sum(raw_digits) if raw_digits else None
+                                pv = {"value": None, "raw": raw_sum}
+                            else:
+                                pv = {"value": None, "raw": None}
+                        except Exception:
+                            pv = {"value": None, "raw": None}
+
+                # 3) exibir com fallback legível
+                pv_value = pv.get("value") if isinstance(pv, dict) else None
+                pv_raw = pv.get("raw") if isinstance(pv, dict) else None
+
+                if pv_value is None and pv_raw is None:
+                    st.write("— (Número de Poder não disponível)")
+                elif pv_raw is not None:
+                    st.write(f"{pv_value if pv_value is not None else '—'} (soma bruta: {pv_raw})")
                 else:
-                    st.write(pv_value)
+                    st.write(pv_value if pv_value is not None else "—")
 
             st.markdown("---")
 
