@@ -767,7 +767,6 @@ with tab_num:
     dob_val = st.session_state.get("dob_input") or st.session_state.get("dob") or None
     keep_masters = st.session_state.get("num_keep_masters", True)
     # calcular Número de Poder (dia + mês)
-    from etheria import numerology
     power_num = numerology.power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
 
     # Mensagem informativa se dados faltarem
