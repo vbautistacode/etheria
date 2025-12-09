@@ -896,13 +896,27 @@ with tab_num:
 
             # análise do número do ano (usar dob_val) — com escolha de ano exibida ao lado do título
             try:
-                # criar título e controle do ano na mesma linha
-                # col_title, col_ctrl = st.columns([4, 1])
-                # with col_title:
                 st.markdown("### Análise do Número do Ano")
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
-            # with col_ctrl:
                 current_year = datetime.now().year
+                # Atenção: usa unsafe_allow_html e seletor que pode mudar entre versões do Streamlit.
+                st.markdown(
+                    """
+                    <style>
+                    /* limita largura de inputs numéricos (aplica globalmente) */
+                    input[type="number"] {
+                        max-width: 90px;
+                        width: 90px;
+                    }
+                    /* opcional: ajustar o campo quando estiver sem rótulo */
+                    .stNumberInput > div > label + div input[type="number"] {
+                        max-width: 90px;
+                    }
+                    </style>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
                 selected_year = st.number_input(
                     "Escolha o ano para análise:",
                     min_value=1900,
@@ -911,6 +925,7 @@ with tab_num:
                     step=1,
                     key="pitagoric_ann_year"
                 )
+
 
                 # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
                 def _ann_date_for_year(dob, year):
