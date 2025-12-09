@@ -901,6 +901,9 @@ with tab_num:
                 with col_title:
                     st.markdown("### Análise do Número do Ano")
                     st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
+                st.markdown("")
+                st.markdown("")
+                st.markdown("")
                 with col_ctrl:
                     current_year = datetime.now().year
                     selected_year = st.number_input(

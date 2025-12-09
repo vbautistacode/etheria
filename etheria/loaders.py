@@ -208,9 +208,9 @@ def join_matrix_with_map(df_long: pd.DataFrame, df_map: pd.DataFrame) -> pd.Data
 # -------------------------
 ALLOWED_TYPES = [
     "Arcano",
+    "Arcanjo"
     "Chacra",
     "Cor",
-    "Dhyani Kumara"
     "Elemento",
     "Glândulas",
     "Incenso",
@@ -238,7 +238,7 @@ COLUMN_SYNONYMS = {
     "pedra": "Pedra",
     "perfume": "Perfume",
     "incenso": "Incenso",
-    "dhyani kumara": "Dhyani Kumara",
+    "arcanjo": "Arcanjo",
 }
 
 # --- normalize_map_columns (substituir/colar) ---
