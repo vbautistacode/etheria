@@ -1018,59 +1018,59 @@ with tab_cabalistica:
                     st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
 # importar e chamar o painel passando o annual já calculado
-if full_name and dob:
-    try:
-        # calcular relatório e armazenar em session_state para uso posterior
-        rptc = numerology.full_cabalistic_report(full_name, dob, keep_masters=keep_masters_c)
-        st.session_state["report"] = rptc
-
-        # exibir cabeçalho e seções principais
-        _render_header(rptc)
-        _render_interpretations(rptc)
-
-        # análise da data de aniversário vigente (ex.: aniversário deste ano)
-        try:
-            today_year = datetime.now().year
+        if full_name and dob:
             try:
-                ann_date = date(today_year, dob.month, dob.day)
-            except ValueError:
-                # trata 29/02 em ano não bissexto: usar 28/02 como fallback
-                ann_date = date(today_year, dob.month, min(dob.day, 28))
+                # calcular relatório e armazenar em session_state para uso posterior
+                rptc = numerology.full_cabalistic_report(full_name, dob, keep_masters=keep_masters_c)
+                st.session_state["report"] = rptc
 
-            ann_str = ann_date.strftime("%d/%m/%Y")
-            ann_analysis = numerology.analyze_date_str(ann_str) or {}
+                # exibir cabeçalho e seções principais
+                _render_header(rptc)
+                _render_interpretations(rptc)
 
-            st.markdown("---")
-            st.markdown("### Análise do Número do Ano")
-            st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
+                # análise da data de aniversário vigente (ex.: aniversário deste ano)
+                try:
+                    today_year = datetime.now().year
+                    try:
+                        ann_date = date(today_year, dob.month, dob.day)
+                    except ValueError:
+                        # trata 29/02 em ano não bissexto: usar 28/02 como fallback
+                        ann_date = date(today_year, dob.month, min(dob.day, 28))
 
-            # criar colunas: texto à esquerda, imagem à direita
-            col_text, col_img = st.columns([2, 1])
+                    ann_str = ann_date.strftime("%d/%m/%Y")
+                    ann_analysis = numerology.analyze_date_str(ann_str) or {}
 
-            with col_text:
-                st.write(f"**Data:** {ann_analysis.get('date','—')}")
-                st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
-                st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
-                st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
-                st.markdown("**Qualidade:**")
-                st.write(ann_analysis.get('short','—'))
-                st.markdown("**Definição:**")
-                st.write(ann_analysis.get('medium','—'))
-                st.markdown("**Detalhe:**")
-                st.write(ann_analysis.get('long','—'))
+                    st.markdown("---")
+                    st.markdown("### Análise do Número do Ano")
+                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
 
-            # renderizar apenas a imagem do chakra na coluna direita (sem duplicar texto)
-            render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras", target_col=col_img)
+                    # criar colunas: texto à esquerda, imagem à direita
+                    col_text, col_img = st.columns([2, 1])
 
-        except Exception as e:
-            if st.session_state.get("debug_influences"):
-                st.exception(e)
-            else:
-                pass
+                    with col_text:
+                        st.write(f"**Data:** {ann_analysis.get('date','—')}")
+                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
+                        st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
+                        st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
+                        st.markdown("**Qualidade:**")
+                        st.write(ann_analysis.get('short','—'))
+                        st.markdown("**Definição:**")
+                        st.write(ann_analysis.get('medium','—'))
+                        st.markdown("**Detalhe:**")
+                        st.write(ann_analysis.get('long','—'))
 
-    except Exception as e:
-        st.warning("Não foi possível calcular a numerologia cabalística no momento. Verifique os dados e tente novamente.")
-        if st.session_state.get("debug_influences"):
-            st.exception(e)
-else:
-    st.info("Preencha nome e data (no sidebar ou aqui) para ver a numerologia cabalística automaticamente.")
+                    # renderizar apenas a imagem do chakra na coluna direita (sem duplicar texto)
+                    render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras", target_col=col_img)
+
+                except Exception as e:
+                    if st.session_state.get("debug_influences"):
+                        st.exception(e)
+                    else:
+                        pass
+
+            except Exception as e:
+                st.warning("Não foi possível calcular a numerologia cabalística no momento. Verifique os dados e tente novamente.")
+                if st.session_state.get("debug_influences"):
+                    st.exception(e)
+        else:
+            st.info("Preencha nome e data (no sidebar ou aqui) para ver a numerologia cabalística automaticamente.")
