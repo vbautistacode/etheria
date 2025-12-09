@@ -1408,7 +1408,7 @@ with center_col:
                 general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
                 st.write(general)
 
-# UI: geração IA com proteção, preview e envio controlado
+# UI: geração IA com proteção e envio controlado
 if use_ai:
     st.markdown("#### Interpretação IA Etheria")
 
@@ -1421,35 +1421,15 @@ if use_ai:
     if not gs:
         st.info("Serviço de geração não disponível.")
     else:
-        model_choice = st.selectbox("Modelo IA", options=["gemini-2.5-flash", "gemini-default"], index=0)
-        st.write("Revise as posições no preview antes de enviar para a IA.")
+        # preparar preview_positions normalizado a partir do summary
+        preview_table = summary.get("table", []) if summary else []
+        preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
 
-        # # preparar preview_positions normalizado a partir do summary
-        # preview_table = summary.get("table", []) if summary else []
-        # preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
-        # st.sidebar.markdown("**Preview: posições calculadas**")
-        # try:
-        #     st.sidebar.json(preview_positions)
-        # except Exception:
-        #     st.sidebar.text(str(preview_positions)[:4000])
-
-        # mostrar prompt preview (curto) antes de enviar
-        chart_input_preview = {
-            "name": summary.get("name") if summary else "",
-            "place": summary.get("place") if summary else "",
-            "bdate": summary.get("bdate") if summary else None,
-            "btime": summary.get("btime") if summary else None,
-            "lat": summary.get("lat") if summary else None,
-            "lon": summary.get("lon") if summary else None,
-            "timezone": summary.get("timezone") if summary else None,
-            "chart_positions": preview_positions,
-            "summary": summary
-        }
+        st.sidebar.markdown("**Preview: posições calculadas**")
         try:
-            prompt_preview = gs.build_prompt_from_chart_summary(chart_input_preview) if hasattr(gs, "build_prompt_from_chart_summary") else ""
-            st.sidebar.text_area("Prompt preview (início)", value=prompt_preview[:4000], height=200)
+            st.sidebar.json(preview_positions)
         except Exception:
-            pass
+            st.sidebar.text(str(preview_positions)[:4000])
 
         # flag para evitar cliques repetidos
         if "generating" not in st.session_state:
@@ -1470,14 +1450,15 @@ if use_ai:
                     st.error("Dados incompletos. Verifique avisos no sidebar antes de enviar.")
                     st.session_state["generating"] = False
                 else:
-                    # usar rotina centralizada se disponível (faz normalização/preview/timeout)
+                    # usar rotina centralizada se disponível (faz normalização/timeout)
                     try:
                         with st.spinner("Gerando sua interpretação personalizada com IA..."):
                             if hasattr(gs, "generate_interpretation_from_summary"):
                                 res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
                             else:
-                                # fallback: chamar generate_analysis diretamente com chart_input validado
-                                res = gs.generate_analysis(chart_input_preview, prefer="auto", text_only=True, model=model_choice) if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
+                                # fallback: chamar generate_analysis diretamente com summary validado
+                                res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash") \
+                                    if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
                     except Exception as e:
                         res = {"error": str(e)}
 
@@ -1503,7 +1484,6 @@ if use_ai:
                                 file_name=f"interpretacao_ia.txt",
                                 mime="text/plain"
                             )
-
                         if parsed:
                             with st.expander("Ver JSON estruturado (expandir)"):
                                 st.json(parsed)
@@ -1513,7 +1493,6 @@ if use_ai:
                                     file_name=f"interpretacao_ia.json",
                                     mime="application/json"
                                 )
-
                         if not ai_text and not parsed:
                             st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
 
