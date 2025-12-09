@@ -170,7 +170,9 @@ dob = st.sidebar.date_input(
     "Data de nascimento",
     value=st.session_state.get("dob", date(1990,4,25)),
     key="dob",
-    on_change=_sync_sidebar_dob_to_tab
+    on_change=_sync_sidebar_dob_to_tab,
+    min_value=date(1900, 1, 1),
+    max_value=date(2100, 12, 31)
 )
 
 # inicializa antes de criar o widget
