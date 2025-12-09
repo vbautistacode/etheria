@@ -1016,10 +1016,9 @@ with tab_cabalistica:
                     st.markdown(f"**Definição:** {block.get('long','—')}")
                     st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
-            # importar e chamar o painel passando o annual já calculado
+# importar e chamar o painel passando o annual já calculado
             from services.chakra_panel import render_chakra_panel
             
-    # Validar e calcular (defensivo)
 if full_name and dob:
     try:
         # calcular relatório e armazenar em session_state para uso posterior
