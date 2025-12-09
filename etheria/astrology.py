@@ -12,48 +12,48 @@ SIGNS = [
 
 # Planeta -> (Verbo, Significado central)
 PLANET_CORE: Dict[str, Tuple[str, str]] = {
-    "Sun": ("Ser", "Identidade, Essência, Brilho"),
-    "Moon": ("Sentir", "Emoção, Nutrição, Hábito"),
-    "Mercury": ("Comunicar", "Pensamento, Conexão, Raciocínio"),
-    "Venus": ("Relacionar", "Valor, Afeto, Atração"),
-    "Mars": ("Agir", "Impulso, Luta, Iniciativa"),
-    "Jupiter": ("Expandir", "Crescimento, Otimismo, Fé"),
-    "Saturn": ("Estruturar", "Limite, Disciplina, Responsabilidade"),
-    "Uranus": ("Inovar", "Quebra, Mudança Súbita, Revolução"),
-    "Neptune": ("Idealizar", "Dissolver, Sonhar, Ilusão"),
-    "Pluto": ("Transformar", "Poder, Crise, Regeneração"),
+    "Sun": ("Ser", "Identidade, Essência e Brilho"),
+    "Moon": ("Sentir", "Emoção, Nutrição e Hábito"),
+    "Mercury": ("Comunicar", "Pensamento e Conexão, Raciocínio"),
+    "Venus": ("Relacionar", "Valor, Afeto e Atração"),
+    "Mars": ("Agir", "Impulso, Luta e Iniciativa"),
+    "Jupiter": ("Expandir", "Crescimento, Otimismo e Fé"),
+    "Saturn": ("Estruturar", "Limite, Disciplina e Responsabilidade"),
+    "Uranus": ("Inovar", "Quebra, Mudança Súbita e Revolução"),
+    "Neptune": ("Idealizar", "Dissolver, Sonhar e Ilusão"),
+    "Pluto": ("Transformar", "Poder, Crise e Regeneração"),
 }
 
 # Signo -> (Substantivo, Qualidade central)
 SIGN_DESCRIPTIONS: Dict[str, Tuple[str, str]] = {
-    "Aries": ("Início", "Impulso, Coragem, Ponto de Partida"),
-    "Taurus": ("Valor", "Estabilidade, Materialidade, Posse"),
-    "Gemini": ("Conexão", "Curiosidade, Dualidade, Troca"),
-    "Cancer": ("Acolhimento", "Emoção, Raiz, Família"),
-    "Leo": ("Expressão", "Brilho, Centralidade, Liderança"),
-    "Virgo": ("Serviço", "Análise, Detalhe, Método"),
-    "Libra": ("Equilíbrio", "Justiça, Parceria, Harmonia"),
-    "Scorpio": ("Profundidade", "Intensidade, Crise, Transformação"),
-    "Sagittarius": ("Busca", "Expansão, Conhecimento, Aventura"),
-    "Capricorn": ("Realização", "Estrutura, Ambição, Autoridade"),
-    "Aquarius": ("Liberdade", "Humanidade, Inovação, Coletivo"),
-    "Pisces": ("União", "Sensibilidade, Empatia, Totalidade"),
+    "Aries": ("Início", "Impulso, Coragem e Ponto de Partida"),
+    "Taurus": ("Valor", "Estabilidade, Materialidade e Posse"),
+    "Gemini": ("Conexão", "Curiosidade, Dualidade e Troca"),
+    "Cancer": ("Acolhimento", "Emoção, Raiz e Família"),
+    "Leo": ("Expressão", "Brilho, Centralidade e Liderança"),
+    "Virgo": ("Serviço", "Análise, Detalhe e Método"),
+    "Libra": ("Equilíbrio", "Justiça, Parceria e Harmonia"),
+    "Scorpio": ("Profundidade", "Intensidade, Crise e Transformação"),
+    "Sagittarius": ("Busca", "Expansão, Conhecimento e Aventura"),
+    "Capricorn": ("Realização", "Estrutura, Ambição e Autoridade"),
+    "Aquarius": ("Liberdade", "Humanidade, Inovação e Coletivo"),
+    "Pisces": ("União", "Sensibilidade, Empatia e Totalidade"),
 }
 
 # Casas: número -> (Substantivo, Tema)
 HOUSE_DESCRIPTIONS: Dict[int, Tuple[str, str]] = {
-    1: ("Eu", "Identidade, Aparência, Início de Tudo"),
-    2: ("Recursos", "Finanças, Bens Materiais, Valor Pessoal"),
-    3: ("Comunidade", "Comunicação Diária, Irmãos, Estudos Básicos"),
-    4: ("Raízes", "Lar, Família, Passado, Base Emocional"),
-    5: ("Criação", "Prazer, Filhos, Hobbies, Criatividade"),
-    6: ("Rotina", "Trabalho Diário, Saúde, Serviço, Hábitos"),
-    7: ("Parceria", "Relacionamentos, Casamento, Associações"),
-    8: ("Transformação", "Crises, Intimidade, Finanças Compartilhadas, Morte e Renascimento"),
-    9: ("Sentido", "Filosofia, Ensino Superior, Viagens Longas, Crenças"),
-    10: ("Carreira", "Status, Reputação Pública, Vocação, Autoridade"),
-    11: ("Grupo", "Amizades, Metas, Causas, Coletividade"),
-    12: ("Inconsciente", "Isolamento, Espiritualidade, Sacrifício, Assuntos Ocultos"),
+    1: ("Eu", "Identidade, Aparência e Início de Tudo"),
+    2: ("Recursos", "Finanças, Bens Materiais e Valor Pessoal"),
+    3: ("Comunidade", "Comunicação Diária, Irmãos e Estudos Básicos"),
+    4: ("Raízes", "Lar, Família, Passado e Base Emocional"),
+    5: ("Criação", "Prazer, Filhos, Hobbies e Criatividade"),
+    6: ("Rotina", "Trabalho Diário, Saúde, Serviço e Hábitos"),
+    7: ("Parceria", "Relacionamentos, Casamento e Associações"),
+    8: ("Transformação", "Crises, Intimidade, Finanças Compartilhadas e Morte e Renascimento"),
+    9: ("Sentido", "Filosofia, Ensino Superior, Viagens Longas e Crenças"),
+    10: ("Carreira", "Status, Reputação Pública, Vocação e Autoridade"),
+    11: ("Grupo", "Amizades, Metas, Causas e Coletividade"),
+    12: ("Inconsciente", "Isolamento, Espiritualidade, Sacrifício e Assuntos Ocultos"),
 }
 
 PLANET_ORDER = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]
@@ -214,7 +214,7 @@ def get_house_for_longitude(lon: float, cusps: List[float]) -> Optional[int]:
 def _format_degree(deg: Any) -> str:
     """
     Formata o grau para apresentação: aceita None, str ou número.
-    Retorna string vazia se inválido, ou 'X°' com 3 casas decimais.
+    Retorna string vazia se inválido, ou 'X°' com 2 casas decimais.
     """
     if deg is None or deg == "":
         return ""
@@ -223,7 +223,7 @@ def _format_degree(deg: Any) -> str:
         # grau dentro do signo (0..30) já deve ser passado; apenas formatar
         return f"{round(d, 2)}°"
     except Exception:
-        # tentar extrair número de string (ex: "6.918")
+        # tentar extrair número de string (ex: "6.91")
         try:
             s = str(deg).strip()
             # remover caracteres não numéricos comuns
@@ -296,8 +296,8 @@ def interpret_planet_position(
 
     # Short: 1-2 frases
     short = (
-        f"{who}{planet} em {sign or '—'} {deg_text} indica {pcore.lower()} ligado a {sign_quality.lower()}. "
-        f"Foco prático: {verb.lower()} no campo de {house_noun.lower()}."
+        f"{who}{planet} em {sign or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
+        f"Resumo prático: {verb.higher()} no campo de {house_noun.higher()}."
     )
 
     # Long: 3-5 parágrafos curtos
