@@ -421,7 +421,7 @@ with col_info:
     # st.write(f"**Data de nascimento:** {dob.isoformat() if dob else '—'}")
     if st.session_state.get("reading"):
         r = st.session_state["reading"]
-        st.write(f"**Idade (estimada):** {r.get('age', '—')}")
+        st.write(f"**Idade (estimada):** {r.get('age', '—')} anos")
     else:
         st.info("Gere a leitura para habilitar as abas com conteúdo detalhado.")
 
