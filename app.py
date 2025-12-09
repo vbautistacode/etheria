@@ -856,7 +856,7 @@ with tab_num:
 
             # interpretação detalhada
             st.markdown("### Interpretações")
-            for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_num"):
+            for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
                 block = rpt.get(key, {}) or {}
                 label = block.get("number") or block.get("value") or "—"
                 title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
