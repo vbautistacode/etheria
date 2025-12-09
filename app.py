@@ -918,104 +918,104 @@ with tab_num:
 
 # --- Aba: Numerologia Cabalística (refatorado, defensivo) ---
 with tab_cabalistica:
-    try:
-        from etheria import numerology
-    except Exception as e:
-        st.error(f"Erro ao importar 'numerology': {e}")
-        st.stop()
-
-    st.subheader("Numerologia Cabalística")
-    st.markdown("Seu principal pilar é a crença de que o alfabeto hebraico (contendo 22 letras sagradas), e os números são códigos sagrados que revelam os mistérios do Universo e da alma humana.")
-    st.success("É mais mística, voltada para a descoberta do propósito, superação de desafios cármicos e a busca pela harmonia vibracional. O 'porquê' de sua jornada.")
-    
-    # session_state básicos (sidebar pode preencher full_name/dob)
-    st.session_state.setdefault("full_name", "")
-    st.session_state.setdefault("dob", date(1990, 4, 25))
-    st.session_state.setdefault("numc_keep_masters", True)
-
-    # chaves locais da aba (evitam conflito com sidebar)
-    st.session_state.setdefault("numc_full_name", st.session_state.get("full_name", ""))
-    st.session_state.setdefault("numc_dob", st.session_state.get("dob", date(1990, 4, 25)))
-
-    # checkbox local (usa chave única)
-    keep_masters_c = st.checkbox(
-        "Preservar números mestres (11,22,33,...)",
-        value=st.session_state.get("numc_keep_masters", True),
-        key="numc_keep_masters"
-    )
-
-    # decidir valores finais: priorizar sidebar/session_state se preenchidos
-    full_name = st.session_state.get("full_name") or st.session_state.get("numc_full_name", "")
-    dob = st.session_state.get("dob") or st.session_state.get("numc_dob", date(1990, 4, 25))
-
-    # util: formatar date para string dd/mm/YYYY
-    def _fmt_date(d):
         try:
-            return d.strftime("%d/%m/%Y")
-        except Exception:
-            return str(d)
+            from etheria import numerology
+        except Exception as e:
+            st.error(f"Erro ao importar 'numerology': {e}")
+            st.stop()
 
-    # Renderers
-    def _render_header(report):
-        c1, c2, c3 = st.columns([2, 3, 2])
-        with c1:
-            st.markdown("**Nome**")
-            st.write(report.get("full_name", "—"))
-            st.markdown("**Nascimento**")
-            st.write(report.get("dob", "—"))
-        with c2:
-            st.markdown("### Principais números")
-            cols = st.columns(4)
-            cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
-            cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
-            cols[2].metric("Desejo da Alma", report.get("soul_urge", {}).get("value", "—"))
-            cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
-        with c3:
-            st.markdown("**Maturidade**")
-            maturity = report.get("maturity", {}) or {}
-            st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
-            st.markdown("**Influência** - Ciclo da Vida")
-            annual = report.get("annual_influence_by_name", {}) or {}
-            st.write(f"A cada **{annual.get('letters_count','—')} anos** você passará por um novo ciclo.", help="Acontecimentos importantes ou mudanças na trajetória de vida.")
+        st.subheader("Numerologia Cabalística")
+        st.markdown("Seu principal pilar é a crença de que o alfabeto hebraico (contendo 22 letras sagradas), e os números são códigos sagrados que revelam os mistérios do Universo e da alma humana.")
+        st.success("É mais mística, voltada para a descoberta do propósito, superação de desafios cármicos e a busca pela harmonia vibracional. O 'porquê' de sua jornada.")
+        
+        # session_state básicos (sidebar pode preencher full_name/dob)
+        st.session_state.setdefault("full_name", "")
+        st.session_state.setdefault("dob", date(1990, 4, 25))
+        st.session_state.setdefault("numc_keep_masters", True)
 
-    def _render_interpretations(report):
-        st.markdown("### Interpretações")
-        for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
-            block = report.get(key, {}) or {}
-            # criar cópia local para não alterar report
-            block_view = dict(block)
+        # chaves locais da aba (evitam conflito com sidebar)
+        st.session_state.setdefault("numc_full_name", st.session_state.get("full_name", ""))
+        st.session_state.setdefault("numc_dob", st.session_state.get("dob", date(1990, 4, 25)))
 
-            raw_num = block_view.get("number") or block_view.get("value")
-            num_key = str(raw_num) if raw_num is not None else ""
+        # checkbox local (usa chave única)
+        keep_masters_c = st.checkbox(
+            "Preservar números mestres (11,22,33,...)",
+            value=st.session_state.get("numc_keep_masters", True),
+            key="numc_keep_masters"
+        )
 
-            # tentar NUM_TEMPLATES primeiro (prioridade absoluta)
-            tmpl = {}
-            if num_key.isdigit() and hasattr(numerology, "NUM_TEMPLATES"):
-                try:
-                    tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) or {}
-                except Exception:
-                    tmpl = {}
+        # decidir valores finais: priorizar sidebar/session_state se preenchidos
+        full_name = st.session_state.get("full_name") or st.session_state.get("numc_full_name", "")
+        dob = st.session_state.get("dob") or st.session_state.get("numc_dob", date(1990, 4, 25))
 
-            # preencher campos a partir de NUM_TEMPLATES, se presentes
-            if tmpl:
-                block_view.setdefault("short", tmpl.get("short", ""))
-                block_view.setdefault("medium", tmpl.get("medium", ""))
-                block_view.setdefault("long", tmpl.get("long", ""))
+        # util: formatar date para string dd/mm/YYYY
+        def _fmt_date(d):
+            try:
+                return d.strftime("%d/%m/%Y")
+            except Exception:
+                return str(d)
 
-            # preencher faltantes com NUM_INTERPRETATIONS_* (apenas fallback)
-            if not block_view.get("short"):
-                block_view["short"] = getattr(numerology, "NUM_INTERPRETATIONS_SHORT", {}).get(num_key, "")
-            if not block_view.get("medium"):
-                block_view["medium"] = getattr(numerology, "NUM_INTERPRETATIONS_MEDIUM", {}).get(num_key, "")
-            if not block_view.get("long"):
-                block_view["long"] = getattr(numerology, "NUM_INTERPRETATIONS_LONG", {}).get(num_key, "")
+        # Renderers
+        def _render_header(report):
+            c1, c2, c3 = st.columns([2, 3, 2])
+            with c1:
+                st.markdown("**Nome**")
+                st.write(report.get("full_name", "—"))
+                st.markdown("**Nascimento**")
+                st.write(report.get("dob", "—"))
+            with c2:
+                st.markdown("### Principais números")
+                cols = st.columns(4)
+                cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
+                cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
+                cols[2].metric("Desejo da Alma", report.get("soul_urge", {}).get("value", "—"))
+                cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
+            with c3:
+                st.markdown("**Maturidade**")
+                maturity = report.get("maturity", {}) or {}
+                st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
+                st.markdown("**Influência** - Ciclo da Vida")
+                annual = report.get("annual_influence_by_name", {}) or {}
+                st.write(f"A cada **{annual.get('letters_count','—')} anos** você passará por um novo ciclo.", help="Acontecimentos importantes ou mudanças na trajetória de vida.")
 
-            label = block_view.get("number", block_view.get("value", "—"))
-            title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
-            with st.expander(f"{title} — {label}"):
-                    st.markdown(f"**Qualidade:** {block.get('short','—')}")
-                    st.markdown(f"**Definição:** {block.get('long','—')}")
-                    st.markdown(f"**Detalhe:** {block.get('medium','—')}")
+        def _render_interpretations(report):
+            st.markdown("### Interpretações")
+            for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
+                block = report.get(key, {}) or {}
+                # criar cópia local para não alterar report
+                block_view = dict(block)
+
+                raw_num = block_view.get("number") or block_view.get("value")
+                num_key = str(raw_num) if raw_num is not None else ""
+
+                # tentar NUM_TEMPLATES primeiro (prioridade absoluta)
+                tmpl = {}
+                if num_key.isdigit() and hasattr(numerology, "NUM_TEMPLATES"):
+                    try:
+                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) or {}
+                    except Exception:
+                        tmpl = {}
+
+                # preencher campos a partir de NUM_TEMPLATES, se presentes
+                if tmpl:
+                    block_view.setdefault("short", tmpl.get("short", ""))
+                    block_view.setdefault("medium", tmpl.get("medium", ""))
+                    block_view.setdefault("long", tmpl.get("long", ""))
+
+                # preencher faltantes com NUM_INTERPRETATIONS_* (apenas fallback)
+                if not block_view.get("short"):
+                    block_view["short"] = getattr(numerology, "NUM_INTERPRETATIONS_SHORT", {}).get(num_key, "")
+                if not block_view.get("medium"):
+                    block_view["medium"] = getattr(numerology, "NUM_INTERPRETATIONS_MEDIUM", {}).get(num_key, "")
+                if not block_view.get("long"):
+                    block_view["long"] = getattr(numerology, "NUM_INTERPRETATIONS_LONG", {}).get(num_key, "")
+
+                label = block_view.get("number", block_view.get("value", "—"))
+                title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
+                with st.expander(f"{title} — {label}"):
+                        st.markdown(f"**Qualidade:** {block.get('short','—')}")
+                        st.markdown(f"**Definição:** {block.get('long','—')}")
+                        st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
 # importar e chamar o painel passando o annual já calculado
         if full_name and dob:
