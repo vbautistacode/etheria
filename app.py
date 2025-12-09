@@ -30,6 +30,7 @@ import pandas as pd
 from etheria import cycles
 from etheria import astrology
 from etheria import numerology
+from services.chakra_panel import render_chakra_panel
 from etheria.astrology import planet_interpretation, generate_three_interpretations
 from pandas.io.formats.style import Styler
 from datetime import date, datetime
@@ -1019,25 +1020,32 @@ with tab_cabalistica:
     # Validar e calcular (defensivo)
     if full_name and dob:
         try:
-            # usar as variáveis corretas e o flag local keep_masters_c
+            # calcular relatório e armazenar em session_state para uso posterior
             rptc = numerology.full_cabalistic_report(full_name, dob, keep_masters=keep_masters_c)
+            st.session_state["report"] = rptc
 
             # exibir cabeçalho e seções principais
             _render_header(rptc)
-            # _render_personal foi removido conforme solicitado (não chamar)
             _render_interpretations(rptc)
 
             # análise da data de aniversário vigente (ex.: aniversário deste ano)
             try:
                 today_year = datetime.now().year
-                ann_date = date(today_year, dob.month, dob.day)
+                try:
+                    ann_date = date(today_year, dob.month, dob.day)
+                except ValueError:
+                    # trata 29/02 em ano não bissexto: usar 28/02 como fallback
+                    ann_date = date(today_year, dob.month, min(dob.day, 28))
+
                 ann_str = ann_date.strftime("%d/%m/%Y")
-                ann_analysis = numerology.analyze_date_str(ann_str)
+                ann_analysis = numerology.analyze_date_str(ann_str) or {}
+
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
                 st.write(f"**Data:** {ann_analysis.get('date','—')}")
-                st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
+                # confirme a chave correta retornada por analyze_date_str; ajuste se necessário
+                st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
                 st.write(f"**Quadrante:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
                 st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
                 st.markdown("**Qualidade:**")
@@ -1046,60 +1054,26 @@ with tab_cabalistica:
                 st.write(ann_analysis.get('medium','—'))
                 st.markdown("**Detalhe:**")
                 st.write(ann_analysis.get('long','—'))
-            except Exception:
-                pass
+            except Exception as e:
+                # log/mostrar debug opcional
+                if st.session_state.get("debug_influences"):
+                    st.exception(e)
+                else:
+                    # silencioso em produção
+                    pass
 
-            # Roadmap/cycles: só executar se 'cycles' estiver definido e for iterável
-            cycles_obj = locals().get("cycles") or globals().get("cycles")
-            go_to_last = locals().get("go_to_last", False)
-            if cycles_obj and isinstance(cycles_obj, (list, tuple)):
-                st.markdown("---")
-                last_idx = len(cycles_obj) - 1 if cycles_obj else None
-                for idx, c in enumerate(cycles_obj):
-                    is_current = False
-                    try:
-                        is_current = (c.get("start_age") == (datetime.now().year - dob.year))
-                    except Exception:
-                        pass
-                    open_expander = is_current or (go_to_last and last_idx is not None and idx == last_idx)
-                    header = f"{idx+1}. {c.get('label','—')} — Número {c.get('number','—')}"
-                    if is_current:
-                        header = f"**➡ {header} (período atual)**"
-                    if go_to_last and last_idx is not None and idx == last_idx:
-                        header = f"**🔚 {header} (último)**"
+            # obter report do contexto (usar rptc salvo ou session_state)
+            report = rptc or st.session_state.get("report") or {}
 
-                    num = c.get("number")
-                    template = numerology.NUM_TEMPLATES.get(num, {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
-                    short = c.get("short") or template.get("short") or "—"
-                    long = c.get("long") or template.get("long") or "—"
-                    chakra = None
-                    if hasattr(numerology, "quadrant_for_number"):
-                        try:
-                            chakra = numerology.quadrant_for_number(num).get("chakra")
-                        except Exception:
-                            chakra = None
-
-                    with st.expander(header, expanded=open_expander):
-                        st.markdown(f"**Número:** {num}  —  **Chakra:** {chakra or '—'}")
-                        st.markdown(f"**Resumo:** {short}")
-                        st.write(long)
-                        st.markdown(f"_Idade: {c.get('start_age')} — Ano: {c.get('start_year')}_")
-                        if is_current:
-                            st.markdown(
-                                "<div style='padding:6px;border-left:4px solid #8a2be2;background:#fff9e6'>"
-                                "<strong>Você está neste período agora.</strong></div>",
-                                unsafe_allow_html=True
-                            )
-                        if go_to_last and last_idx is not None and idx == last_idx:
-                            st.markdown(
-                                "<div style='padding:6px;border-left:4px solid #2b8aef;background:#eef6ff'>"
-                                "<strong>Último ciclo (120 anos).</strong></div>",
-                                unsafe_allow_html=True
-                            )
+            if not report:
+                st.warning("Relatório não encontrado. Gere o relatório antes de visualizar a Influência Anual.")
+            else:
+                # renderiza painel com imagens de chakra ao lado do texto
+                render_chakra_panel(st, report, assets_dir="assets/chakras", numerology_module=numerology)
 
         except Exception as e:
             st.warning("Não foi possível calcular a numerologia cabalística no momento. Verifique os dados e tente novamente.")
             if st.session_state.get("debug_influences"):
-                st.write("DEBUG: erro resumido:", str(e))
+                st.exception(e)
     else:
         st.info("Preencha nome e data (no sidebar ou aqui) para ver a numerologia cabalística automaticamente.")
