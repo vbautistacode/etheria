@@ -17,28 +17,28 @@ from collections.abc import Iterable
 
 #INTERPRETAÇÃO CABALÍSTICA BÁSICA PARA NÚMEROS 1-22
 NUM_TEMPLATES: Dict[int, Dict[str, str]] = {
-    1: {"short":"Início, liderança, iniciativa.", "long":"Ação direta; foco em concretizar; energia física e prática.", "chakra":"Muladhara"},
-    2: {"short":"Parcerias, sensibilidade.", "long":"Cooperação, diplomacia; trabalho em dupla e receptividade.", "chakra":"Muladhara"},
-    3: {"short":"Criatividade aplicada; expressão.", "long":"Comunicação criativa; colocar ideias em prática; sociabilidade.", "chakra":"Muladhara"},
-    4: {"short":"Estrutura, trabalho consistente.", "long":"Organização e disciplina; construir bases sólidas.", "chakra":"Svadhishthana"},
-    5: {"short":"Mudança com propósito.", "long":"Movimento e adaptação; usar energia para oportunidades que importam.", "chakra":"Svadhishthana"},
-    6: {"short":"Responsabilidade e cuidado.", "long":"Cuidar do que importa; equilíbrio entre ação e serviço.", "chakra":"Svadhishthana"},
-    7: {"short":"Busca interior; estudo.", "long":"Refinamento espiritual e intelectual; atrair possibilidades positivas.", "chakra":"Manipura"},
-    8: {"short":"Poder pessoal e prosperidade.", "long":"Manifestação prática de recursos; foco em resultados.", "chakra":"Manipura"},
-    9: {"short":"Conclusões e compaixão.", "long":"Fechamento de ciclos; visão ampla e serviço ao coletivo.", "chakra":"Manipura"},
-    10: {"short":"Racionalidade aplicada.", "long":"Organizar conhecimento; base para intuições futuras.", "chakra":"Anahata"},
-    11: {"short":"Intuição ampliada (mestre).", "long":"Porta para insights profundos; atenção ao equilíbrio emocional.", "chakra":"Anahata"},
-    12: {"short":"Aprendizado e síntese.", "long":"Integração de saberes; preparar terreno para intuições maiores.", "chakra":"Anahata"},
-    13: {"short":"Abstração criativa.", "long":"Mente criativa; trabalhar com símbolos e ideias não-lineares.", "chakra":"Vishuddha"},
-    14: {"short":"Experimentação mental.", "long":"Explorar novas formas de pensar; liberdade criativa.", "chakra":"Vishuddha"},
-    15: {"short":"Expressão do 5º princípio.", "long":"Criatividade aplicada a ideias; inovação comunicativa.", "chakra":"Vishuddha"},
-    16: {"short":"Intuição prática.", "long":"Escolhas guiadas pela intuição; confiar no sentir.", "chakra":"Ajna"},
-    17: {"short":"Visão e decisão.", "long":"Poder de escolha alinhado com percepção interior.", "chakra":"Ajna"},
-    18: {"short":"Sabedoria intuitiva.", "long":"Integração entre sentir e agir; liderança intuitiva.", "chakra":"Ajna"},
-    19: {"short":"Pronto para o novo.", "long":"Abertura para experiências maiores; preparação para arquétipos.", "chakra":"Sahasrara"},
-    20: {"short":"Transcender limites.", "long":"Momento de expansão; contato com padrões universais.", "chakra":"Sahasrara"},
-    21: {"short":"Conexão arquetípica.", "long":"Porta para arquétipos universais; experiências transformadoras.", "chakra":"Sahasrara"},
-    22: {"short":"Manifestação em grande escala.", "long":"Capacidade de estruturar e materializar projetos de grande impacto (mestre).", "chakra":"Sahasrara"},
+    1: {"short":"Início, liderança, iniciativa.", "medium":"Muitas inteligências ou uma inteligência mal aplicada", "long":"Ação direta; foco em concretizar; energia física e prática.", "chakra":"Muladhara"},
+    2: {"short":"Parcerias, sensibilidade.", "medium":"Número de revelação ou ocultar verdade", "long":"Cooperação, diplomacia; trabalho em dupla e receptividade.", "chakra":"Muladhara"},
+    3: {"short":"Criatividade aplicada; expressão.", "medium":"Força muito grande de plasmação ou falta de vontade muito grande", "long":"Comunicação criativa; colocar ideias em prática; sociabilidade.", "chakra":"Muladhara"},
+    4: {"short":"Estrutura, trabalho consistente.", "medium":"O poder da decisão ou uma tirania absoluta", "long":"Organização e disciplina; construir bases sólidas.", "chakra":"Svadhishthana"},
+    5: {"short":"Mudança com propósito.", "medium":"Grande espiritualidade e aberturas espirituais ou um fanatismo muito grande", "long":"Movimento e adaptação; usar energia para oportunidades que importam.", "chakra":"Svadhishthana"},
+    6: {"short":"Responsabilidade e cuidado.", "medium":"Poder de decisão seguindo o coração ou momento de grande indecisão", "long":"Cuidar do que importa; equilíbrio entre ação e serviço.", "chakra":"Svadhishthana"},
+    7: {"short":"Busca interior; estudo.", "medium":"Direcionamento bacana das energias ou um direcionamento errado das mesmas", "long":"Refinamento espiritual e intelectual; atrair possibilidades positivas.", "chakra":"Manipura"},
+    8: {"short":"Poder pessoal e prosperidade.", "medium":"Éticas, bons valores, moral ou falta de ética e imoralidade", "long":"Manifestação prática de recursos; foco em resultados.", "chakra":"Manipura"},
+    9: {"short":"Conclusões e compaixão.", "medium":"Ter um pouco de isolamento, quietude, para achar a luz interior ou imprudência e não saber aquietar a alma", "long":"Fechamento de ciclos; visão ampla e serviço ao coletivo.", "chakra":"Manipura"},
+    10: {"short":"Racionalidade aplicada.", "medium":"Viver os caminhos que o destino demonstra, observar através do Karma ou correr do destino", "long":"Organizar conhecimento; base para intuições futuras.", "chakra":"Anahata"},
+    11: {"short":"Intuição ampliada (mestre).", "medium":"Equilíbrio grande entre as energias espirituais e terrenas ou não colocar em prática as duas energias juntas", "long":"Porta para insights profundos; atenção ao equilíbrio emocional.", "chakra":"Anahata"},
+    12: {"short":"Aprendizado e síntese.", "medium":"Comprometimento. Aprender a se comprometer com o que é sério para você ou irresponsabilidade, fugir do dever", "long":"Integração de saberes; preparar terreno para intuições maiores.", "chakra":"Anahata"},
+    13: {"short":"Abstração criativa.", "medium":"Aceitar as grandes transformações que o mundo oferece ou não aceitar e ser judiado pelas transformações", "long":"Mente criativa; trabalhar com símbolos e ideias não-lineares.", "chakra":"Vishuddha"},
+    14: {"short":"Experimentação mental.", "medium":"Equilíbrio entre passado e futuro. Aprenda com as experiências que passou para que no presente elas se tornem potencialidades futuras ou viver aprisionado no passado e futuro", "long":"Explorar novas formas de pensar; liberdade criativa.", "chakra":"Vishuddha"},
+    15: {"short":"Expressão do 5º princípio.", "medium":"Aceitar as sombras e com elas transformar em potencialidades ou luzes ou ser conduzido por sombras e não perceber", "long":"Criatividade aplicada a ideias; inovação comunicativa.", "chakra":"Vishuddha"},
+    16: {"short":"Intuição prática.", "medium":"A luz é o poder de desconstruir as coisas falsas para construir as verdadeiras ou a pessoa que aposta em coisas desgastadas que já deveriam ser desconstruídas", "long":"Escolhas guiadas pela intuição; confiar no sentir.", "chakra":"Ajna"},
+    17: {"short":"Visão e decisão.", "medium":"Aprender a ter fé, acreditar, pensamento otimista, espiritualidade à coisas maiores ou falta de fé, otimismo cego", "long":"Poder de escolha alinhado com percepção interior.", "chakra":"Ajna"},
+    18: {"short":"Sabedoria intuitiva.", "medium":"Aprender a ter força, através dos medos e provações ou ter muita confiança, achar que está com tudo", "long":"Integração entre sentir e agir; liderança intuitiva.", "chakra":"Ajna"},
+    19: {"short":"Pronto para o novo.", "medium":"Aceitar o brilho do sol que está dentro de você, aprender a trabalhar a verdadeira gratidão ou trabalhar a gratidão falsa", "long":"Abertura para experiências maiores; preparação para arquétipos.", "chakra":"Sahasrara"},
+    20: {"short":"Transcender limites.", "medium":"Representa a libertação verdadeira ou estar preso de luz para morrer", "long":"Momento de expansão; contato com padrões universais.", "chakra":"Sahasrara"},
+    21: {"short":"Conexão arquetípica.", "medium":"Posicionamento, saber aonde está e qual experiência está passando ou mal conectado, em experiências erradas", "long":"Porta para arquétipos universais; experiências transformadoras.", "chakra":"Sahasrara"},
+    22: {"short":"Manifestação em grande escala.", "medium":"Finalização de ciclo muito importante para abertura de um novo ciclo ou não saber finalizar ciclos, estar preso", "long":"Capacidade de estruturar e materializar projetos de grande impacto (mestre).", "chakra":"Sahasrara"},
 }
 
 QUADRANTS = {
@@ -551,12 +551,18 @@ def full_numerology_report(full_name: str, dob: date, method: str = "pythagorean
 # Cabalistic wrapper (usa mapeamento cabalístico para componentes do nome)
 # -------------------------
 def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True, reference_date: Optional[date] = None) -> Dict[str, Any]:
+    """
+    Relatório completo usando mapeamento cabalístico.
+    Prioriza textos vindos de NUM_TEMPLATES (short/medium/long) quando disponíveis.
+    Não inclui 'pinnacles' no relatório (removido por solicitação).
+    """
     if reference_date is None:
         reference_date = date.today()
 
-    # desempacotar life path
+    # life_path: desempacotar se necessário
     lp_value, lp_raw = life_path_from_dob(dob, keep_masters=keep_masters)
 
+    # componentes do nome (cabalístico) — master_min=22 para cabalística
     expr = expression_number(full_name, method="cabalistic", keep_masters=keep_masters, master_min=22)
     expr_raw = expression_total(full_name, method="cabalistic")
     soul = soul_urge_number(full_name, method="cabalistic", keep_masters=keep_masters, master_min=22)
@@ -564,33 +570,66 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
     pers = personality_number(full_name, method="cabalistic", keep_masters=keep_masters, master_min=22)
     pers_raw = personality_total(full_name, method="cabalistic")
 
+    # maturidade
     mat = maturity_number(lp_value, expr, keep_masters=keep_masters, master_min=22)
 
-    pinnacles = pinnacles_from_dob(dob, keep_masters=keep_masters)
-
+    # anos/mês/dia pessoais (usar convenção do módulo)
     py = personal_year(lp_value, year=reference_date.year, keep_masters=keep_masters)
     pm = personal_month(py, reference_date.month, keep_masters=keep_masters)
     pd = personal_day(pm, reference_date.day, keep_masters=keep_masters)
 
+    # influência anual
     annual_infl = annual_influence_by_name(full_name, keep_masters=keep_masters)
 
-    def _get_text(n):
-        key = str(n)
-        short = NUM_INTERPRETATIONS_SHORT.get(key, "")
-        medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
-        return {"number": n, "short": short, "medium": medium}
+    # auxiliar: prioriza NUM_TEMPLATES[int] -> NUM_INTERPRETATIONS_* (string keys) -> fallback vazio
+    def _get_text_cabalistic(n):
+        key = str(n) if n is not None else ""
+        short = ""
+        medium = ""
+        long_text = ""
 
+        # 1) tentar NUM_TEMPLATES por inteiro (prioridade cabalística)
+        if key and key.isdigit():
+            try:
+                ik = int(key)
+                tmpl = NUM_TEMPLATES.get(ik, {}) or {}
+                short = tmpl.get("short", "") or ""
+                medium = tmpl.get("medium", "") or ""
+                long_text = tmpl.get("long", "") or ""
+            except Exception:
+                short = short or ""
+                medium = medium or ""
+                long_text = long_text or ""
+
+        # 2) fallback para os mapas de interpretação (se NUM_TEMPLATES não tiver)
+        if not short:
+            short = NUM_INTERPRETATIONS_SHORT.get(key, "")
+        if not medium:
+            medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
+        if not long_text:
+            long_text = NUM_INTERPRETATIONS_LONG.get(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
+
+        return {"number": n, "short": short, "medium": medium, "long": long_text}
+
+    # calcular Número de Poder (dia + mês) para cabalística (master_min=22)
+    power_num = power_number_from_dob(dob, keep_masters=keep_masters, master_min=22) or {"value": None, "raw": None}
+
+    # construir relatório (sem 'pinnacles')
     report = {
         "method": "cabalistic",
         "full_name": full_name,
         "dob": dob.isoformat(),
         "reference_date": reference_date.isoformat(),
-        "life_path": {"value": lp_value, "raw": lp_raw, **_get_text(lp_value)},
-        "expression": {"value": expr, **_get_text(expr)},
-        "soul_urge": {"value": soul, **_get_text(soul)},
-        "personality": {"value": pers, **_get_text(pers)},
-        "maturity": {"value": mat, **_get_text(mat)},
-        "pinnacles": pinnacles,
+        "life_path": {"value": lp_value, "raw": lp_raw, **_get_text_cabalistic(lp_value)},
+        "expression": {"value": expr, "raw": expr_raw, **_get_text_cabalistic(expr)},
+        "soul_urge": {"value": soul, "raw": soul_raw, **_get_text_cabalistic(soul)},
+        "personality": {"value": pers, "raw": pers_raw, **_get_text_cabalistic(pers)},
+        "maturity": {"value": mat, **_get_text_cabalistic(mat)},
+        "power_number": {
+            "value": power_num.get("value"),
+            "raw": power_num.get("raw"),
+            **_get_text_cabalistic(power_num.get("value"))
+        },
         "personal": {
             "year": {"value": py, "description": NUM_INTERPRETATIONS_SHORT.get(str(py), "")},
             "month": {"value": pm, "description": NUM_INTERPRETATIONS_SHORT.get(str(pm), "")},
@@ -598,4 +637,5 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
         },
         "annual_influence_by_name": {"letters_count": len(_letters_only(full_name)), "value": annual_infl},
     }
+
     return report

@@ -994,15 +994,15 @@ with tab_cabalistica:
             st.write(annual.get("value", "—"))
 
     # _render_pinnacles removed intentionally; inline rendering used where needed
-    def _render_personal(report):
-        st.markdown("#### Personal (Ano / Mês / Dia)")
-        personal = report.get("personal", {})
-        year = personal.get("year", {})
-        month = personal.get("month", {})
-        day = personal.get("day", {})
-        st.write(f"**Ano**: {year.get('value','—')} — {year.get('description','')}")
-        st.write(f"**Mês**: {month.get('value','—')} — {month.get('description','')}")
-        st.write(f"**Dia**: {day.get('value','—')} — {day.get('description','')}")
+    # def _render_personal(report):
+    #     st.markdown("#### Personal (Ano / Mês / Dia)")
+    #     personal = report.get("personal", {})
+    #     year = personal.get("year", {})
+    #     month = personal.get("month", {})
+    #     day = personal.get("day", {})
+    #     st.write(f"**Ano**: {year.get('value','—')} — {year.get('description','')}")
+    #     st.write(f"**Mês**: {month.get('value','—')} — {month.get('description','')}")
+    #     st.write(f"**Dia**: {day.get('value','—')} — {day.get('description','')}")
 
     def _render_brutos_e_breakdown(report, name):
         cols_raw = st.columns(3)
@@ -1031,7 +1031,7 @@ with tab_cabalistica:
     # Validar e calcular (defensivo)
     if full_name and dob:
         try:
-            rptc = numerology.full_cabalistic_report(full_name, dob, keep_masters=keep_masters_c)
+            rptc = numerology.full_cabalistic_report(full_name_val, dob_val, keep_masters=keep_masters)
 
             # exibir cabeçalho e seções principais
             _render_header(rptc)
@@ -1073,8 +1073,10 @@ with tab_cabalistica:
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.write(f"**Quadrante:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
                 st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
-                st.markdown("**Resumo:**")
+                st.markdown("**Qualidade:**")
                 st.write(ann_analysis.get('short','—'))
+                st.markdown("**Definição:**")
+                st.write(ann_analysis.get('medium','—'))
                 st.markdown("**Detalhe:**")
                 st.write(ann_analysis.get('long','—'))
             except Exception:
