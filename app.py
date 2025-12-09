@@ -906,6 +906,15 @@ with tab_num:
                         # 29/02 em ano não bissexto -> fallback para 28/02
                         return date(year, dob.month, min(dob.day, 28))
 
+                    selected_year = st.number_input(
+                    "Ano base para a análise (escolha livre)",
+                    min_value=1900,
+                    max_value=2100,
+                    value=current_year,
+                    step=1,
+                    key="pitagoric_ann_year"
+                )
+
                 # recalcular a análise do ano usando o ano selecionado
                 ann_date = _ann_date_for_year(dob_val, int(selected_year))
                 ann_str = ann_date.strftime("%d/%m/%Y")
@@ -920,16 +929,6 @@ with tab_num:
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
-
-                selected_year = st.number_input(
-                    "Ano base para a análise (escolha livre)",
-                    min_value=1900,
-                    max_value=2100,
-                    value=current_year,
-                    step=1,
-                    key="pitagoric_ann_year"
-                )
-
                 st.write(f"**Data-Base:** {ann_analysis.get('date', ann_str)}")
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.markdown("**Resumo:**")
