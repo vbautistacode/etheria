@@ -898,15 +898,7 @@ with tab_num:
             try:
                 # controle de ano: escolha livre pelo usuário (padrão: ano atual)
                 current_year = datetime.now().year
-                # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
-                def _ann_date_for_year(dob, year):
-                    try:
-                        return date(year, dob.month, dob.day)
-                    except ValueError:
-                        # 29/02 em ano não bissexto -> fallback para 28/02
-                        return date(year, dob.month, min(dob.day, 28))
-
-                    selected_year = st.number_input(
+                selected_year = st.number_input(
                     "Ano base para a análise (escolha livre)",
                     min_value=1900,
                     max_value=2100,
@@ -914,6 +906,13 @@ with tab_num:
                     step=1,
                     key="pitagoric_ann_year"
                 )
+                # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
+                def _ann_date_for_year(dob, year):
+                    try:
+                        return date(year, dob.month, dob.day)
+                    except ValueError:
+                        # 29/02 em ano não bissexto -> fallback para 28/02
+                        return date(year, dob.month, min(dob.day, 28))
 
                 # recalcular a análise do ano usando o ano selecionado
                 ann_date = _ann_date_for_year(dob_val, int(selected_year))
