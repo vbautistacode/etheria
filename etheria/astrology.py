@@ -306,7 +306,7 @@ def interpret_planet_position(
     # Parágrafo 1: síntese funcional
     p1 = (
         f"{planet} representa a(o)  {pcore.lower()}. Em {sign or '—'}, traz a ideia de {sign_quality.lower()}. "
-        f"Essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
+        f"Essa energia tende a se expressar como {verb.higher()} orientado para {sign_noun.higher()}."
     )
     if deg_text:
         p1 += f" (grau {deg_text})."
