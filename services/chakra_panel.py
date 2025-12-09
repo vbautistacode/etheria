@@ -64,16 +64,16 @@ def render_chakra_panel(st, report: dict, assets_dir: str = DEFAULT_CHAKRA_DIR, 
     # layout em duas colunas
     col_text, col_img = st.columns([2, 1])
 
-    # with col_text:
-    #     st.markdown("**Influência** - Ciclo da Vida")
-    #     st.write(f"A cada **{letters_count} anos** você passará por um novo ciclo.",
-    #              help="Acontecimentos importantes ou mudanças na trajetória de vida.")
-    #     st.markdown(f"**Número usado:** {value}")
-    #     st.markdown(f"**Chakra:** {chakra_raw or '—'}")
-    #     if short:
-    #         st.markdown(f"**Resumo:** {short}")
-    #     if long:
-    #         st.write(long)
+    with col_text:
+        st.markdown("**Influência** - Ciclo da Vida")
+        st.write(f"A cada **{letters_count} anos** você passará por um novo ciclo.",
+                 help="Acontecimentos importantes ou mudanças na trajetória de vida.")
+        st.markdown(f"**Número usado:** {value}")
+        st.markdown(f"**Chakra:** {chakra_raw or '—'}")
+        if short:
+            st.markdown(f"**Resumo:** {short}")
+        if long:
+            st.write(long)
 
     with col_img:
         if img_path:
