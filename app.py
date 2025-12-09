@@ -866,10 +866,6 @@ with tab_num:
 
 # --- Aba: Numerologia Cabalística (refatorado, defensivo) ---
 with tab_cabalistica:
-    import streamlit as st
-    from datetime import date, datetime
-    import pandas as pd
-
     # importar numerology defensivamente
     try:
         from etheria import numerology
@@ -940,14 +936,7 @@ with tab_cabalistica:
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
-    def _render_pinnacles(report):
-        st.markdown("---")
-        st.markdown("#### Pinnacles / Períodos")
-        pinn = report.get("pinnacles", {})
-        st.table({
-            "Pinnacle": ["P1", "P2", "P3", "P4"],
-            "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-        })
+    # _render_pinnacles removed intentionally; inline rendering used where needed
 
     def _render_personal(report):
         st.markdown("#### Personal (Ano / Mês / Dia)")
@@ -990,7 +979,28 @@ with tab_cabalistica:
 
             # exibir cabeçalho e seções principais
             _render_header(rptc)
-            _render_pinnacles(rptc)
+
+            # Inline rendering for pinnacles (replaces removed _render_pinnacles)
+            try:
+                pinn = rptc.get("pinnacles", {}) or {}
+                if pinn:
+                    st.markdown("---")
+                    st.markdown("#### Pinnacles / Períodos")
+                    # build a safe table dict with explicit values (avoid None entries)
+                    table_data = {
+                        "Pinnacle": ["P1", "P2", "P3", "P4"],
+                        "Valor": [
+                            pinn.get("pinnacle_1", "—"),
+                            pinn.get("pinnacle_2", "—"),
+                            pinn.get("pinnacle_3", "—"),
+                            pinn.get("pinnacle_4", "—")
+                        ]
+                    }
+                    st.table(table_data)
+            except Exception:
+                # não interromper a renderização se pinnacles falhar
+                pass
+
             _render_personal(rptc)
             _render_brutos_e_breakdown(rptc, full_name)
             _render_interpretations(rptc)
