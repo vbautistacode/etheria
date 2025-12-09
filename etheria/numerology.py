@@ -55,14 +55,14 @@ _MASTER_NUMBERS = (11, 22, 33)
 
 def reduce_pythagorean_from_date(day: int, month: int, year: int) -> int:
     """
-    Reduz a data (DDMMYYYY) até um número 1-9 ou mestre (11,22,33).
+    Reduz a data (DDMMYYYY) até um número 1-22 ou mestre (11,22,33).
     Preserva mestres definidos em _MASTER_NUMBERS.
     """
     total = sum(int(d) for d in f"{day:02d}{month:02d}{year:04d}")
     while True:
         if total in _MASTER_NUMBERS:
             return total
-        if total <= 9:
+        if total <= 22:
             return total
         total = sum(int(d) for d in str(total))
 
