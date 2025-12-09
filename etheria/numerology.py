@@ -15,6 +15,7 @@ from typing import Dict, Tuple, Optional, Any, List
 from datetime import date, datetime
 from collections.abc import Iterable
 
+#INTERPRETAÇÃO CABALÍSTICA BÁSICA PARA NÚMEROS 1-22
 NUM_TEMPLATES: Dict[int, Dict[str, str]] = {
     1: {"short":"Início, liderança, iniciativa.", "long":"Ação direta; foco em concretizar; energia física e prática.", "chakra":"Muladhara"},
     2: {"short":"Parcerias, sensibilidade.", "long":"Cooperação, diplomacia; trabalho em dupla e receptividade.", "chakra":"Muladhara"},
@@ -89,10 +90,10 @@ def analyze_date_str(date_str: str) -> dict:
     }
 
 # opcional: função para gerar anos pessoais até max_age
-def personal_year(dob: datetime, year: int) -> int:
-    dm = sum(int(d) for d in f"{dob.day:02d}{dob.month:02d}")
-    py = sum(int(d) for d in str(year))
-    return reduce_pythagorean_from_date(int(str(dm)), 0, int(str(py))) if False else reduce_pythagorean_from_date(dob.day, dob.month, year)
+# def personal_year(dob: datetime, year: int) -> int:
+#     dm = sum(int(d) for d in f"{dob.day:02d}{dob.month:02d}")
+#     py = sum(int(d) for d in str(year))
+#     return reduce_pythagorean_from_date(int(str(dm)), 0, int(str(py))) if False else reduce_pythagorean_from_date(dob.day, dob.month, year)
 
 # mapa pitagórico básico (A=1, B=2, ..., I=9, J=1, etc.)
 PYTHAG_MAP = {ch: (i % 9) or 9 for i, ch in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ", start=1)}
