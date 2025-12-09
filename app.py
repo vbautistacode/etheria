@@ -185,6 +185,8 @@ birth_time = st.sidebar.text_input(
     key="birth_time_influences"
 )
 
+st.write(f"**Idade (estimada):** {r.get('age', '—')}")
+
 generate_btn = st.sidebar.button("Gerar leitura")
 
 # -------------------------
