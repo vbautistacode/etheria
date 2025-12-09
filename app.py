@@ -940,14 +940,14 @@ with tab_cabalistica:
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
-    # def _render_pinnacles(report):
-    #     st.markdown("---")
-    #     st.markdown("#### Pinnacles / Períodos")
-    #     pinn = report.get("pinnacles", {})
-    #     st.table({
-    #         "Pinnacle": ["P1", "P2", "P3", "P4"],
-    #         "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-    #     })
+    def _render_pinnacles(report):
+        st.markdown("---")
+        st.markdown("#### Pinnacles / Períodos")
+        pinn = report.get("pinnacles", {})
+        st.table({
+            "Pinnacle": ["P1", "P2", "P3", "P4"],
+            "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
+        })
 
     def _render_personal(report):
         st.markdown("#### Personal (Ano / Mês / Dia)")
