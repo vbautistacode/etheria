@@ -1426,10 +1426,10 @@ if use_ai:
         preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
 
         # st.sidebar.markdown("**Preview: posições calculadas**")
-        try:
-            st.sidebar.json(preview_positions)
-        except Exception:
-            st.sidebar.text(str(preview_positions)[:4000])
+        # try:
+        #     st.sidebar.json(preview_positions)
+        # except Exception:
+        #     st.sidebar.text(str(preview_positions)[:4000])
 
         # flag para evitar cliques repetidos
         if "generating" not in st.session_state:
