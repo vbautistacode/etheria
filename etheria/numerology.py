@@ -432,7 +432,7 @@ def personal_day(personal_month_value: int, day: int, keep_masters: bool = True)
 # - reduzida numericamente (preservando mestres se solicitado)
 # -------------------------
 
-def annual_influence_by_name(full_name: str, keep_masters: bool = True, master_min: int = 11) -> Dict[str, int]:
+def annual_influence_by_name(full_name: str, keep_masters: bool = True, master_min: int = 22) -> Dict[str, int]:
     """
     Retorna dict com:
       - raw: contagem de letras (A-Z) do nome
