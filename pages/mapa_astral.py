@@ -1289,7 +1289,7 @@ with left_col:
                     seen.append(k)
             keywords_line = ", ".join(seen[:8]) if seen else None
 
-            # st.markdown(f"**{reading.get('name','Consulente')} — {reading.get('planet') or label}**")
+            st.markdown(f"**{reading.get('planet') or label}**")
             st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
 
             if synthetic_line:

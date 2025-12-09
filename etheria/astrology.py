@@ -221,7 +221,7 @@ def _format_degree(deg: Any) -> str:
     try:
         d = float(deg)
         # grau dentro do signo (0..30) já deve ser passado; apenas formatar
-        return f"{round(d, 3)}°"
+        return f"{round(d, 2)}°"
     except Exception:
         # tentar extrair número de string (ex: "6.918")
         try:
@@ -230,7 +230,7 @@ def _format_degree(deg: Any) -> str:
             import re
             m = re.search(r"[-+]?\d+(\.\d+)?", s)
             if m:
-                return f"{round(float(m.group(0)), 3)}°"
+                return f"{round(float(m.group(0)), 2)}°"
         except Exception:
             pass
     return ""
