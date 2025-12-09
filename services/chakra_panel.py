@@ -81,7 +81,7 @@ def render_chakra_panel(st, report: dict, assets_dir: str = DEFAULT_CHAKRA_DIR, 
                 # abrir imagem com PIL para garantir compatibilidade
                 with open(img_path, "rb") as f:
                     img = Image.open(io.BytesIO(f.read()))
-                    st.image(img, use_column_width=True, caption=chakra_raw)
+                    st.image(img, use_conteiner_width=True, caption=chakra_raw)
             except Exception:
                 st.warning("Erro ao abrir a imagem do chakra. Verifique o arquivo em assets.")
         else:
