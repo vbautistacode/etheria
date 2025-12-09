@@ -1010,8 +1010,8 @@ with tab_cabalistica:
             title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
             with st.expander(f"{title} — {label}"):
                     st.markdown(f"**Qualidade:** {block.get('short','—')}")
-                    st.markdown(f"**Definição:** {block.get('long','—')}")
                     st.markdown(f"**Detalhe:** {block.get('medium','—')}")
+                    st.markdown(f"**Definição:** {block.get('long','—')}")
 
     # Validar e calcular (defensivo)
     if full_name and dob:
