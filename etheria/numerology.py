@@ -468,6 +468,8 @@ def full_numerology_report(full_name: str, dob: date, method: str = "pythagorean
     pers = personality_number(full_name, method=method, keep_masters=keep_masters, master_min=11)
     pers_raw = personality_total(full_name, method=method)
 
+    power_num = power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
+
     mat = maturity_number(lp_value, expr, keep_masters=keep_masters, master_min=11)
 
     pinnacles = pinnacles_from_dob(dob, keep_masters=keep_masters)
