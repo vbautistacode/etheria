@@ -78,7 +78,7 @@ def analyze_date_str(date_str: str) -> dict:
         raise ValueError("Formato de data inválido. Use DD/MM/YYYY ou YYYY-MM-DD")
     num = reduce_pythagorean_from_date(d,m,y)
     quad = quadrant_for_number(num)
-    template = NUM_TEMPLATES.get(num, {"short":"—","long":"—","chakra":quad.get("chakra")})
+    template = NUM_TEMPLATES.get(num, {"short":"—","medium":"—","long":"—","chakra":quad.get("chakra")})
     return {
         "date": f"{d:02d}/{m:02d}/{y}",
         "reduced_number": num,
@@ -86,6 +86,7 @@ def analyze_date_str(date_str: str) -> dict:
         "chakra": template.get("chakra") or quad.get("chakra"),
         "theme": quad.get("theme"),
         "short": template.get("short"),
+        "medium": template.get("medium"),
         "long": template.get("long")
     }
 
