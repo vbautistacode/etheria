@@ -46,7 +46,7 @@ QUADRANTS = {
     "4-5-6": {"range": range(4,7), "chakra":"Svadhishthana", "theme":"Energia Vital"},
     "7-8-9": {"range": range(7,10), "chakra":"Manipura", "theme":"Energias Astrais"},
     "10-11-12": {"range": range(10,13), "chakra":"Anahata", "theme":"Energias Mentais"},
-    "13-14-15": {"range": range(13,16), "chakra":"Vishuddha", "theme":"Idéias"},
+    "13-14-15": {"range": range(13,16), "chakra":"Vishudha", "theme":"Idéias"},
     "16-17-18": {"range": range(16,19), "chakra":"Ajna", "theme":"Intuição"},
     "19-20-21": {"range": range(19,22), "chakra":"Sahasrara", "theme":"Conexão com os Arquétipos Universais"},
 }
