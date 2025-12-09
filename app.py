@@ -896,7 +896,8 @@ with tab_num:
 
             # análise do número do ano (usar dob_val) — com escolha de ano pelo usuário (mantendo estrutura)
             try:
-            
+                # controle de ano: escolha livre pelo usuário (padrão: ano atual)
+                current_year = datetime.now().year
                 # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
                 def _ann_date_for_year(dob, year):
                     try:
@@ -918,9 +919,8 @@ with tab_num:
 
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
+                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
 
-                # controle de ano: escolha livre pelo usuário (padrão: ano atual)
-                current_year = datetime.now().year
                 selected_year = st.number_input(
                     "Ano base para a análise (escolha livre)",
                     min_value=1900,
@@ -930,7 +930,6 @@ with tab_num:
                     key="pitagoric_ann_year"
                 )
 
-                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                 st.write(f"**Data-Base:** {ann_analysis.get('date', ann_str)}")
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.markdown("**Resumo:**")
