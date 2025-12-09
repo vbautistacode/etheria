@@ -65,7 +65,7 @@ def lon_to_sign_degree(lon: float) -> Tuple[str, float, int]:
     lon = float(lon) % 360.0
     sign_index = int(lon // 30) % 12
     degree = lon % 30
-    return SIGNS[sign_index], round(degree, 4), sign_index + 1
+    return SIGNS[sign_index], round(degree, 2), sign_index + 1
 
 def compute_aspects(positions: Dict[str, Dict[str, float]], orb: float = 6.0) -> List[Dict[str, Any]]:
     """
@@ -180,9 +180,9 @@ def positions_table(
 
         rows.append({
             "planet": name,
-            "longitude": round(float(lon), 4),
+            "longitude": round(float(lon), 2),
             "sign": sign,
-            "degree": round(degree, 4),
+            "degree": round(degree, 2),
             "sign_index": sign_index,
             "house": house
         })
