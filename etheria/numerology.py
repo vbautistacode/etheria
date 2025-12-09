@@ -48,7 +48,7 @@ QUADRANTS = {
     "10-12": {"range": range(10,13), "chakra":"Anahata", "theme":"Energias Mentais"},
     "13-15": {"range": range(13,16), "chakra":"Vishuddha", "theme":"Idéias"},
     "16-18": {"range": range(16,19), "chakra":"Ajna", "theme":"Intuição"},
-    "19-21": {"range": range(19,22), "chakra":"Sahasrara", "theme":"Conexão com os Arquétipos Universais"},
+    "19-20-21": {"range": range(19,22), "chakra":"Sahasrara", "theme":"Conexão com os Arquétipos Universais"},
 }
 
 _MASTER_NUMBERS = (11, 22, 33)
