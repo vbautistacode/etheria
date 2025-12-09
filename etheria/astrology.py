@@ -338,8 +338,8 @@ def interpret_planet_position(
     # proteger caso sign_quality seja vazio
     first_quality = (sign_quality.split(",")[0] if sign_quality else "equilíbrio")
     p4 = (
-        f"Recomendações práticas: cultivar {first_quality.lower()} e aplicar {verb.lower()} de forma consciente "
-        f"no âmbito de {house_noun.lower()}. Evite extremos e busque equilíbrio entre intenção e ação."
+        f"Recomendações práticas: cultive {first_quality.lower()} e aplique de forma consciente "
+        f"no âmbito da(o) {house_noun.lower()}. Evite extremos e busque equilíbrio entre intenção e ação."
     )
     long_parts.append(p4)
 

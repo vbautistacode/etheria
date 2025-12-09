@@ -1509,16 +1509,27 @@ if use_ai:
 # RIGHT: painel de análise e numerologia
 with right_col:
     st.subheader("Painel de Análise")
-    tabs = st.tabs(["Interpretação via Arcanos"])
 
+    # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
+    # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
+    tabs = st.tabs(["Interpretação via Arcanos", "Influencia Arcano x Signo"])
+
+    # dados selecionados
+    selected_raw = st.session_state.get("selected_planet")
+    canonical_selected, label_selected = _canonical_and_label(selected_raw) if selected_raw else (None, None)
+
+    # preparar leitura existente (se houver)
+    reading = summary.get("readings", {}).get(canonical_selected) if summary else None
+
+    # -------------------------
+    # Aba 0: Interpretação via Arcanos (usar leitura já gerada quando disponível)
+    # -------------------------
     with tabs[0]:
-        selected_raw = st.session_state.get("selected_planet")
-        canonical_selected, label_selected = _canonical_and_label(selected_raw) if selected_raw else (None, None)
-
-        # preferir leitura já gerada no summary (canonical), senão usar interpretations.arcano_for_planet
-        reading = summary.get("readings", {}).get(canonical_selected) if summary else None
         if reading:
-            st.markdown(f"### {influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected)} em {reading.get('sign')} {reading.get('degree')}°")
+            st.markdown(
+                f"### {influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected)} "
+                f"em {reading.get('sign')} {reading.get('degree')}°"
+            )
             st.markdown("**Arcano Correspondente**")
             arc = reading.get("arcano_info") or reading.get("arcano")
             if arc:
@@ -1530,27 +1541,67 @@ with right_col:
                 else:
                     st.write(f"Arcano {arc}")
             st.markdown("**Resumo**")
-            st.write(reading.get("interpretation_short"))
+            st.write(reading.get("interpretation_short") or "Resumo não disponível.")
             with st.expander("Interpretação completa"):
-                st.write(reading.get("interpretation_long"))
+                st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
             st.markdown("**Sugestões práticas**")
             kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
-            for k in kw:
-                st.write(f"- {k}")
+            if kw:
+                for k in kw:
+                    st.write(f"- {k}")
+            else:
+                st.write("Nenhuma sugestão prática disponível.")
         else:
-            # gerar via interpretations.arcano_for_planet (usa rules + influences internamente)
-            if canonical_selected and summary:
+            # sem leitura pré-gerada: instruir usuário ou gerar via arcano_for_planet (opcional)
+            if not (canonical_selected and summary):
+                st.info("Selecione um planeta (na tabela ou na roda) e gere o resumo do mapa para ver a análise por arcanos.")
+            else:
+                st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Influencia Arcano x Signo' para gerar a interpretação automática.")
+
+    # -------------------------
+    # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
+    # -------------------------
+    with tabs[1]:
+        # checagens iniciais
+        if not (canonical_selected and summary):
+            st.info("Selecione um planeta (na tabela ou na roda) e gere o resumo do mapa para ver a análise por arcanos.")
+        else:
+            # chamar a função de forma segura e logar/mostrar fallback
+            try:
+                logger.debug("Chamando interpretations.arcano_for_planet para %s", canonical_selected)
+            except Exception:
+                # logger pode não existir em alguns contextos; não falhar por isso
+                pass
+
+            try:
                 arc_block = interpretations.arcano_for_planet(summary, canonical_selected)
+            except Exception as e:
+                try:
+                    logger.exception("Erro em interpretations.arcano_for_planet: %s", e)
+                except Exception:
+                    pass
+                arc_block = None
+
+            # garantir estrutura mínima
+            arc_block = arc_block or {}
+            arc_obj = arc_block.get("arcano")
+            arc_text = arc_block.get("text") or arc_block.get("interpretation") or ""
+
+            if not arc_obj and not arc_text:
+                st.info("Nenhuma interpretação por arcanos gerada para este planeta com os dados atuais. Verifique logs para detalhes.")
+            else:
                 st.markdown(f"### {influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected)}")
                 st.markdown("**Arcano Correspondente**")
-                arc_obj = arc_block.get("arcano")
                 if isinstance(arc_obj, dict):
                     arc_name = arc_obj.get("name") or f"Arcano {arc_obj.get('arcano') or arc_obj.get('value')}"
                     arc_num = arc_obj.get("arcano") or arc_obj.get("value")
                     st.write(f"{arc_name} (#{arc_num})")
                 else:
                     st.write(f"Arcano {arc_obj}")
+
                 st.markdown("**Interpretação do Arcano e influência na casa**")
-                st.write(arc_block.get("text", ""))
-            else:
-                st.info("Selecione um planeta (na tabela ou na roda) para ver a análise.")
+                # renderizar texto com fallback
+                if arc_text:
+                    st.write(arc_text)
+                else:
+                    st.write("Interpretação não disponível.")
