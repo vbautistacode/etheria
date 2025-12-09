@@ -838,13 +838,6 @@ with tab_num:
 
             st.markdown("---")
 
-            # Personal (Ano / Mês / Dia)
-            # st.markdown("#### Números Pessoais (Ano / Mês / Dia)")
-            # personal = rpt.get("personal", {})
-            # st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
-            # st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
-            # st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
-
             # rótulos em português
             PORTUGUESE_LABELS = {
                 "life_path": "Caminho de Vida",
@@ -982,6 +975,16 @@ with tab_cabalistica:
             st.write(annual.get("value", "—"))
 
     def _render_interpretations(report):
+        # rótulos em português
+        PORTUGUESE_LABELS = {
+            "life_path": "Caminho de Vida",
+            "expression": "Expressão",
+            "soul_urge": "Desejo da Alma",
+            "personality": "Personalidade",
+            "maturity": "Maturidade",
+            "power_number": "Número de Poder"
+        }
+        
         st.markdown("### Interpretações")
         for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
             block = report.get(key, {}) or {}
