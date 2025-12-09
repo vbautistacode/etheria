@@ -1046,7 +1046,7 @@ with tab_cabalistica:
                 st.write(f"**Data:** {ann_analysis.get('date','—')}")
                 # confirme a chave correta retornada por analyze_date_str; ajuste se necessário
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
-                st.write(f"**Quadrante:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
+                st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
                 st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
                 st.markdown("**Qualidade:**")
                 st.write(ann_analysis.get('short','—'))
