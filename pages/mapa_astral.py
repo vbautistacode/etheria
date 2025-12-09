@@ -1252,6 +1252,8 @@ with left_col:
     st.markdown("")
     st.markdown("")
     st.markdown("")
+    st.markdown("")
+    st.markdown("")
     st.markdown("#### Leitura Sintética")
 
     sel_planet = st.session_state.get("selected_planet")
