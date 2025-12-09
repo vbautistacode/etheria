@@ -809,11 +809,11 @@ with tab_num:
             st.markdown("---")
 
             # Personal (Ano / Mês / Dia)
-            st.markdown("#### Números Pessoais (Ano / Mês / Dia)")
-            personal = rpt.get("personal", {})
-            st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
-            st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
-            st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
+            # st.markdown("#### Números Pessoais (Ano / Mês / Dia)")
+            # personal = rpt.get("personal", {})
+            # st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
+            # st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
+            # st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
 
             # rótulos em português
             PORTUGUESE_LABELS = {
