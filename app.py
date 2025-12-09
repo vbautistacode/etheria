@@ -1048,16 +1048,28 @@ with tab_cabalistica:
                     col_text, col_img = st.columns([2, 1])
 
                     with col_text:
-                        st.write(f"**Data:** {ann_analysis.get('date','—')}")
-                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
-                        st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
-                        st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
+                        # helper para exibir label e valor alinhados
+                        def _label_value(label: str, value):
+                            left, right = st.columns([1, 4])
+                            with left:
+                                st.markdown(f"**{label}:**")
+                            with right:
+                                st.write(value if value not in (None, "") else "—")
+
+                        _label_value("Data", ann_analysis.get("date", "—"))
+                        _label_value("Número reduzido", ann_analysis.get("reduced_number", ann_analysis.get("reduced", "—")))
+                        _label_value("Tríade", f"{ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
+                        _label_value("Chakra", ann_analysis.get("chakra", "—"))
+
+                        # campos de texto maiores (qualidade / definição / detalhe)
                         st.markdown("**Qualidade:**")
-                        st.write(ann_analysis.get('short','—'))
+                        st.write(ann_analysis.get("short", "—"))
+
                         st.markdown("**Definição:**")
-                        st.write(ann_analysis.get('medium','—'))
+                        st.write(ann_analysis.get("medium", "—"))
+
                         st.markdown("**Detalhe:**")
-                        st.write(ann_analysis.get('long','—'))
+                        st.write(ann_analysis.get("long", "—"))
 
                     # renderizar apenas a imagem do chakra na coluna direita (sem duplicar texto)
                     render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras", target_col=col_img)
