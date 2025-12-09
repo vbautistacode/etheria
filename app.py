@@ -1063,7 +1063,7 @@ with tab_cabalistica:
                     # controle de ano: escolha livre pelo usuário (padrão: ano atual)
                     current_year = datetime.now().year
                     selected_year = st.number_input(
-                        "Ano base para a análise (escolha livre)",
+                        "Escolha o ano para análise:",
                         min_value=1900,
                         max_value=2100,
                         value=current_year,
@@ -1092,22 +1092,23 @@ with tab_cabalistica:
 
                     st.markdown("### Análise do Número do Ano")
                     st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
+                    # criar colunas: texto à esquerda, imagem à direita
+                    col_text, col_img = st.columns([2, 1])
+                    with col_text:
+                        st.write(f"**Data:** {ann_analysis.get('date','—')}")
+                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
+                        st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
+                        st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
+                        st.markdown("**Qualidade:**")
+                        st.write(ann_analysis.get('short','—'))
+                        st.markdown("**Definição:**")
+                        st.write(ann_analysis.get('medium','—'))
+                        st.markdown("**Detalhe:**")
+                        st.write(ann_analysis.get('long','—'))
 
-                    # exibição (mesma ordem e formato que você tinha)
-                    st.write(f"**Data:** {ann_analysis.get('date', ann_str)}")
-                    st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
-                    st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
-                    st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
-                    st.markdown("**Qualidade:**")
-                    st.write(ann_analysis.get('short','—'))
-                    st.markdown("**Definição:**")
-                    st.write(ann_analysis.get('medium','—'))
-                    st.markdown("**Detalhe:**")
-                    st.write(ann_analysis.get('long','—'))
-
-                    # renderizar apenas a imagem do chakra (sem duplicar texto)
+                    # renderizar apenas a imagem do chakra na coluna direita (sem duplicar texto)
                     try:
-                        render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras")
+                        render_chakra_image(st, annual=ann_analysis, assets_dir="assets/chakras", target_col=col_img)
                     except Exception:
                         if st.session_state.get("debug_influences"):
                             import traceback
