@@ -432,10 +432,21 @@ def personal_day(personal_month_value: int, day: int, keep_masters: bool = True)
 # - reduzida numericamente (preservando mestres se solicitado)
 # -------------------------
 
-def annual_influence_by_name(full_name: str, keep_masters: bool = True) -> int:
+def annual_influence_by_name(full_name: str, keep_masters: bool = True, master_min: int = 11) -> Dict[str, int]:
+    """
+    Retorna dict com:
+      - raw: contagem de letras (A-Z) do nome
+      - value: redução numerológica dessa contagem (preservando mestres se solicitado)
+    """
     letters = _letters_only(full_name)
     count = len(letters)
-    return reduce_number(count, keep_masters=keep_masters)
+    reduced = None
+    try:
+        reduced = reduce_number(count, keep_masters=keep_masters, master_min=master_min)
+    except Exception:
+        # fallback seguro: se reduce_number falhar, devolve None
+        reduced = None
+    return {"raw": count, "value": reduced}
 
 # -------------------------
 # Interpretações básicas (curtas e médias) — reutiliza dicionários anteriores
@@ -602,6 +613,9 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
     # influência anual
     annual_infl = annual_influence_by_name(full_name, keep_masters=keep_masters)
 
+    # no report:
+    
+
     # auxiliar: prioriza NUM_TEMPLATES[int] -> NUM_INTERPRETATIONS_* (string keys) -> fallback vazio
     def _get_text_cabalistic(n):
         key = str(n) if n is not None else ""
@@ -656,7 +670,7 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
             "month": {"value": pm, "description": NUM_INTERPRETATIONS_SHORT.get(str(pm), "")},
             "day": {"value": pd, "description": NUM_INTERPRETATIONS_SHORT.get(str(pd), "")}
         },
-        "annual_influence_by_name": {"letters_count": len(_letters_only(full_name)), "value": annual_infl},
+        "annual_influence_by_name": {"letters_count": annual_infl.get("raw"),"value": annual_infl.get("value")}
     }
 
     return report
