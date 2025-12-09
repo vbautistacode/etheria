@@ -766,6 +766,8 @@ with tab_num:
     full_name_val = st.session_state.get("full_name_input") or st.session_state.get("full_name") or ""
     dob_val = st.session_state.get("dob_input") or st.session_state.get("dob") or None
     keep_masters = st.session_state.get("num_keep_masters", True)
+     # calcular Número de Poder (dia + mês)
+    power_num = power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
 
     # Mensagem informativa se dados faltarem
     if not full_name_val or not dob_val:
@@ -799,7 +801,10 @@ with tab_num:
                 maturity = rpt.get("maturity", {})
                 st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
                 st.markdown("**Número de Poder**")
-                st.write(rpt.get("annual_influence_by_name", {}).get("value", "—"))
+                power = rpt.get("power_number", {}) or {}
+                power_value = power.get("value", "—")
+                power_raw = power.get("raw")
+                st.write(f"{power_value} (soma bruta: {power_raw})")
 
             st.markdown("---")
 
