@@ -432,20 +432,45 @@ def personal_day(personal_month_value: int, day: int, keep_masters: bool = True)
 # - reduzida numericamente (preservando mestres se solicitado)
 # -------------------------
 
-def annual_influence_by_name(full_name: str, keep_masters: bool = True, master_min: int = 22) -> Dict[str, int]:
+# nova assinatura: mode pode ser "default" ou "cabalistic"
+def annual_influence_by_name(full_name: str, keep_masters: bool = True, master_min: int = 11, mode: str = "default") -> Dict[str, int]:
     """
-    Retorna dict com:
-      - raw: contagem de letras (A-Z) do nome
-      - value: redução numerológica dessa contagem (preservando mestres se solicitado)
+    Retorna:
+      - raw: contagem de letras (A-Z) do nome (não reduzida)
+      - value: valor a ser usado como 'influência' (reduzido ou não, dependendo do mode)
+    mode:
+      - "default": reduz a contagem normalmente (preservando mestres conforme keep_masters)
+      - "cabalistic": política especial para numerologia cabalística:
+           * se raw <= 22 -> aplicar redução normal (preservando mestres)
+           * se raw > 22  -> manter raw como value (não reduzir além de 22)
     """
     letters = _letters_only(full_name)
     count = len(letters)
-    reduced = None
+
+    # modo cabalístico: não reduzir números maiores que 22 (mantém o bruto)
+    if mode == "cabalistic":
+        if count > 22:
+            # manter bruto como value para cabalística
+            return {"raw": count, "value": count}
+        # caso contrário, reduzir normalmente (preservando mestres)
+        try:
+            reduced = reduce_number(count, keep_masters=keep_masters, master_min=master_min)
+        except Exception:
+            # fallback seguro
+            total = count
+            while total > 9 and total not in (11, 22, 33):
+                total = sum(int(d) for d in str(total))
+            reduced = total
+        return {"raw": count, "value": reduced}
+
+    # modo default: reduzir normalmente
     try:
         reduced = reduce_number(count, keep_masters=keep_masters, master_min=master_min)
     except Exception:
-        # fallback seguro: se reduce_number falhar, devolve None
-        reduced = None
+        total = count
+        while total > 9 and total not in (11, 22, 33):
+            total = sum(int(d) for d in str(total))
+        reduced = total
     return {"raw": count, "value": reduced}
 
 # -------------------------
@@ -629,7 +654,7 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
     pd = personal_day(pm, reference_date.day, keep_masters=keep_masters)
 
     # influência anual
-    annual_infl = annual_influence_by_name(full_name, keep_masters=keep_masters)
+    annual_infl = annual_influence_by_name(full_name, keep_masters=keep_masters, mode="cabalistic")
 
     # no report:
     
