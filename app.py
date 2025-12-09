@@ -737,8 +737,8 @@ with tab_num:
     from datetime import date, datetime
 
     # garantir session_state básicos (uma única vez)
-    st.session_state.setdefault("full_name", "")
-    st.session_state.setdefault("dob", date(1990, 4, 25))
+    # st.session_state.setdefault("full_name", "")
+    # st.session_state.setdefault("dob", date(1990, 4, 25))
     st.session_state.setdefault("num_keep_masters", True)
 
     # chaves locais para inputs visíveis nesta aba (evitam conflito com sidebar)
