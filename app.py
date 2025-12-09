@@ -899,6 +899,7 @@ with tab_num:
                 ann_analysis = analyze_personal_year_from_dob(dob_val, target_year=today_year)
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
+                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
                 st.write(f"**Data:** {ann_analysis.get('date','—')}")
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.markdown("**Resumo:**")
