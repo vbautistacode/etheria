@@ -811,28 +811,29 @@ with tab_num:
                 # se value ausente mas raw presente, reduzir raw para obter value
                 if pv_value is None and pv_raw is not None:
                     try:
-                        # usar função de redução do módulo numerology se disponível
-                        if hasattr(numerology, "reduce_number"):
-                            pv_value = numerology.reduce_number(pv_raw, keep_masters=keep_masters, master_min=11)
-                        else:
-                            # fallback: extrair dígitos e reduzir manualmente
+                        pv_value = numerology.reduce_number(pv_raw, keep_masters=keep_masters, master_min=11)
+                    except Exception:
+                        # fallback manual: somar dígitos e reduzir
+                        try:
                             digits = numerology._to_digit_list(pv_raw) if hasattr(numerology, "_to_digit_list") else [int(ch) for ch in str(pv_raw) if ch.isdigit()]
                             s = sum(digits) if digits else None
                             pv_value = numerology.reduce_number(s, keep_masters=keep_masters, master_min=11) if s is not None and hasattr(numerology, "reduce_number") else s
-                    except Exception:
-                        pv_value = None
+                        except Exception:
+                            pv_value = None
 
-                # obter texto curto associado (se disponível no módulo)
+                # obter texto curto associado (fallbacks: NUM_INTERPRETATIONS_SHORT -> NUM_TEMPLATES -> "")
                 pv_short = ""
                 try:
-                    if pv_value is not None and hasattr(numerology, "NUM_INTERPRETATIONS_SHORT"):
+                    if pv_value is not None:
                         pv_short = numerology.NUM_INTERPRETATIONS_SHORT.get(str(pv_value), "")
+                        if not pv_short and hasattr(numerology, "NUM_TEMPLATES"):
+                            pv_short = numerology.NUM_TEMPLATES.get(int(pv_value), {}).get("short", "")
                 except Exception:
                     pv_short = ""
 
                 # exibir no mesmo formato de maturity: "valor — texto curto"
                 display_value = pv_value if pv_value is not None else "—"
-                display_short = pv_short or ""
+                display_short = pv_short or "—"
                 st.write(f"{display_value} — {display_short}")
 
             st.markdown("---")
