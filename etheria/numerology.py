@@ -230,19 +230,28 @@ def _to_digit_list(mixed):
                     out.append(int(ch))
     return out
 
-def reduce_number(values, keep_masters: bool = False, master_min: int = 11) -> int:
-    """
-    Redução numerológica robusta.
-    - values: lista/tupla/str/int possivelmente aninhada
-    - keep_masters: se True, preserva números mestres
-    - master_min: menor mestre a preservar (ex.: 11 para Pitagórica, 22 para Cabalística)
-    Retorna um inteiro reduzido.
-    """
+def reduce_number(values, keep_masters: bool = False, master_min: int = 11) -> Optional[int]:
+    # tentar extrair um total bruto primeiro (se values for um número simples)
+    # se values for um iterável complexo, _to_digit_list continuará funcionando
+    # mas queremos preservar mestres quando o total bruto for exatamente 11/22/33
+    # obter lista de dígitos
     digits = _to_digit_list(values)
     if not digits:
         raise ValueError("Entrada vazia para reduce_number; nenhum dígito válido encontrado")
 
     total = sum(digits)
+
+    # Se a entrada original for um único número inteiro (ex.: 11) e queremos preservar mestres,
+    # precisamos checar o total bruto antes de reduzir por dígitos. Uma forma simples:
+    # - se values é int/str representando um inteiro e esse inteiro é mestre, preserva.
+    try:
+        # tentar extrair um inteiro bruto do argumento original
+        if isinstance(values, (int,)) or (isinstance(values, str) and values.isdigit()):
+            raw_int = int(values)
+            if keep_masters and raw_int in _MASTER_NUMBERS and raw_int >= master_min:
+                return raw_int
+    except Exception:
+        pass
 
     # função auxiliar para verificar se total é um mestre a preservar
     def _is_preserved_master(x):
