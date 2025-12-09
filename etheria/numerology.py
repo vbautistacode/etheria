@@ -271,29 +271,24 @@ def maturity_number(life_path, expression, keep_masters: bool = False, master_mi
     """
     return reduce_number((life_path, expression), keep_masters=keep_masters, master_min=master_min)
 
-def power_number_from_dob(dob: date, keep_masters: bool = True, master_min: int = 11) -> Dict[str, int]:
-    """
-    Número de Poder: soma dos dígitos do dia e do mês da data de nascimento.
-    Ex.: 25/04 -> 2 + 5 + 4 = 11. Em seguida aplica reduce_number com keep_masters.
-    Retorna dict com 'value' (reduzido) e 'raw' (soma bruta).
-    """
+def power_number_from_dob(dob: date, keep_masters: bool = True, master_min: int = 11) -> Dict[str, Optional[int]]:
     try:
-        d = dob.day
-        m = dob.month
-        # construir lista de dígitos a partir de dia e mês
+        d = getattr(dob, "day", None)
+        m = getattr(dob, "month", None)
+        if d is None or m is None:
+            raise ValueError("Data inválida para cálculo do Número de Poder")
         raw_digits = _to_digit_list((d, m))
         if not raw_digits:
-            raise ValueError("Data inválida para cálculo do Número de Poder")
+            raise ValueError("Nenhum dígito válido extraído de dia/mês")
         raw_sum = sum(raw_digits)
         reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min)
         return {"value": reduced, "raw": raw_sum}
     except Exception:
-        # fallback: tentar extrair diretamente dos atributos ou retornar placeholders
         try:
             s = f"{getattr(dob, 'day', '')}{getattr(dob, 'month', '')}"
             digits = _to_digit_list(s)
-            raw_sum = sum(digits) if digits else 0
-            reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min) if digits else 0
+            raw_sum = sum(digits) if digits else None
+            reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min) if raw_sum is not None else None
             return {"value": reduced, "raw": raw_sum}
         except Exception:
             return {"value": None, "raw": None}

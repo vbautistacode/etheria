@@ -327,7 +327,9 @@ with col3:
 left, = st.columns([4])
 
 with left:
-    st.subheader("Relógio Tatvico e suas Correlações")
+    st.subheader("Relógio Tátvico e suas Correlações")
+    st.markdown("Sistema esotérico que mede o tempo de acordo com a vibração desses princípios (tattwas). Está relacionado a mudança de energéticas ao longo do dia e suas influências.")
+
     types = list(data["matrices"].keys())
     if not types:
         st.info("Nenhum tipo disponível para visualização.")
