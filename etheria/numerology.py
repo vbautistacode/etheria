@@ -601,13 +601,13 @@ def full_cabalistic_report(full_name: str, dob: date, keep_masters: bool = True,
                 medium = medium or ""
                 long_text = long_text or ""
 
-        # 2) fallback para os mapas de interpretação (se NUM_TEMPLATES não tiver)
-        if not short:
-            short = NUM_INTERPRETATIONS_SHORT.get(key, "")
-        if not medium:
-            medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
-        if not long_text:
-            long_text = NUM_INTERPRETATIONS_LONG.get(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
+        # # 2) fallback para os mapas de interpretação (se NUM_TEMPLATES não tiver)
+        # if not short:
+        #     short = NUM_INTERPRETATIONS_SHORT.get(key, "")
+        # if not medium:
+        #     medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
+        # if not long_text:
+        #     long_text = NUM_INTERPRETATIONS_LONG.get(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
 
         return {"number": n, "short": short, "medium": medium, "long": long_text}
 
