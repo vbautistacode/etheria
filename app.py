@@ -899,40 +899,43 @@ with tab_num:
                 st.markdown("### Análise do Número do Ano")
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                 current_year = datetime.now().year
-                with st.container():
-                    # cria uma "linha" com proporção pequena para o controle, sem alterar o resto do layout
-                    _, ctrl_col, _ = st.columns([1, 0.6, 1])  # coluna central estreita
-                    with ctrl_col:
-                        # Atenção: usa unsafe_allow_html e seletor que pode mudar entre versões do Streamlit.
-                        years = list(range(current_year + 100, current_year - 100))
-                        selected_year = st.selectbox("Escolha o ano para análise", options=years, index=years.index(current_year), key="pitagoric_ann_year")
+                # Atenção: usa unsafe_allow_html e seletor que pode mudar entre versões do Streamlit.
+                years = list(range(current_year - 100, current_year + 100))
+                selected_year = st.number_input(
+                    "Escolha o ano para análise:",
+                    min_value=1900,
+                    max_value=2100,
+                    value=current_year,
+                    step=1,
+                    key="pitagoric_ann_year"
+                )
 
-                        # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
-                        def _ann_date_for_year(dob, year):
-                            try:
-                                return date(year, dob.month, dob.day)
-                            except ValueError:
-                                # 29/02 em ano não bissexto -> fallback para 28/02
-                                return date(year, dob.month, min(dob.day, 28))
+                # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
+                def _ann_date_for_year(dob, year):
+                    try:
+                        return date(year, dob.month, dob.day)
+                    except ValueError:
+                        # 29/02 em ano não bissexto -> fallback para 28/02
+                        return date(year, dob.month, min(dob.day, 28))
 
-                        # recalcular a análise do ano usando o ano selecionado
-                        ann_date = _ann_date_for_year(dob_val, int(selected_year))
-                        ann_str = ann_date.strftime("%d/%m/%Y")
+                # recalcular a análise do ano usando o ano selecionado
+                ann_date = _ann_date_for_year(dob_val, int(selected_year))
+                ann_str = ann_date.strftime("%d/%m/%Y")
 
-                        try:
-                            ann_analysis = analyze_personal_year_from_dob(dob_val, target_year=int(selected_year)) or {}
-                        except Exception as e:
-                            ann_analysis = {}
-                            if st.session_state.get("debug_influences"):
-                                st.exception(e)
+                try:
+                    ann_analysis = analyze_personal_year_from_dob(dob_val, target_year=int(selected_year)) or {}
+                except Exception as e:
+                    ann_analysis = {}
+                    if st.session_state.get("debug_influences"):
+                        st.exception(e)
 
-                        # exibição dos resultados (mantendo formato original)
-                        st.write(f"**Data-Base:** {ann_analysis.get('date', ann_str)}")
-                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
-                        st.markdown("**Resumo:**")
-                        st.write(ann_analysis.get('short','—'))
-                        st.markdown("**Detalhe:**")
-                        st.write(ann_analysis.get('long','—'))
+                # exibição dos resultados (mantendo formato original)
+                st.write(f"**Data-Base:** {ann_analysis.get('date', ann_str)}")
+                st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
+                st.markdown("**Resumo:**")
+                st.write(ann_analysis.get('short','—'))
+                st.markdown("**Detalhe:**")
+                st.write(ann_analysis.get('long','—'))
 
             except Exception:
                 pass
