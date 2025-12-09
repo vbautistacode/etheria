@@ -1140,15 +1140,15 @@ try:
 except Exception:
     gs = None
 
-if st.session_state.get("map_ready"):
-    st.sidebar.markdown("**Preview: posições calculadas**")
-    preview_table = st.session_state["map_summary"].get("table", []) or []
-    if gs and hasattr(gs, "normalize_chart_positions"):
-        preview_positions = gs.normalize_chart_positions(preview_table)
-    else:
-        # fallback simples (sem normalização completa)
-        preview_positions = preview_table
-    st.sidebar.json(preview_positions)
+# if st.session_state.get("map_ready"):
+#     st.sidebar.markdown("**Preview: posições calculadas**")
+#     preview_table = st.session_state["map_summary"].get("table", []) or []
+#     if gs and hasattr(gs, "normalize_chart_positions"):
+#         preview_positions = gs.normalize_chart_positions(preview_table)
+#     else:
+#         # fallback simples (sem normalização completa)
+#         preview_positions = preview_table
+#     st.sidebar.json(preview_positions)
 
     # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
     if st.sidebar.button("Gerar interpretação IA"):
@@ -1424,14 +1424,14 @@ if use_ai:
         model_choice = st.selectbox("Modelo IA", options=["gemini-2.5-flash", "gemini-default"], index=0)
         st.write("Revise as posições no preview antes de enviar para a IA.")
 
-        # preparar preview_positions normalizado a partir do summary
-        preview_table = summary.get("table", []) if summary else []
-        preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
-        st.sidebar.markdown("**Preview: posições calculadas**")
-        try:
-            st.sidebar.json(preview_positions)
-        except Exception:
-            st.sidebar.text(str(preview_positions)[:4000])
+        # # preparar preview_positions normalizado a partir do summary
+        # preview_table = summary.get("table", []) if summary else []
+        # preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
+        # st.sidebar.markdown("**Preview: posições calculadas**")
+        # try:
+        #     st.sidebar.json(preview_positions)
+        # except Exception:
+        #     st.sidebar.text(str(preview_positions)[:4000])
 
         # mostrar prompt preview (curto) antes de enviar
         chart_input_preview = {
