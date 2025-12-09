@@ -970,13 +970,13 @@ with tab_cabalistica:
             st.markdown("**Maturidade**")
             maturity = report.get("maturity", {}) or {}
             st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
-            st.markdown("**Influência Anual**")
+            st.markdown("**Influência Anual** - Ciclo da Vida")
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
     def _render_interpretations(report):
         st.markdown("### Interpretações")
-        for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
+        for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
             block = report.get(key, {}) or {}
             # criar cópia local para não alterar report
             block_view = dict(block)
@@ -1010,8 +1010,8 @@ with tab_cabalistica:
             title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
             with st.expander(f"{title} — {label}"):
                     st.markdown(f"**Qualidade:** {block.get('short','—')}")
-                    st.markdown(f"**Detalhe:** {block.get('medium','—')}")
                     st.markdown(f"**Definição:** {block.get('long','—')}")
+                    st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
     # Validar e calcular (defensivo)
     if full_name and dob:

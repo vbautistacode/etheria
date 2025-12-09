@@ -51,34 +51,54 @@ QUADRANTS = {
     "19-21": {"range": range(19,22), "chakra":"Sahasrara", "theme":"Conexão com os Arquétipos Universais"},
 }
 
-def reduce_pythagorean_from_date(day:int, month:int, year:int) -> int:
-    total = sum(int(d) for d in f"{day:02d}{month:02d}{year:04d}")
-    while total > 22 and total not in (11, 22):
-        total = sum(int(d) for d in str(total))
-    return total
+_MASTER_NUMBERS = (11, 22, 33)
 
-def quadrant_for_number(n:int) -> dict:
+def reduce_pythagorean_from_date(day: int, month: int, year: int) -> int:
+    """
+    Reduz a data (DDMMYYYY) até um número 1-9 ou mestre (11,22,33).
+    Preserva mestres definidos em _MASTER_NUMBERS.
+    """
+    total = sum(int(d) for d in f"{day:02d}{month:02d}{year:04d}")
+    while True:
+        if total in _MASTER_NUMBERS:
+            return total
+        if total <= 9:
+            return total
+        total = sum(int(d) for d in str(total))
+
+def quadrant_for_number(n: int) -> dict:
     if n == 22:
-        return {"quadrant":"22 (mestre)", "chakra":"Sahasrara", "theme":"Manifestação em grande escala"}
+        return {"quadrant": "22 (mestre)", "chakra": "Sahasrara", "theme": "Manifestação em grande escala"}
     for key, info in QUADRANTS.items():
         if n in info["range"]:
             return {"quadrant": key, "chakra": info["chakra"], "theme": info["theme"]}
-    return {"quadrant":"desconhecido", "chakra":None, "theme":None}
+    return {"quadrant": "desconhecido", "chakra": "—", "theme": None}
 
 def analyze_date_str(date_str: str) -> dict:
+    s = str(date_str).strip()
     try:
-        if "/" in date_str:
-            d,m,y = [int(x) for x in date_str.split("/")]
-        elif "-" in date_str:
-            dt = datetime.fromisoformat(date_str)
-            d,m,y = dt.day, dt.month, dt.year
+        if "/" in s:
+            parts = [p.strip() for p in s.split("/")]
+            if len(parts) != 3:
+                raise ValueError
+            d, m, y = [int(x) for x in parts]
+        elif "-" in s:
+            # aceita YYYY-MM-DD e YYYY-MM-DDTHH:MM:SS
+            iso = s.split("T")[0]
+            dt = datetime.fromisoformat(iso)
+            d, m, y = dt.day, dt.month, dt.year
         else:
             raise ValueError("Formato inválido")
     except Exception:
         raise ValueError("Formato de data inválido. Use DD/MM/YYYY ou YYYY-MM-DD")
-    num = reduce_pythagorean_from_date(d,m,y)
+
+    # validação simples de dia/mês
+    if not (1 <= m <= 12 and 1 <= d <= 31):
+        raise ValueError("Dia ou mês fora do intervalo esperado")
+
+    num = reduce_pythagorean_from_date(d, m, y)
     quad = quadrant_for_number(num)
-    template = NUM_TEMPLATES.get(num, {"short":"—","medium":"—","long":"—","chakra":quad.get("chakra")})
+    template = NUM_TEMPLATES.get(num, {"short":"—","medium":"—","long":"—","chakra": quad.get("chakra") or "—"})
     return {
         "date": f"{d:02d}/{m:02d}/{y}",
         "reduced_number": num,
