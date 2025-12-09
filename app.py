@@ -994,30 +994,29 @@ with tab_cabalistica:
             st.write(annual.get("value", "—"))
 
     # _render_pinnacles removed intentionally; inline rendering used where needed
+    # def _render_personal(report):
+    #     st.markdown("#### Personal (Ano / Mês / Dia)")
+    #     personal = report.get("personal", {})
+    #     year = personal.get("year", {})
+    #     month = personal.get("month", {})
+    #     day = personal.get("day", {})
+    #     st.write(f"**Ano**: {year.get('value','—')} — {year.get('description','')}")
+    #     st.write(f"**Mês**: {month.get('value','—')} — {month.get('description','')}")
+    #     st.write(f"**Dia**: {day.get('value','—')} — {day.get('description','')}")
 
-    def _render_personal(report):
-        st.markdown("#### Personal (Ano / Mês / Dia)")
-        personal = report.get("personal", {})
-        year = personal.get("year", {})
-        month = personal.get("month", {})
-        day = personal.get("day", {})
-        st.write(f"**Ano**: {year.get('value','—')} — {year.get('description','')}")
-        st.write(f"**Mês**: {month.get('value','—')} — {month.get('description','')}")
-        st.write(f"**Dia**: {day.get('value','—')} — {day.get('description','')}")
+    # def _render_brutos_e_breakdown(report, name):
+    #     cols_raw = st.columns(3)
+    #     cols_raw[0].write(f"Expressão (bruto): {report.get('expression', {}).get('raw_total')}")
+    #     cols_raw[1].write(f"Desejo da Alma (bruto): {report.get('soul_urge', {}).get('raw_total')}")
+    #     cols_raw[2].write(f"Personalidade (bruto): {report.get('personality', {}).get('raw_total')}")
 
-    def _render_brutos_e_breakdown(report, name):
-        cols_raw = st.columns(3)
-        cols_raw[0].write(f"Expressão (bruto): {report.get('expression', {}).get('raw_total')}")
-        cols_raw[1].write(f"Desejo da Alma (bruto): {report.get('soul_urge', {}).get('raw_total')}")
-        cols_raw[2].write(f"Personalidade (bruto): {report.get('personality', {}).get('raw_total')}")
-
-        # breakdown por letra (se a função existir)
-        if hasattr(numerology, "letter_value_breakdown"):
-            try:
-                dbg = numerology.letter_value_breakdown(name)
-                # exibir sumário compacto se desejar (opcional)
-            except Exception:
-                pass
+    #     # breakdown por letra (se a função existir)
+    #     if hasattr(numerology, "letter_value_breakdown"):
+    #         try:
+    #             dbg = numerology.letter_value_breakdown(name)
+    #             # exibir sumário compacto se desejar (opcional)
+    #         except Exception:
+    #             pass
 
     def _render_interpretations(report):
         st.markdown("### Interpretações")
