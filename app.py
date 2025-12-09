@@ -897,13 +897,10 @@ with tab_num:
             # análise do número do ano (usar dob_val) — com escolha de ano exibida ao lado do título
             try:
                 # criar título e controle do ano na mesma linha
-                col_title, col_ctrl = st.columns([3, 1])
+                col_title, col_ctrl = st.columns([4, 1])
                 with col_title:
                     st.markdown("### Análise do Número do Ano")
                     st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
-                st.markdown("")
-                st.markdown("")
-                st.markdown("")
                 with col_ctrl:
                     current_year = datetime.now().year
                     selected_year = st.number_input(
