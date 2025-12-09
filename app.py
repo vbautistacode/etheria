@@ -899,7 +899,6 @@ with tab_num:
                 # criar título e controle do ano na mesma linha
                 col_title, col_ctrl = st.columns([3, 1])
                 with col_title:
-                    st.markdown("---")
                     st.markdown("### Análise do Número do Ano")
                     st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                 with col_ctrl:
@@ -1073,7 +1072,6 @@ with tab_cabalistica:
                     ann_str = ann_date.strftime("%d/%m/%Y")
                     ann_analysis = numerology.analyze_date_str(ann_str) or {}
 
-                    st.markdown("---")
                     st.markdown("### Análise do Número do Ano")
                     st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
 
