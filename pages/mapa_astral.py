@@ -1425,7 +1425,7 @@ if use_ai:
         preview_table = summary.get("table", []) if summary else []
         preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
 
-        st.sidebar.markdown("**Preview: posições calculadas**")
+        # st.sidebar.markdown("**Preview: posições calculadas**")
         try:
             st.sidebar.json(preview_positions)
         except Exception:

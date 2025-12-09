@@ -235,7 +235,7 @@ def _format_degree(deg: Any) -> str:
             pass
     return ""
 
-    # -------------------------
+# -------------------------
 # Interpretações por posicionamento
 # -------------------------
 
