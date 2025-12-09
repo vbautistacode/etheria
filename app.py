@@ -732,7 +732,7 @@ with tab_influencias:
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
     st.subheader("Numerologia Pitagórica")
-
+    st.markdown("É essencialmente uma ferramenta de autoconhecimento que estuda e interpreta a vibração e a influência dos números na vida das pessoas.")
     # imports necessários (assegure que estão no topo do arquivo também)
     from datetime import date, datetime
 
@@ -751,7 +751,7 @@ with tab_num:
 
     # checkbox (usar chave única)
     keep_masters = st.checkbox(
-        "Preservar números mestres (11,22,33)",
+        "Preservar números mestres (11,22,33,...)",
         value=st.session_state.get("num_keep_masters", True),
         key="num_keep_masters"
     )
@@ -835,8 +835,6 @@ with tab_num:
                 display_value = pv_value if pv_value is not None else "—"
                 display_short = pv_short or "—"
                 st.write(f"{display_value} — {display_short}")
-
-            st.markdown("---")
 
             # rótulos em português
             PORTUGUESE_LABELS = {
@@ -923,7 +921,7 @@ with tab_cabalistica:
         st.stop()
 
     st.subheader("Numerologia Cabalística")
-
+    st.markdown("Seu principal pilar é a crença de que o alfabeto hebraico, contendo 22 letras sagradas e os números são códigos sagrados que revelam os mistérios do Universo e da alma humana.")
     # session_state básicos (sidebar pode preencher full_name/dob)
     st.session_state.setdefault("full_name", "")
     st.session_state.setdefault("dob", date(1990, 4, 25))
@@ -935,7 +933,7 @@ with tab_cabalistica:
 
     # checkbox local (usa chave única)
     keep_masters_c = st.checkbox(
-        "Preservar números mestres (11,22,33)",
+        "Preservar números mestres (11,22,33,...)",
         value=st.session_state.get("numc_keep_masters", True),
         key="numc_keep_masters"
     )
