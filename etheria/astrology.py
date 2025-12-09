@@ -305,8 +305,8 @@ def interpret_planet_position(
 
     # Parágrafo 1: síntese funcional
     p1 = (
-        f"{planet} representa a função de {pcore.lower()}. Em {sign or '—'}, que traz a ideia de {sign_quality.lower()}, "
-        f"essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
+        f"{planet} representa a(o)  {pcore.lower()}. Em {sign or '—'}, traz a ideia de {sign_quality.lower()}. "
+        f"Essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
     )
     if deg_text:
         p1 += f" (grau {deg_text})."
@@ -314,8 +314,8 @@ def interpret_planet_position(
 
     # Parágrafo 2: casa e aplicação prática
     p2 = (
-        f"A presença na {house_noun} aponta para ênfase em {house_theme.lower()}. "
-        f"Na prática, espere que assuntos ligados a {house_noun.lower()} sejam o palco onde essa energia se manifesta."
+        f"A presença na casa do(a) {house_noun} aponta para ênfase em {house_theme.lower()}. "
+        f"Na prática, espere que assuntos ligados a(ao) {house_noun.lower()} sejam o palco onde essa energia se manifesta."
     )
     long_parts.append(p2)
 
