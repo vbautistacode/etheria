@@ -30,6 +30,7 @@ import pandas as pd
 from etheria import cycles
 from etheria import astrology
 from etheria import numerology
+from services.chakra_panel import render_chakra_panel
 from etheria.astrology import planet_interpretation, generate_three_interpretations
 from pandas.io.formats.style import Styler
 from datetime import date, datetime
@@ -1017,8 +1018,6 @@ with tab_cabalistica:
                     st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
 # importar e chamar o painel passando o annual já calculado
-            from services.chakra_panel import render_chakra_panel
-            
 if full_name and dob:
     try:
         # calcular relatório e armazenar em session_state para uso posterior
