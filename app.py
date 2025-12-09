@@ -729,10 +729,7 @@ with tab_influencias:
 
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
-    from etheria import numerology
-    import streamlit as st
-    from datetime import date
-
+    
     st.subheader("Numerologia Pitagórica")
 
     # inicializar session_state (sincronizar com sidebar se houver)
@@ -801,40 +798,36 @@ with tab_num:
                 st.markdown("**Maturidade**")
                 maturity = rpt.get("maturity", {})
                 st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
-                st.markdown("**Influência Anual**")
+                st.markdown("**Número de Poder**")
                 st.write(rpt.get("annual_influence_by_name", {}).get("value", "—"))
 
             st.markdown("---")
-            # Totais brutos (antes da redução)
-            # st.markdown("**Totais brutos (antes da redução)**")
-            # raw_cols = st.columns(3)
-            # raw_cols[0].write(f"Expressão (bruto): {rpt.get('expression', {}).get('raw_total')}")
-            # raw_cols[1].write(f"Desejo da Alma (bruto): {rpt.get('soul_urge', {}).get('raw_total')}")
-            # raw_cols[2].write(f"Personalidade (bruto): {rpt.get('personality', {}).get('raw_total')}")
-
-            # # Pinnacles / Períodos
-            # st.markdown("#### Pinnacles / Períodos")
-            # pinn = rpt.get("pinnacles", {})
-            # st.table({
-            #     "Pinnacle": ["P1", "P2", "P3", "P4"],
-            #     "Valor": [pinn.get("pinnacle_1"), pinn.get("pinnacle_2"), pinn.get("pinnacle_3"), pinn.get("pinnacle_4")]
-            # })
 
             # Personal (Ano / Mês / Dia)
-            st.markdown("#### Personal (Ano / Mês / Dia)")
+            st.markdown("#### Números Pessoais (Ano / Mês / Dia)")
             personal = rpt.get("personal", {})
             st.write(f"**Ano**: {personal.get('year', {}).get('value','—')} — {personal.get('year', {}).get('description','')}")
             st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
             st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
 
-            # Interpretações detalhadas
+            # dicionário de tradução (coloque no topo do módulo ou antes do bloco)
+            PORTUGUESE_LABELS = {
+                "life_path": "Caminho de Vida",
+                "expression": "Expressão",
+                "soul_urge": "Desejo da Alma",
+                "personality": "Personalidade",
+                "maturity": "Maturidade"
+            }
+
+            # interpretação detalhada
             st.markdown("### Interpretações")
             for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
-                block = rpt.get(key, {})
-                label = block.get('number') or block.get('value') or "—"
-                with st.expander(f"{key.replace('_',' ').title()} — {label}"):
-                    st.markdown(f"**Curto:** {block.get('short','—')}")
-                    st.markdown(f"**Médio:** {block.get('medium','—')}")
+                block = rpt.get(key, {}) or {}
+                label = block.get("number") or block.get("value") or "—"
+                title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
+                with st.expander(f"{title} — {label}"):
+                    st.markdown(f"**Qualidade:** {block.get('short','—')}")
+                    st.markdown(f"**Definição:** {block.get('medium','—')}")
 
             # limpar erro anterior se sucesso
             st.session_state["last_calc_error"] = None
