@@ -970,61 +970,48 @@ with tab_cabalistica:
             st.markdown("**Maturidade**")
             maturity = report.get("maturity", {}) or {}
             st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
-            st.markdown("**Influência Anual (vigente)**")
+            st.markdown("**Influência Anual**")
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
     def _render_interpretations(report):
-        # rótulos em português
-        PORTUGUESE_LABELS = {
-            "life_path": "Caminho de Vida",
-            "expression": "Expressão",
-            "soul_urge": "Desejo da Alma",
-            "personality": "Personalidade",
-            "maturity": "Maturidade",
-            "power_number": "Número de Poder"
-        }
-        
         st.markdown("### Interpretações")
         for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
             block = report.get(key, {}) or {}
+            # criar cópia local para não alterar report
+            block_view = dict(block)
 
-            # garantir que short/medium/long existam: fallback para NUM_TEMPLATES se necessário
-            num_key = str(block.get("number") or block.get("value") or "")
-            if not block.get("short"):
-                try:
-                    if num_key.isdigit():
-                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
-                        block["short"] = tmpl.get("short", "") or numerology.NUM_INTERPRETATIONS_SHORT.get(num_key, "")
-                    else:
-                        block["short"] = numerology.NUM_INTERPRETATIONS_SHORT.get(num_key, "")
-                except Exception:
-                    block["short"] = block.get("short", "")
-            if not block.get("medium"):
-                try:
-                    if num_key.isdigit():
-                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
-                        block["medium"] = tmpl.get("medium", "") or numerology.NUM_INTERPRETATIONS_MEDIUM.get(num_key, "")
-                    else:
-                        block["medium"] = numerology.NUM_INTERPRETATIONS_MEDIUM.get(num_key, "")
-                except Exception:
-                    block["medium"] = block.get("medium", "")
-            if not block.get("long"):
-                try:
-                    if num_key.isdigit():
-                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
-                        block["long"] = tmpl.get("long", "") or numerology.NUM_INTERPRETATIONS_LONG.get(num_key, "")
-                    else:
-                        block["long"] = numerology.NUM_INTERPRETATIONS_LONG.get(num_key, "")
-                except Exception:
-                    block["long"] = block.get("long", "")
+            raw_num = block_view.get("number") or block_view.get("value")
+            num_key = str(raw_num) if raw_num is not None else ""
 
-            label = block.get("number", block.get("value", "—"))
-            title = key.replace("_", " ").title()
+            # tentar NUM_TEMPLATES primeiro (prioridade absoluta)
+            tmpl = {}
+            if num_key.isdigit() and hasattr(numerology, "NUM_TEMPLATES"):
+                try:
+                    tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) or {}
+                except Exception:
+                    tmpl = {}
+
+            # preencher campos a partir de NUM_TEMPLATES, se presentes
+            if tmpl:
+                block_view.setdefault("short", tmpl.get("short", ""))
+                block_view.setdefault("medium", tmpl.get("medium", ""))
+                block_view.setdefault("long", tmpl.get("long", ""))
+
+            # preencher faltantes com NUM_INTERPRETATIONS_* (apenas fallback)
+            if not block_view.get("short"):
+                block_view["short"] = getattr(numerology, "NUM_INTERPRETATIONS_SHORT", {}).get(num_key, "")
+            if not block_view.get("medium"):
+                block_view["medium"] = getattr(numerology, "NUM_INTERPRETATIONS_MEDIUM", {}).get(num_key, "")
+            if not block_view.get("long"):
+                block_view["long"] = getattr(numerology, "NUM_INTERPRETATIONS_LONG", {}).get(num_key, "")
+
+            label = block_view.get("number", block_view.get("value", "—"))
+            title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
             with st.expander(f"{title} — {label}"):
-                st.markdown(f"**Curto:** {block.get('short','—')}")
-                st.markdown(f"**Médio:** {block.get('medium','—')}")
-                st.markdown(f"**Longo:** {block.get('long','—')}")
+                    st.markdown(f"**Qualidade:** {block.get('short','—')}")
+                    st.markdown(f"**Definição:** {block.get('long','—')}")
+                    st.markdown(f"**Detalhe:** {block.get('medium','—')}")
 
     # Validar e calcular (defensivo)
     if full_name and dob:
