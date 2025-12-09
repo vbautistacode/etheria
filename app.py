@@ -900,32 +900,8 @@ with tab_num:
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
                 current_year = datetime.now().year
                 # Atenção: usa unsafe_allow_html e seletor que pode mudar entre versões do Streamlit.
-                st.markdown(
-                    """
-                    <style>
-                    /* limita largura de inputs numéricos (aplica globalmente) */
-                    input[type="number"] {
-                        max-width: 90px;
-                        width: 90px;
-                    }
-                    /* opcional: ajustar o campo quando estiver sem rótulo */
-                    .stNumberInput > div > label + div input[type="number"] {
-                        max-width: 90px;
-                    }
-                    </style>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                selected_year = st.number_input(
-                    "Escolha o ano para análise:",
-                    min_value=1900,
-                    max_value=2100,
-                    value=current_year,
-                    step=1,
-                    key="pitagoric_ann_year"
-                )
-
+                years = list(range(current_year - 100, current_year + 100))
+                selected_year = st.selectbox("Escolha o ano para análise", options=years, index=years.index(current_year), key="pitagoric_ann_year")
 
                 # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
                 def _ann_date_for_year(dob, year):
