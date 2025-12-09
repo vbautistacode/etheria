@@ -900,7 +900,7 @@ with tab_num:
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
                 st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano atual.")
-                st.write(f"**Data/Base:** {ann_analysis.get('date','—')}")
+                st.write(f"**Data-Base:** {ann_analysis.get('date','—')}")
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.markdown("**Resumo:**")
                 st.write(ann_analysis.get('short','—'))
