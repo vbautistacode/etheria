@@ -297,7 +297,7 @@ def interpret_planet_position(
     # Short: 1-2 frases
     short = (
         f"{who}{planet} em {sign or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
-        f"Resumo prático: {verb.higher()} no campo do(a) {house_noun.higher()}."
+        f"Resumo prático: {verb.lower()} no campo do(a) {house_noun.lower()}."
     )
 
     # Long: 3-5 parágrafos curtos
@@ -306,7 +306,7 @@ def interpret_planet_position(
     # Parágrafo 1: síntese funcional
     p1 = (
         f"{planet} representa a(o)  {pcore.lower()}. Em {sign or '—'}, traz a ideia de {sign_quality.lower()}. "
-        f"Essa energia tende a se expressar como {verb.higher()} orientado para {sign_noun.higher()}."
+        f"Essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
     )
     if deg_text:
         p1 += f" (grau {deg_text})."
