@@ -277,14 +277,25 @@ def power_number_from_dob(dob: date, keep_masters: bool = True, master_min: int 
         if not raw_digits:
             raise ValueError("Nenhum dígito válido extraído de dia/mês")
         raw_sum = sum(raw_digits)
-        reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min)
+
+        # preservação explícita de mestres: se raw_sum é um mestre e atende master_min, mantê-lo
+        if keep_masters and raw_sum in _MASTER_NUMBERS and raw_sum >= master_min:
+            reduced = raw_sum
+        else:
+            reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min)
+
         return {"value": reduced, "raw": raw_sum}
     except Exception:
         try:
             s = f"{getattr(dob, 'day', '')}{getattr(dob, 'month', '')}"
             digits = _to_digit_list(s)
             raw_sum = sum(digits) if digits else None
-            reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min) if raw_sum is not None else None
+            if raw_sum is None:
+                return {"value": None, "raw": None}
+            if keep_masters and raw_sum in _MASTER_NUMBERS and raw_sum >= master_min:
+                reduced = raw_sum
+            else:
+                reduced = reduce_number(raw_sum, keep_masters=keep_masters, master_min=master_min)
             return {"value": reduced, "raw": raw_sum}
         except Exception:
             return {"value": None, "raw": None}
