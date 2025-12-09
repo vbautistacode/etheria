@@ -800,48 +800,40 @@ with tab_num:
 
                 st.markdown("**Número de Poder**")
 
-                # 1) preferir campo no relatório (se foi adicionado)
-                pv = rpt.get("power_number")
-                # 2) se não existir, usar valor calculado localmente (power_num) se disponível
-                if not pv:
-                    # garantir que usamos dob_val (variável usada no fluxo)
-                    dob_for_calc = dob_val if 'dob_val' in locals() else (st.session_state.get("dob") or None)
-                    # tentar usar função do módulo de forma defensiva
-                    power_fn = getattr(numerology, "power_number_from_dob", None)
-                    if callable(power_fn) and dob_for_calc:
-                        try:
-                            pv = power_fn(dob_for_calc, keep_masters=keep_masters, master_min=11) or {}
-                        except Exception as e:
-                            # logar sem quebrar UI
-                            try:
-                                logger.exception("Erro ao calcular power_number: %s", e)
-                            except Exception:
-                                pass
-                            pv = {}
-                    else:
-                        # fallback simples: soma dos dígitos do dia e mês sem redução
-                        try:
-                            d = getattr(dob_for_calc, "day", None)
-                            m = getattr(dob_for_calc, "month", None)
-                            if d is not None and m is not None:
-                                raw_digits = numerology._to_digit_list((d, m)) if hasattr(numerology, "_to_digit_list") else [int(ch) for ch in f"{d}{m}"]
-                                raw_sum = sum(raw_digits) if raw_digits else None
-                                pv = {"value": None, "raw": raw_sum}
-                            else:
-                                pv = {"value": None, "raw": None}
-                        except Exception:
-                            pv = {"value": None, "raw": None}
+                # obter objeto power do relatório ou do cálculo local
+                pv = rpt.get("power_number") or power_num or {}
+                if not isinstance(pv, dict):
+                    pv = {}
 
-                # 3) exibir com fallback legível
-                pv_value = pv.get("value") if isinstance(pv, dict) else None
-                pv_raw = pv.get("raw") if isinstance(pv, dict) else None
+                pv_value = pv.get("value")
+                pv_raw = pv.get("raw")
 
-                if pv_value is None and pv_raw is None:
-                    st.write("— (Número de Poder não disponível)")
-                elif pv_raw is not None:
-                    st.write(f"{pv_value if pv_value is not None else '—'} (soma bruta: {pv_raw})")
-                else:
-                    st.write(pv_value if pv_value is not None else "—")
+                # se value ausente mas raw presente, reduzir raw para obter value
+                if pv_value is None and pv_raw is not None:
+                    try:
+                        # usar função de redução do módulo numerology se disponível
+                        if hasattr(numerology, "reduce_number"):
+                            pv_value = numerology.reduce_number(pv_raw, keep_masters=keep_masters, master_min=11)
+                        else:
+                            # fallback: extrair dígitos e reduzir manualmente
+                            digits = numerology._to_digit_list(pv_raw) if hasattr(numerology, "_to_digit_list") else [int(ch) for ch in str(pv_raw) if ch.isdigit()]
+                            s = sum(digits) if digits else None
+                            pv_value = numerology.reduce_number(s, keep_masters=keep_masters, master_min=11) if s is not None and hasattr(numerology, "reduce_number") else s
+                    except Exception:
+                        pv_value = None
+
+                # obter texto curto associado (se disponível no módulo)
+                pv_short = ""
+                try:
+                    if pv_value is not None and hasattr(numerology, "NUM_INTERPRETATIONS_SHORT"):
+                        pv_short = numerology.NUM_INTERPRETATIONS_SHORT.get(str(pv_value), "")
+                except Exception:
+                    pv_short = ""
+
+                # exibir no mesmo formato de maturity: "valor — texto curto"
+                display_value = pv_value if pv_value is not None else "—"
+                display_short = pv_short or ""
+                st.write(f"{display_value} — {display_short}")
 
             st.markdown("---")
 
@@ -863,7 +855,7 @@ with tab_num:
 
             # interpretação detalhada
             st.markdown("### Interpretações")
-            for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
+            for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_num"):
                 block = rpt.get(key, {}) or {}
                 label = block.get("number") or block.get("value") or "—"
                 title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
