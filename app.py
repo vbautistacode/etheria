@@ -897,20 +897,20 @@ with tab_num:
             # análise do número do ano (usar dob_val) — com escolha de ano exibida ao lado do título
             try:
                 # criar título e controle do ano na mesma linha
-                col_title, col_ctrl = st.columns([4, 1])
-                with col_title:
-                    st.markdown("### Análise do Número do Ano")
-                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
-                with col_ctrl:
-                    current_year = datetime.now().year
-                    selected_year = st.number_input(
-                        "",  # rótulo vazio porque o contexto está no título
-                        min_value=1900,
-                        max_value=2100,
-                        value=current_year,
-                        step=1,
-                        key="pitagoric_ann_year"
-                    )
+                # col_title, col_ctrl = st.columns([4, 1])
+                # with col_title:
+                st.markdown("### Análise do Número do Ano")
+                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
+            # with col_ctrl:
+                current_year = datetime.now().year
+                selected_year = st.number_input(
+                    "",  # rótulo vazio porque o contexto está no título
+                    min_value=1900,
+                    max_value=2100,
+                    value=current_year,
+                    step=1,
+                    key="pitagoric_ann_year"
+                )
 
                 # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
                 def _ann_date_for_year(dob, year):
