@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Optional, Dict
 from PIL import Image
 import io
-import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_CHAKRA_DIR = BASE_DIR / "assets" / "chakras"
@@ -36,7 +35,6 @@ def render_chakra_image(st, annual: Dict = None, assets_dir: Optional[str] = Non
     chakra_key = _normalize_chakra_name(chakra_raw)
     img_path = _find_chakra_image(chakra_key, assets_dir=assets_path) if chakra_key else None
 
-    # escolher onde desenhar
     draw = target_col if target_col is not None else st
 
     if img_path and img_path.exists():
@@ -54,3 +52,12 @@ def render_chakra_image(st, annual: Dict = None, assets_dir: Optional[str] = Non
                     draw.warning("Erro ao abrir a imagem do chakra.")
     else:
         draw.info("Imagem do chakra não encontrada. Verifique assets/chakras/ e nomes dos arquivos.")
+        # debug opcional: listar arquivos detectados
+        try:
+            if assets_path.exists():
+                files = sorted([p.name for p in assets_path.iterdir() if p.is_file()])
+                draw.write("Arquivos detectados:", files)
+            else:
+                draw.write(f"Pasta de assets não encontrada: {assets_path}")
+        except Exception:
+            pass
