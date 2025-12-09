@@ -496,10 +496,23 @@ def full_numerology_report(full_name: str, dob: date, method: str = "pythagorean
     annual_infl = annual_influence_by_name(full_name, keep_masters=keep_masters)
 
     def _get_text(n):
-        key = str(n)
+        key = str(n) if n is not None else ""
         short = NUM_INTERPRETATIONS_SHORT.get(key, "")
         medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
-        return {"number": n, "short": short, "medium": medium}
+        # prioridade: NUM_INTERPRETATIONS_LONG -> NUM_TEMPLATES[int].get("long") -> ""
+        long_text = ""
+        if key:
+            long_text = getattr(globals().get('NUM_INTERPRETATIONS_LONG', None), 'get', lambda k, d=None: d)(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
+            if not long_text and hasattr(globals().get('NUM_TEMPLATES', {}), 'get'):
+                try:
+                    tmpl = NUM_TEMPLATES.get(int(key), {})
+                    long_text = tmpl.get("long", "") or ""
+                except Exception:
+                    long_text = long_text or ""
+        return {"number": n, "short": short, "medium": medium, "long": long_text}
+
+    # calcular Número de Poder (dia + mês)
+    power_num = power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
 
     report = {
         "method": method,
@@ -511,6 +524,7 @@ def full_numerology_report(full_name: str, dob: date, method: str = "pythagorean
         "soul_urge": {"value": soul, **_get_text(soul)},
         "personality": {"value": pers, **_get_text(pers)},
         "maturity": {"value": mat, **_get_text(mat)},
+        "power_number": {"value": power_num.get("value"), "raw": power_num.get("raw"), **_get_text(power_num.get("value"))},
         "pinnacles": pinnacles,
         "personal": {
             "year": {"value": py, "description": NUM_INTERPRETATIONS_SHORT.get(str(py), "")},
