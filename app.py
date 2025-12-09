@@ -851,18 +851,52 @@ with tab_num:
                 "expression": "Expressão",
                 "soul_urge": "Desejo da Alma",
                 "personality": "Personalidade",
-                "maturity": "Maturidade"
+                "maturity": "Maturidade",
+                "power_number": "Número de Poder"
             }
 
-            # interpretação detalhada
             st.markdown("### Interpretações")
             for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
                 block = rpt.get(key, {}) or {}
+
+                # Caso especial para power_number: normalizar estrutura mínima
+                if key == "power_number":
+                    pv = rpt.get("power_number") or {}
+                    block = {
+                        "number": pv.get("value"),
+                        "value": pv.get("value"),
+                        "short": block.get("short", ""),
+                        "medium": block.get("medium", ""),
+                        "long": block.get("long", "")
+                    }
+
+                # preencher short/medium/long a partir dos dicionários do módulo numerology quando ausentes
+                try:
+                    # obter a chave numérica como string
+                    num_key = str(block.get("number") or block.get("value") or "")
+                    if num_key:
+                        if not block.get("short"):
+                            block["short"] = getattr(numerology, "NUM_INTERPRETATIONS_SHORT", {}).get(num_key, "")
+                        if not block.get("medium"):
+                            block["medium"] = getattr(numerology, "NUM_INTERPRETATIONS_MEDIUM", {}).get(num_key, "")
+                        if not block.get("long"):
+                            # prioridade: NUM_INTERPRETATIONS_LONG -> NUM_TEMPLATES[int] -> ""
+                            block["long"] = getattr(numerology, "NUM_INTERPRETATIONS_LONG", {}).get(num_key, "")
+                            if not block["long"] and hasattr(numerology, "NUM_TEMPLATES"):
+                                try:
+                                    block["long"] = numerology.NUM_TEMPLATES.get(int(num_key), {}).get("long", "")
+                                except Exception:
+                                    block["long"] = block.get("long", "")
+                except Exception:
+                    # não interromper a UI em caso de erro de lookup
+                    pass
+
                 label = block.get("number") or block.get("value") or "—"
                 title = PORTUGUESE_LABELS.get(key, key.replace("_", " ").title())
                 with st.expander(f"{title} — {label}"):
                     st.markdown(f"**Qualidade:** {block.get('short','—')}")
                     st.markdown(f"**Definição:** {block.get('medium','—')}")
+                    st.markdown(f"**Detalhe:** {block.get('long','—')}")
 
             st.session_state["last_calc_error"] = None
 
