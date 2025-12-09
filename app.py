@@ -30,7 +30,6 @@ import pandas as pd
 from etheria import cycles
 from etheria import astrology
 from etheria import numerology
-from services.chakra_panel import render_chakra_panel
 from etheria.astrology import planet_interpretation, generate_three_interpretations
 from pandas.io.formats.style import Styler
 from datetime import date, datetime
@@ -1062,14 +1061,11 @@ with tab_cabalistica:
                     # silencioso em produção
                     pass
 
-            # obter report do contexto (usar rptc salvo ou session_state)
-            report = rptc or st.session_state.get("report") or {}
+            # importar e chamar o painel passando o annual já calculado
+            from services.chakra_panel import render_chakra_panel
 
-            if not report:
-                st.warning("Relatório não encontrado. Gere o relatório antes de visualizar a Influência Anual.")
-            else:
-                # renderiza painel com imagens de chakra ao lado do texto
-                render_chakra_panel(st, report, assets_dir="assets/chakras", numerology_module=numerology)
+            # chamar o painel passando o report já calculado
+            render_chakra_panel(st, report=rptc, assets_dir="assets/chakras", numerology_module=numerology)
 
         except Exception as e:
             st.warning("Não foi possível calcular a numerologia cabalística no momento. Verifique os dados e tente novamente.")
