@@ -30,7 +30,7 @@ import pandas as pd
 from etheria import cycles
 from etheria import astrology
 from etheria import numerology
-from services.chakra_panel import render_chakra_panel
+from services.chakra_panel import render_chakra_image
 from etheria.astrology import planet_interpretation, generate_three_interpretations
 from pandas.io.formats.style import Styler
 from datetime import date, datetime
