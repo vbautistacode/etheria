@@ -107,12 +107,7 @@ def _normalize_name(name: str) -> str:
 def name_value_pythag(full_name: str, keep_master: bool = False):
     norm = _normalize_name(full_name)
     total = sum(PYTHAG_MAP.get(ch, 0) for ch in norm)
-    # reduzir até 1–9, preservando mestres se solicitado
-    def reduce_number(n):
-        while n > 9 and not (keep_master and n in (11, 22, 33)):
-            n = sum(int(d) for d in str(n))
-        return n
-    reduced = reduce_number(total)
+    reduced = reduce_number(total, keep_masters=keep_master)
     return reduced, total
 
 # -------------------------
@@ -500,21 +495,17 @@ def full_numerology_report(full_name: str, dob: date, method: str = "pythagorean
         key = str(n) if n is not None else ""
         short = NUM_INTERPRETATIONS_SHORT.get(key, "")
         medium = NUM_INTERPRETATIONS_MEDIUM.get(key, "")
-        # prioridade: NUM_INTERPRETATIONS_LONG -> NUM_TEMPLATES[int].get("long") -> ""
         long_text = ""
         if key:
-            long_text = getattr(globals().get('NUM_INTERPRETATIONS_LONG', None), 'get', lambda k, d=None: d)(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
-            if not long_text and hasattr(globals().get('NUM_TEMPLATES', {}), 'get'):
+            long_text = NUM_INTERPRETATIONS_LONG.get(key, "") if 'NUM_INTERPRETATIONS_LONG' in globals() else ""
+            if not long_text:
                 try:
-                    tmpl = NUM_TEMPLATES.get(int(key), {})
-                    long_text = tmpl.get("long", "") or ""
+                    long_text = NUM_TEMPLATES.get(int(key), {}).get("long", "")
                 except Exception:
-                    long_text = long_text or ""
+                    long_text = ""
         return {"number": n, "short": short, "medium": medium, "long": long_text}
 
     # calcular Número de Poder (dia + mês)
-    power_num = power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
-
     report = {
         "method": method,
         "full_name": full_name,
