@@ -923,7 +923,6 @@ with tab_num:
 
 # --- Aba: Numerologia Cabalística (refatorado, defensivo) ---
 with tab_cabalistica:
-    # importar numerology defensivamente
     try:
         from etheria import numerology
     except Exception as e:
@@ -932,36 +931,25 @@ with tab_cabalistica:
 
     st.subheader("Numerologia Cabalística")
 
-    # Inicializar chaves básicas (sidebar pode ter definido "full_name" e "dob")
+    # session_state básicos (sidebar pode preencher full_name/dob)
     st.session_state.setdefault("full_name", "")
     st.session_state.setdefault("dob", date(1990, 4, 25))
     st.session_state.setdefault("numc_keep_masters", True)
 
-    # Chaves locais da aba (evitam conflito com sidebar)
+    # chaves locais da aba (evitam conflito com sidebar)
     st.session_state.setdefault("numc_full_name", st.session_state.get("full_name", ""))
     st.session_state.setdefault("numc_dob", st.session_state.get("dob", date(1990, 4, 25)))
 
+    # checkbox local (usa chave única)
     keep_masters_c = st.checkbox(
         "Preservar números mestres (11,22,33)",
         value=st.session_state.get("numc_keep_masters", True),
         key="numc_keep_masters"
     )
 
-    # Priorizar valores do sidebar se existirem (modo "oculto")
-    # Leitura tolerante: primeiro sidebar/session_state "full_name"/"dob", senão inputs locais
-    if st.session_state.get("full_name"):
-        full_name = st.session_state["full_name"]
-    else:
-        # usar valor do input local (já definido acima)
-        try:
-            full_name = full_name_input_c
-        except NameError:
-            full_name = st.session_state.get("numc_full_name", "")
-
-    if st.session_state.get("dob"):
-        dob = st.session_state["dob"]
-    else:
-        dob = dob_input_c or st.session_state.get("numc_dob", date(1990, 4, 25))
+    # decidir valores finais: priorizar sidebar/session_state se preenchidos
+    full_name = st.session_state.get("full_name") or st.session_state.get("numc_full_name", "")
+    dob = st.session_state.get("dob") or st.session_state.get("numc_dob", date(1990, 4, 25))
 
     # util: formatar date para string dd/mm/YYYY
     def _fmt_date(d):
@@ -970,7 +958,7 @@ with tab_cabalistica:
         except Exception:
             return str(d)
 
-    # Renderers (idênticos, mas usando .get para evitar KeyError)
+    # Renderers
     def _render_header(report):
         c1, c2, c3 = st.columns([2, 3, 2])
         with c1:
@@ -987,43 +975,50 @@ with tab_cabalistica:
             cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
         with c3:
             st.markdown("**Maturidade**")
-            maturity = report.get("maturity", {})
-            st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
+            maturity = report.get("maturity", {}) or {}
+            st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
             st.markdown("**Influência Anual (vigente)**")
             annual = report.get("annual_influence_by_name", {})
             st.write(annual.get("value", "—"))
 
-    # _render_pinnacles removed intentionally; inline rendering used where needed
-    # def _render_personal(report):
-    #     st.markdown("#### Personal (Ano / Mês / Dia)")
-    #     personal = report.get("personal", {})
-    #     year = personal.get("year", {})
-    #     month = personal.get("month", {})
-    #     day = personal.get("day", {})
-    #     st.write(f"**Ano**: {year.get('value','—')} — {year.get('description','')}")
-    #     st.write(f"**Mês**: {month.get('value','—')} — {month.get('description','')}")
-    #     st.write(f"**Dia**: {day.get('value','—')} — {day.get('description','')}")
-
-    def _render_brutos_e_breakdown(report, name):
-        cols_raw = st.columns(3)
-        cols_raw[0].write(f"Expressão (bruto): {report.get('expression', {}).get('raw_total')}")
-        cols_raw[1].write(f"Desejo da Alma (bruto): {report.get('soul_urge', {}).get('raw_total')}")
-        cols_raw[2].write(f"Personalidade (bruto): {report.get('personality', {}).get('raw_total')}")
-
-        # breakdown por letra (se a função existir)
-        if hasattr(numerology, "letter_value_breakdown"):
-            try:
-                dbg = numerology.letter_value_breakdown(name)
-                # exibir sumário compacto se desejar (opcional)
-            except Exception:
-                pass
-
     def _render_interpretations(report):
         st.markdown("### Interpretações")
-        for key in ("life_path", "expression", "soul_urge", "personality", "maturity"):
-            block = report.get(key, {})
+        for key in ("life_path", "expression", "soul_urge", "personality", "maturity", "power_number"):
+            block = report.get(key, {}) or {}
+
+            # garantir que short/medium/long existam: fallback para NUM_TEMPLATES se necessário
+            num_key = str(block.get("number") or block.get("value") or "")
+            if not block.get("short"):
+                try:
+                    if num_key.isdigit():
+                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
+                        block["short"] = tmpl.get("short", "") or numerology.NUM_INTERPRETATIONS_SHORT.get(num_key, "")
+                    else:
+                        block["short"] = numerology.NUM_INTERPRETATIONS_SHORT.get(num_key, "")
+                except Exception:
+                    block["short"] = block.get("short", "")
+            if not block.get("medium"):
+                try:
+                    if num_key.isdigit():
+                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
+                        block["medium"] = tmpl.get("medium", "") or numerology.NUM_INTERPRETATIONS_MEDIUM.get(num_key, "")
+                    else:
+                        block["medium"] = numerology.NUM_INTERPRETATIONS_MEDIUM.get(num_key, "")
+                except Exception:
+                    block["medium"] = block.get("medium", "")
+            if not block.get("long"):
+                try:
+                    if num_key.isdigit():
+                        tmpl = numerology.NUM_TEMPLATES.get(int(num_key), {}) if hasattr(numerology, "NUM_TEMPLATES") else {}
+                        block["long"] = tmpl.get("long", "") or numerology.NUM_INTERPRETATIONS_LONG.get(num_key, "")
+                    else:
+                        block["long"] = numerology.NUM_INTERPRETATIONS_LONG.get(num_key, "")
+                except Exception:
+                    block["long"] = block.get("long", "")
+
             label = block.get("number", block.get("value", "—"))
-            with st.expander(f"{key.replace('_',' ').title()} — {label}"):
+            title = key.replace("_", " ").title()
+            with st.expander(f"{title} — {label}"):
                 st.markdown(f"**Curto:** {block.get('short','—')}")
                 st.markdown(f"**Médio:** {block.get('medium','—')}")
                 st.markdown(f"**Longo:** {block.get('long','—')}")
@@ -1031,34 +1026,12 @@ with tab_cabalistica:
     # Validar e calcular (defensivo)
     if full_name and dob:
         try:
-            rptc = numerology.full_cabalistic_report(full_name_val, dob_val, keep_masters=keep_masters)
+            # usar as variáveis corretas e o flag local keep_masters_c
+            rptc = numerology.full_cabalistic_report(full_name, dob, keep_masters=keep_masters_c)
 
             # exibir cabeçalho e seções principais
             _render_header(rptc)
-
-            # Inline rendering for pinnacles (replaces removed _render_pinnacles)
-            try:
-                pinn = rptc.get("pinnacles", {}) or {}
-                if pinn:
-                    st.markdown("---")
-                    st.markdown("#### Pinnacles / Períodos")
-                    # build a safe table dict with explicit values (avoid None entries)
-                    table_data = {
-                        "Pinnacle": ["P1", "P2", "P3", "P4"],
-                        "Valor": [
-                            pinn.get("pinnacle_1", "—"),
-                            pinn.get("pinnacle_2", "—"),
-                            pinn.get("pinnacle_3", "—"),
-                            pinn.get("pinnacle_4", "—")
-                        ]
-                    }
-                    st.table(table_data)
-            except Exception:
-                # não interromper a renderização se pinnacles falhar
-                pass
-
-            _render_personal(rptc)
-            _render_brutos_e_breakdown(rptc, full_name)
+            # _render_personal foi removido conforme solicitado (não chamar)
             _render_interpretations(rptc)
 
             # análise da data de aniversário vigente (ex.: aniversário deste ano)
@@ -1080,7 +1053,6 @@ with tab_cabalistica:
                 st.markdown("**Detalhe:**")
                 st.write(ann_analysis.get('long','—'))
             except Exception:
-                # falha na análise do aniversário não interrompe o restante
                 pass
 
             # Roadmap/cycles: só executar se 'cycles' estiver definido e for iterável
@@ -1132,7 +1104,6 @@ with tab_cabalistica:
                             )
 
         except Exception as e:
-            # registrar erro resumido sem expor traceback; não bloqueia a UI
             st.warning("Não foi possível calcular a numerologia cabalística no momento. Verifique os dados e tente novamente.")
             if st.session_state.get("debug_influences"):
                 st.write("DEBUG: erro resumido:", str(e))
