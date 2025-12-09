@@ -465,7 +465,13 @@ NUM_INTERPRETATIONS_SHORT: Dict[str, str] = {
     "9": "Compaixão, idealismo, conclusão.",
     "11": "Intuição elevada, inspiração (mestre).",
     "22": "Construtor mestre, visão prática (mestre).",
-    "33": "Mestre do serviço e amor (mestre)."
+    "33": "Mestre do serviço e amor (mestre).",
+    "44": "Estrutura ampliada e liderança prática.",
+    "55": "Transformação em grande escala; liberdade responsável.",
+    "66": "Serviço ampliado e cura comunitária.",
+    "77": "Sabedoria profunda e investigação espiritual.",
+    "88": "Poder material e manifestação em larga escala.",
+    "99": "Conclusão coletiva e compaixão universal."
 }
 
 NUM_INTERPRETATIONS_MEDIUM: Dict[str, str] = {
@@ -480,7 +486,13 @@ NUM_INTERPRETATIONS_MEDIUM: Dict[str, str] = {
     "9": "Idealista e compassivo; chamado a servir causas maiores; evitar desilusão.",
     "11": "Canal de inspiração e visão; exige equilíbrio emocional para manifestar potencial.",
     "22": "Capacidade de materializar grandes ideais; requer disciplina e integridade.",
-    "33": "Chamado ao serviço altruísta; grande responsabilidade emocional e espiritual."
+    "33": "Chamado ao serviço altruísta; grande responsabilidade emocional e espiritual.",
+    "44": "Capacidade de organizar e liderar projetos de grande escala com responsabilidade; pode carregar peso excessivo se não houver delegação.",
+    "55": "Força para promover mudanças profundas e inovadoras; precisa equilibrar impulso por liberdade com responsabilidade prática.",
+    "66": "Chamado ao cuidado coletivo, liderança afetiva e responsabilidade social; pode sobrecarcar-se ao assumir demais pelos outros.",
+    "77": "Aptidão para estudo, pesquisa e desenvolvimento de insights espirituais; exige disciplina interior para não se isolar.",
+    "88": "Grande capacidade de gerir recursos, negócios e estruturas econômicas; responsabilidade ética essencial para evitar abuso de poder.",
+    "99": "Chamado a servir causas globais, liderar transformações humanitárias e encerrar ciclos em benefício do coletivo."
 }
 
 NUM_INTERPRETATIONS_LONG: Dict[str, str] = {
@@ -495,7 +507,13 @@ NUM_INTERPRETATIONS_LONG: Dict[str, str] = {
     "9": "Pessoa voltada para conclusão de ciclos, compaixão e serviço coletivo. Tem visão ampla e tendência a atuar em causas que beneficiem grupos; precisa cuidar da própria energia para não se esgotar em altruísmo. Em sua melhor expressão, combina idealismo com ação prática em prol do bem comum.",
     "11": "Número mestre ligado à intuição ampliada, sensibilidade e inspiração profunda. Indica potencial para insights transformadores e conexão com níveis sutis de percepção; exige maturidade emocional para canalizar a sensibilidade sem se perder em instabilidade. Quando integrado, abre portas para liderança visionária baseada em intuição e empatia.",
     "22": "Número mestre associado à capacidade de manifestar grandes projetos e estruturar visões em escala prática. Representa habilidade para combinar visão ampla com competência técnica e disciplina; requer integridade e responsabilidade para que o poder de realização gere impacto positivo. Em equilíbrio, é a força de construção de legados duradouros.",
-    "33": "Número mestre do serviço e do amor aplicado, indicando chamado para atuação altruísta e cura coletiva. Traz grande sensibilidade emocional e responsabilidade espiritual; exige equilíbrio pessoal para sustentar o peso da missão. Quando vivido com consciência, manifesta liderança compassiva e transformação social através do exemplo."
+    "33": "Número mestre do serviço e do amor aplicado, indicando chamado para atuação altruísta e cura coletiva. Traz grande sensibilidade emocional e responsabilidade espiritual; exige equilíbrio pessoal para sustentar o peso da missão. Quando vivido com consciência, manifesta liderança compassiva e transformação social através do exemplo.",
+    "44": "44 indica uma energia de construção em grande escala aplicada ao mundo material e social. Pessoas com 44 têm talento para estruturar sistemas, criar organizações sólidas e transformar visões em realidades duradouras; exigem disciplina, ética e habilidade para delegar para evitar sobrecarga. Quando desequilibrado, manifesta rigidez e autoritarismo.",
+    "55": "55 amplia o arquétipo do 5: movimento, mudança e adaptação, mas em escala ampliada. Traz coragem para romper estruturas obsoletas e criar novas possibilidades sociais e pessoais. Requer discernimento para não cair em impulsividade ou fanatismo; quando bem canalizado, gera revoluções construtivas.",
+    "66": "66 representa um amor e serviço ampliados, com foco em cura, proteção e criação de ambientes seguros para grupos. Indica habilidade para liderar iniciativas de suporte social, educação e bem-estar. Em desequilíbrio, tende a codependência e sacrifício excessivo.",
+    "77": "77 intensifica o 7, trazendo uma busca por conhecimento esotérico e compreensão profunda dos padrões sutis. Favorece pesquisadores, místicos e pensadores que trabalham com síntese de saberes. Pode levar ao isolamento se não houver integração prática.",
+    "88": "88 é um número de grande potência material e organizacional, indicando habilidade para criar sistemas de prosperidade e impacto financeiro amplo. Requer equilíbrio entre ambição e valores; quando bem usado, gera prosperidade sustentável e legado; quando mal usado, pode gerar exploração.",
+    "99": "99 simboliza o fim de ciclos em escala coletiva e o chamado para agir com compaixão universal. Indica vocação para trabalho humanitário, arte transformadora e liderança ética que beneficia grandes grupos. Exige desapego pessoal e maturidade para sustentar a missão."
 }
 
 def name_value_cabal(full_name: str, letter_map_df=None, keep_master: bool = True):

@@ -972,7 +972,7 @@ with tab_cabalistica:
             st.write(f"{maturity.get('value','—')} — {maturity.get('short','—')}")
             st.markdown("**Influência Anual** - Ciclo da Vida")
             annual = report.get("annual_influence_by_name", {}) or {}
-            st.write(f"{annual.get("value", "—")} — {annual.get('short','—')}")
+            st.write(f"{annual.get("value", '—')} — {annual.get('short','—')}")
 
     def _render_interpretations(report):
         st.markdown("### Interpretações")
