@@ -894,18 +894,25 @@ with tab_num:
 
             st.session_state["last_calc_error"] = None
 
-            # análise do número do ano (usar dob_val) — com escolha de ano pelo usuário (mantendo estrutura)
+            # análise do número do ano (usar dob_val) — com escolha de ano exibida ao lado do título
             try:
-                # controle de ano: escolha livre pelo usuário (padrão: ano atual)
-                current_year = datetime.now().year
-                selected_year = st.number_input(
-                    "Ano base para a análise (escolha livre)",
-                    min_value=1900,
-                    max_value=2100,
-                    value=current_year,
-                    step=1,
-                    key="pitagoric_ann_year"
-                )
+                # criar título e controle do ano na mesma linha
+                col_title, col_ctrl = st.columns([3, 1])
+                with col_title:
+                    st.markdown("---")
+                    st.markdown("### Análise do Número do Ano")
+                    st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
+                with col_ctrl:
+                    current_year = datetime.now().year
+                    selected_year = st.number_input(
+                        "",  # rótulo vazio porque o contexto está no título
+                        min_value=1900,
+                        max_value=2100,
+                        value=current_year,
+                        step=1,
+                        key="pitagoric_ann_year"
+                    )
+
                 # auxiliar: cria data de aniversário no ano escolhido (trata 29/02)
                 def _ann_date_for_year(dob, year):
                     try:
@@ -925,15 +932,14 @@ with tab_num:
                     if st.session_state.get("debug_influences"):
                         st.exception(e)
 
-                st.markdown("---")
-                st.markdown("### Análise do Número do Ano")
-                st.success("O Número do Ano revela as energias predominantes e os temas que você pode esperar enfrentar durante o ano selecionado.")
+                # exibição dos resultados (mantendo formato original)
                 st.write(f"**Data-Base:** {ann_analysis.get('date', ann_str)}")
                 st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number','—')}")
                 st.markdown("**Resumo:**")
                 st.write(ann_analysis.get('short','—'))
                 st.markdown("**Detalhe:**")
                 st.write(ann_analysis.get('long','—'))
+
             except Exception:
                 pass
 

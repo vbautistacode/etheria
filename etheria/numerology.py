@@ -43,7 +43,7 @@ NUM_TEMPLATES: Dict[int, Dict[str, str]] = {
 
 QUADRANTS = {
     "1-2-3": {"range": range(1,4), "chakra":"Muladhara", "theme":"Consciência Física"},
-    "4-5-6": {"range": range(4,7), "chakra":"Svadhishthana", "theme":"Energia Vital"},
+    "4-5-6": {"range": range(4,7), "chakra":"Svadhisthana", "theme":"Energia Vital"},
     "7-8-9": {"range": range(7,10), "chakra":"Manipura", "theme":"Energias Astrais"},
     "10-11-12": {"range": range(10,13), "chakra":"Anahata", "theme":"Energias Mentais"},
     "13-14-15": {"range": range(13,16), "chakra":"Vishudha", "theme":"Idéias"},
