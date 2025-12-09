@@ -148,7 +148,7 @@ st.session_state["base_major"] = int(base_major)
 use_colors = st.sidebar.checkbox("Ativar cores por planeta", value=True)
 
 st.sidebar.markdown("---")
-st.sidebar.header("Entrada do consulente")
+st.sidebar.header("Entrada do Consulente")
 # --- Sidebar (exemplo) ---
 def _sync_sidebar_to_tab():
     # copia o valor do sidebar para a key usada na aba
@@ -411,20 +411,19 @@ if generate_btn:
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 # (o visualizador já está na coluna esquerda; aqui criamos as abas na área principal inteira)
 st.markdown("---")
-st.header("Análises do consulente")
+st.header("Análises do Consulente")
 
 # Mostrar resumo rápido do consulente no topo da área principal
 col_info, _ = st.columns([3, 1])
 with col_info:
-    st.markdown("**Consulente**")
-    st.write(f"**Nome:** {full_name or '—'}")
-    st.write(f"**Data de nascimento:** {dob.isoformat() if dob else '—'}")
+    # st.markdown("**Consulente**")
+    # st.write(f"**Nome:** {full_name or '—'}")
+    # st.write(f"**Data de nascimento:** {dob.isoformat() if dob else '—'}")
     if st.session_state.get("reading"):
         r = st.session_state["reading"]
         st.write(f"**Idade (estimada):** {r.get('age', '—')}")
     else:
         st.info("Gere a leitura para habilitar as abas com conteúdo detalhado.")
-
 
 def planet_from_matrix_safe(mat: pd.DataFrame, weekday: str, hhmm: str) -> Optional[str]:
     """
@@ -644,9 +643,10 @@ with tab_influencias:
     )
 
     # --- Leituras por ciclo: um expander por ciclo (ordem da tabela) ---
-    st.markdown("### Influências Tatvicas")
-    st.write(f"**Nome:** {full_name or '—'}")
-    st.write(f"**Nascimento:** {dob.isoformat()}  **Idade:** {birth_age}")
+    st.markdown("### Influências dos Tattwas ao longo da vida")
+    st.markdown("Esta seção apresenta as influências planetárias ao longo dos ciclos de vida, com interpretações específicas para cada período.")
+    # st.write(f"**Nome:** {full_name or '—'}")
+    # st.write(f"**Nascimento:** {dob.isoformat()}  **Idade:** {birth_age}")
     # checkbox para controlar exibição da tabela (opcional)
     show_table = st.checkbox("Mostrar tabela resumida de ciclos ao final", value=False)
     st.success(f"**Roadmap de ciclos (ordem de interpretação)**")
@@ -731,50 +731,45 @@ with tab_influencias:
 
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
-    
     st.subheader("Numerologia Pitagórica")
 
-    # inicializar session_state (sincronizar com sidebar se houver)
-    st.session_state.setdefault("full_name", st.session_state.get("full_name", ""))  # chave do sidebar
-    st.session_state.setdefault("dob", st.session_state.get("dob", date(1990, 4, 25)))
+    # imports necessários (assegure que estão no topo do arquivo também)
+    from datetime import date, datetime
+
+    # garantir session_state básicos (uma única vez)
+    st.session_state.setdefault("full_name", "")
+    st.session_state.setdefault("dob", date(1990, 4, 25))
     st.session_state.setdefault("num_keep_masters", True)
 
-    # usar valores do session_state como defaults; evitar duplicar keys do sidebar
-    # se quiser inputs visíveis na aba, use chaves diferentes (num_full_name) ou apenas leia os valores ocultos
+    # chaves locais para inputs visíveis nesta aba (evitam conflito com sidebar)
     st.session_state.setdefault("num_full_name", st.session_state.get("full_name", ""))
     st.session_state.setdefault("num_dob", st.session_state.get("dob", date(1990, 4, 25)))
 
-    # Inputs (visíveis) — chave própria para evitar DuplicateElementKey com o sidebar
-    # dob_input = st.date_input("Data de nascimento", key="num_dob")
-    keep_masters = st.checkbox("Preservar números mestres (11,22,33)", value=st.session_state.get("num_keep_masters", True), key="num_keep_masters")
+    # Input visível (opcional). Se preferir oculto, comente estas linhas.
+    full_name_input = st.text_input("Nome completo", value=st.session_state.get("num_full_name", ""), key="num_full_name_input")
+    dob_input = st.date_input("Data de nascimento", value=st.session_state.get("num_dob", date(1990, 4, 25)), key="num_dob_input")
 
-    # Preferir valores do sidebar se estiverem preenchidos (oculto)
-    if st.session_state.get("full_name"):
-        # se sidebar tem valor, prioriza-o (mantém edição no sidebar como fonte única)
-        full_name_input = st.session_state["full_name"]
-    if st.session_state.get("dob"):
-        dob_input = st.session_state["dob"]
+    # checkbox (usar chave única)
+    keep_masters = st.checkbox(
+        "Preservar números mestres (11,22,33)",
+        value=st.session_state.get("num_keep_masters", True),
+        key="num_keep_masters"
+    )
 
-    # --- Calcular e renderizar (Pitagórica usa master_min=11) ---
-    # Garantir chaves em session_state (não sobrescreve valores já definidos)
-    st.session_state.setdefault("full_name", "")
-    st.session_state.setdefault("dob", None)
-    st.session_state.setdefault("full_name_input", st.session_state.get("full_name", ""))
-    st.session_state.setdefault("dob_input", st.session_state.get("dob", None))
-    st.session_state.setdefault("num_keep_masters", True)
-    st.session_state.setdefault("last_calc_error", None)
-
-    # Ler valores de forma tolerante: prioriza input local, depois sidebar/session
-    full_name_val = st.session_state.get("full_name_input") or st.session_state.get("full_name") or ""
-    dob_val = st.session_state.get("dob_input") or st.session_state.get("dob") or None
-    keep_masters = st.session_state.get("num_keep_masters", True)
-    # calcular Número de Poder (dia + mês)
-    power_num = numerology.power_number_from_dob(dob, keep_masters=keep_masters, master_min=11)
+    # decidir valores finais: priorizar sidebar (full_name/dob) se preenchidos, senão inputs locais
+    full_name_val = st.session_state.get("full_name") or full_name_input or ""
+    dob_val = st.session_state.get("dob") or dob_input or None
 
     # Mensagem informativa se dados faltarem
     if not full_name_val or not dob_val:
-        st.info("Preencha nome e data no sidebar para ver a numerologia automaticamente.")
+        st.info("Preencha nome e data no sidebar ou aqui para ver a numerologia automaticamente.")
     else:
+        # calcular Número de Poder apenas quando dob_val for válido
+        try:
+            power_num = numerology.power_number_from_dob(dob_val, keep_masters=keep_masters, master_min=11)
+        except Exception:
+            power_num = {"value": None, "raw": None}
+
         # Tentar calcular sem deixar exceções vazarem para a UI
         try:
             rpt = numerology.full_numerology_report(
@@ -803,10 +798,13 @@ with tab_num:
                 maturity = rpt.get("maturity", {})
                 st.write(f"{maturity.get('value','—')} — {maturity.get('short','')}")
                 st.markdown("**Número de Poder**")
-                power = rpt.get("power_number", {}) or {}
-                power_value = power.get("value", "—")
-                power_raw = power.get("raw")
-                st.write(f"{power_value} (soma bruta: {power_raw})")
+                pv = rpt.get("power_number") or power_num or {}
+                pv_value = pv.get("value", "—")
+                pv_raw = pv.get("raw")
+                if pv_raw is not None:
+                    st.write(f"{pv_value} (soma bruta: {pv_raw})")
+                else:
+                    st.write(pv_value)
 
             st.markdown("---")
 
@@ -817,7 +815,7 @@ with tab_num:
             st.write(f"**Mês**: {personal.get('month', {}).get('value','—')} — {personal.get('month', {}).get('description','')}")
             st.write(f"**Dia**: {personal.get('day', {}).get('value','—')} — {personal.get('day', {}).get('description','')}")
 
-            # dicionário de tradução (coloque no topo do módulo ou antes do bloco)
+            # rótulos em português
             PORTUGUESE_LABELS = {
                 "life_path": "Caminho de Vida",
                 "expression": "Expressão",
@@ -836,14 +834,12 @@ with tab_num:
                     st.markdown(f"**Qualidade:** {block.get('short','—')}")
                     st.markdown(f"**Definição:** {block.get('medium','—')}")
 
-            # limpar erro anterior se sucesso
             st.session_state["last_calc_error"] = None
 
-            # dentro do fluxo onde você tem dob (date object)
+            # análise do número do ano (usar dob_val)
             try:
                 today_year = datetime.now().year
-                ann_analysis = analyze_personal_year_from_dob(dob, target_year=today_year)
-
+                ann_analysis = analyze_personal_year_from_dob(dob_val, target_year=today_year)
                 st.markdown("---")
                 st.markdown("### Análise do Número do Ano")
                 st.write(f"**Data:** {ann_analysis.get('date','—')}")
@@ -853,14 +849,11 @@ with tab_num:
                 st.markdown("**Detalhe:**")
                 st.write(ann_analysis.get('long','—'))
             except Exception:
-                # falha na análise do aniversário não interrompe o restante
                 pass
 
         except Exception as exc:
-            # Não mostrar traceback; registrar resumo e avisar o usuário de forma amigável
             st.session_state["last_calc_error"] = str(exc)
             st.warning("Não foi possível calcular a numerologia no momento. Verifique os dados e tente novamente.")
-            # opcional: mostrar dica para debug sem expor stack
             if st.session_state.get("debug_influences"):
                 st.write("DEBUG: erro resumido:", st.session_state["last_calc_error"])
 
