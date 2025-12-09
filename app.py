@@ -921,7 +921,7 @@ with tab_cabalistica:
         st.stop()
 
     st.subheader("Numerologia Cabalística")
-    st.markdown("Seu principal pilar é a crença de que o alfabeto hebraico, contendo 22 letras sagradas e os números são códigos sagrados que revelam os mistérios do Universo e da alma humana.")
+    st.markdown("Seu principal pilar é a crença de que o alfabeto hebraico (contendo 22 letras sagradas), e os números são códigos sagrados que revelam os mistérios do Universo e da alma humana.")
     # session_state básicos (sidebar pode preencher full_name/dob)
     st.session_state.setdefault("full_name", "")
     st.session_state.setdefault("dob", date(1990, 4, 25))
