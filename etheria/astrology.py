@@ -297,9 +297,9 @@ def interpret_planet_position(
     # Short: 1-2 frases
     short = (
         f"{who}{planet} em {sign or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
-        f"Resumo prático: {verb.higher()} no campo de {house_noun.higher()}."
+        f"Resumo prático: {verb.higher()} no campo do(a) {house_noun.higher()}."
     )
-    
+
     # Long: 3-5 parágrafos curtos
     long_parts = []
 
