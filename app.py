@@ -1014,7 +1014,7 @@ with tab_cabalistica:
                 st.markdown("##### Principais números")
                 cols = st.columns(4)
                 cols[0].caption("O Caminho de Vida representa a essência numerológica do indivíduo.")
-                cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
+                cols[0].metric(report.get("life_path", {}).get("value", "—"))
                 
 
 
