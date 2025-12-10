@@ -289,6 +289,7 @@ planet_teo = short_regent_label(reg_teo.get("regent"))
 planet_35  = short_regent_label(reg_35.get("regent"))
 
 st.header("Ciclos Astrológicos")
+st.caption("Os ciclos anuais refletem as energias predominantes que influenciam o consulente ao longo do ano atual.")
 
 c1, c2, c3 = st.columns([2,2,2])
 with c1:
