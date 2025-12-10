@@ -295,7 +295,7 @@ with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico</h3>",
+    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
@@ -304,7 +304,7 @@ with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ano Teosófico</h3>",
+    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ciclo Anual Teosófico</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
@@ -313,7 +313,7 @@ with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior de 35</h3>",
+    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior de 35 anos</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
@@ -431,7 +431,6 @@ if generate_btn:
 
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 # (o visualizador já está na coluna esquerda; aqui criamos as abas na área principal inteira)
-st.markdown("---")
 st.header("Análises Planetárias e Numerológicas")
 
 # Mostrar resumo rápido do consulente no topo da área principal
