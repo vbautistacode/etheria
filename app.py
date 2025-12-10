@@ -288,7 +288,7 @@ planet_ast = short_regent_label(reg_ast.get("regent"))
 planet_teo = short_regent_label(reg_teo.get("regent"))
 planet_35  = short_regent_label(reg_35.get("regent"))
 
-c1, c2, c3 = st.columns(3)
+c1, c2, c3 = st.columns([2,2,2])
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
