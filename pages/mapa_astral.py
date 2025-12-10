@@ -1420,16 +1420,6 @@ if use_ai:
     if not gs:
         st.info("Serviço de geração não disponível.")
     else:
-        # preparar preview_positions normalizado a partir do summary
-        preview_table = summary.get("table", []) if summary else []
-        preview_positions = gs.normalize_chart_positions(preview_table) if hasattr(gs, "normalize_chart_positions") else preview_table
-
-        st.sidebar.markdown("**Preview: posições calculadas**")
-        try:
-            st.sidebar.json(preview_positions)
-        except Exception:
-            st.sidebar.text(str(preview_positions)[:4000])
-
         # flag para evitar cliques repetidos
         if "generating" not in st.session_state:
             st.session_state["generating"] = False
@@ -1441,59 +1431,52 @@ if use_ai:
             if st.button("Gerar interpretação IA", key="gen_ai_button"):
                 st.session_state["generating"] = True
 
-                # validar posições antes de enviar
-                warnings = gs.validate_chart_positions(preview_positions) if hasattr(gs, "validate_chart_positions") else []
-                if warnings:
-                    for w in warnings:
-                        st.sidebar.warning(w)
-                    st.error("Dados incompletos. Verifique avisos no sidebar antes de enviar.")
-                    st.session_state["generating"] = False
+                try:
+                    with st.spinner("Gerando sua interpretação personalizada com IA..."):
+                        if hasattr(gs, "generate_interpretation_from_summary"):
+                            res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                        else:
+                            res = gs.generate_analysis(
+                                summary,
+                                prefer="auto",
+                                text_only=True,
+                                model="gemini-2.5-flash"
+                            ) if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
+                except Exception as e:
+                    res = {"error": str(e)}
+
+                st.session_state["generating"] = False
+
+                # exibir resultado
+                if res.get("error"):
+                    with st.expander("Detalhes do erro"):
+                        st.warning("Não foi possível gerar a interpretação via serviço.")
+                        st.write(res.get("error"))
                 else:
-                    # usar rotina centralizada se disponível (faz normalização/timeout)
-                    try:
-                        with st.spinner("Gerando sua interpretação personalizada com IA..."):
-                            if hasattr(gs, "generate_interpretation_from_summary"):
-                                res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
-                            else:
-                                # fallback: chamar generate_analysis diretamente com summary validado
-                                res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash") \
-                                    if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
-                    except Exception as e:
-                        res = {"error": str(e)}
+                    ai_text = res.get("analysis_text") or res.get("text") or ""
+                    parsed = res.get("analysis_json") or res.get("analysis") or None
 
-                    st.session_state["generating"] = False
-
-                    # exibir resultado
-                    if res.get("error"):
-                        with st.expander("Detalhes do erro"):
-                            st.warning("Não foi possível gerar a interpretação via serviço.")
-                            st.write(res.get("error"))
-                    else:
-                        ai_text = res.get("analysis_text") or res.get("text") or ""
-                        parsed = res.get("analysis_json") or res.get("analysis") or None
-
-                        if ai_text:
-                            st.success("Interpretação IA gerada")
-                            st.markdown("#### Interpretação IA")
-                            st.write(ai_text)
-                            # download do texto
+                    if ai_text:
+                        st.success("Interpretação IA gerada")
+                        st.markdown("#### Interpretação IA")
+                        st.write(ai_text)
+                        st.download_button(
+                            "Exportar interpretação(.txt)",
+                            data=ai_text,
+                            file_name=f"interpretacao_ia.txt",
+                            mime="text/plain"
+                        )
+                    if parsed:
+                        with st.expander("Ver JSON estruturado (expandir)"):
+                            st.json(parsed)
                             st.download_button(
-                                "Exportar interpretação(.txt)",
-                                data=ai_text,
-                                file_name=f"interpretacao_ia.txt",
-                                mime="text/plain"
+                                "Baixar JSON",
+                                data=json.dumps(parsed, ensure_ascii=False, indent=2),
+                                file_name=f"interpretacao_ia.json",
+                                mime="application/json"
                             )
-                        if parsed:
-                            with st.expander("Ver JSON estruturado (expandir)"):
-                                st.json(parsed)
-                                st.download_button(
-                                    "Baixar JSON",
-                                    data=json.dumps(parsed, ensure_ascii=False, indent=2),
-                                    file_name=f"interpretacao_ia.json",
-                                    mime="application/json"
-                                )
-                        if not ai_text and not parsed:
-                            st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
+                    if not ai_text and not parsed:
+                        st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
 
 # RIGHT: painel de análise e numerologia
 with right_col:
