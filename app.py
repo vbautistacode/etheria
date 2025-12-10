@@ -288,6 +288,8 @@ planet_ast = short_regent_label(reg_ast.get("regent"))
 planet_teo = short_regent_label(reg_teo.get("regent"))
 planet_35  = short_regent_label(reg_35.get("regent"))
 
+st.header("Ciclos Astrológicos")
+
 c1, c2, c3 = st.columns([2,2,2])
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
@@ -346,7 +348,7 @@ with col3:
 left, = st.columns([4])
 
 with left:
-    st.subheader("Relógio Tátvico e suas Correlações")
+    st.header("Relógio Tátvico e suas Correlações")
     st.markdown("Sistema esotérico que mede o tempo de acordo com a vibração desses princípios (tattwas). Está relacionado a mudança de energéticas ao longo do dia e suas influências.")
 
     types = list(data["matrices"].keys())
@@ -430,7 +432,7 @@ if generate_btn:
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 # (o visualizador já está na coluna esquerda; aqui criamos as abas na área principal inteira)
 st.markdown("---")
-st.header("Análises do Consulente")
+st.header("Análises Planetárias e Numerológicas")
 
 # Mostrar resumo rápido do consulente no topo da área principal
 col_info, _ = st.columns([3, 1])
