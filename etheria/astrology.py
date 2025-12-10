@@ -371,7 +371,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: afirmar identidade e propósito.",
             "long": (
-                "Resumo: foco em ações que reforcem sua identidade.\n\n"
+                "É tempo de: afirmar identidade e propósito.\n\n"
                 "Ações práticas:\n"
                 "- Defina um objetivo central para o ano.\n"
                 "- Meça impacto por visibilidade (ex.: feitos, reconhecimento recebido).\n"
@@ -397,7 +397,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: cuidar das emoções e da rotina.",
             "long": (
-                "Resumo: atenção a padrões emocionais e autocuidado.\n\n"
+                "É tempo de: cuidar das emoções e da rotina.\n\n"
                 "Ações práticas:\n"
                 "- Crie um hábito noturno de relaxamento.\n"
                 "- Registre humor e qualidade do sono diariamente.\n"
@@ -423,7 +423,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: comunicar com clareza e foco.",
             "long": (
-                "Resumo: otimizar fluxo de informação.\n\n"
+                "É tempo de: comunicar com clareza e foco.\n\n"
                 "Ações práticas:\n"
                 "- Defina uma mensagem-chave por semana.\n"
                 "- Meça clareza pelo feedback recebido.\n"
@@ -449,7 +449,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: nutrir valores, vínculos e estética.",
             "long": (
-                "Resumo: alinhar valores e nutrir vínculos.\n\n"
+                "É tempo de: nutrir valores, vínculos e estética.\n\n"
                 "Ações práticas:\n"
                 "- Ofereça um gesto de carinho ou apreço por dia.\n"
                 "- Crie um ritual semanal de apreciação (flores, música, encontro).\n"
@@ -475,7 +475,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: agir com energia e direção.",
             "long": (
-                "Resumo: canalizar energia para execução.\n\n"
+                "É tempo de: agir com energia e direção.\n\n"
                 "Ações práticas:\n"
                 "- Trabalhe em blocos de 25–50 minutos com foco total.\n"
                 "- Registre ao final de cada bloco o que foi conquistado.\n"
@@ -500,7 +500,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: expandir horizontes com prudência.",
             "long": (
-                "Resumo: ampliar suas opções com cautela.\n\n"
+                "É tempo de: expandir horizontes com prudência.\n\n"
                 "Ações práticas:\n"
                 "- Escolha uma área para expandir e defina metas trimestrais.\n"
                 "- Experimente uma nova prática de aprendizado por 30 dias.\n"
@@ -525,7 +525,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: construir com disciplina e método.",
             "long": (
-                "Resumo: construir com método e responsabilidade.\n\n"
+                "É tempo de: construir com disciplina e método.\n\n"
                 "Ações práticas:\n"
                 "- Planeje projetos com etapas claras e prazos realistas.\n"
                 "- Revise progresso mensalmente e ajuste estruturas.\n"
