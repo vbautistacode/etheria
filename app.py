@@ -285,7 +285,8 @@ c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(f"### {style.get('icon','')} Ano Astrológico - Matéria")
-    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True, help={CICLO_MENOR_ASTROLOGICO_DESC})
+    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
+    st.tooltip(CICLO_MENOR_ASTROLOGICO_DESC)
     # st.caption(CICLO_MENOR_ASTROLOGICO_DESC)
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
