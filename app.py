@@ -800,19 +800,23 @@ with tab_num:
             )
 
             # Header com principais números
-            c1, c2, c3 = st.columns([2, 3, 2])
+            c1, c2, c3 = st.columns([1, 4, 2])
             with c1:
                 st.markdown("**Nome**")
                 st.write(rpt.get("full_name", "—"))
                 st.markdown("**Nascimento**")
                 st.write(rpt.get("dob", "—"))
             with c2:
-                st.markdown("### Principais números")
+                st.markdown("##### Principais números")
                 cols = st.columns(4)
                 cols[0].metric("Caminho de Vida", rpt.get("life_path", {}).get("value", "—"))
+                cols[0].caption("representa a essência numerológica do indivíduo.")
                 cols[1].metric("Expressão", rpt.get("expression", {}).get("value", "—"))
+                cols[1].caption("mostra como você manifesta talentos e habilidades no mundo.")
                 cols[2].metric("Desejo da Alma", rpt.get("soul_urge", {}).get("value", "—"))
+                cols[2].caption("revela motivações internas e o que traz realização profunda.")
                 cols[3].metric("Personalidade", rpt.get("personality", {}).get("value", "—"))
+                cols[3].caption("indica como você é percebido externamente e sua forma de interação.")
             with c3:
                 st.markdown("**Maturidade**")
                 maturity = rpt.get("maturity", {}) or {}
@@ -1014,23 +1018,17 @@ with tab_cabalistica:
                 st.markdown("##### Principais números")
                 cols = st.columns(4)
                 # Caminho de Vida
-                cols[0].caption("representa a essência numerológica do indivíduo.")
                 cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
-
-
+                cols[0].caption("representa a essência numerológica do indivíduo.")
                 # Expressão
-                cols[1].caption("mostra como você manifesta talentos e habilidades no mundo.")
                 cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
-
-
+                cols[1].caption("mostra como você manifesta talentos e habilidades no mundo.")
                 # Desejo da Alma
-                cols[2].caption("revela motivações internas e o que traz realização profunda.")
                 cols[2].metric("Desejo da Alma", report.get("soul_urge", {}).get("value", "—"))
-
+                cols[2].caption("revela motivações internas e o que traz realização profunda.")
                 # Personalidade
-                cols[3].caption("indica como você é percebido externamente e sua forma de interação.")
                 cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
-
+                cols[3].caption("indica como você é percebido externamente e sua forma de interação.")
             with c3:
                 st.markdown("**Maturidade**")
                 maturity = report.get("maturity", {}) or {}
