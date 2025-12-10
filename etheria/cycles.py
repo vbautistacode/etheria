@@ -29,7 +29,7 @@ CICLO_MENOR_ASTROLOGICO_DESC = (
 # Sequências e parâmetros padrão
 # -------------------------
 PLANETS_ASTROLOGICAL: List[str] = ["Jupiter", "Saturn", "Moon", "Mercury", "Venus", "Sun", "Mars"]
-PLANETS_TEOSOPHICAL: List[str] = ["Venus", "Saturn", "Sun", "Moon" "Mars", "Mercury", "Jupiter"]
+PLANETS_TEOSOPHICAL: List[str] = ["Venus", "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter"]
 PLANETS_MAJOR: List[str] = ["Saturn", "Venus", "Jupite", "Sun", "Mercury", "Mars", "Moon"]
 
 MAJOR_STEP = -36
