@@ -1404,27 +1404,35 @@ if use_ai:
             if st.button("Gerar interpretação IA", key="gen_ai_button"):
                 st.session_state["generating"] = True
 
-                # chamada ao serviço (exemplo dentro do bloco com spinner)
+                # chamada ao serviço (defensiva)
                 try:
                     with st.spinner("Gerando sua interpretação personalizada com IA..."):
                         if hasattr(gs, "generate_interpretation_from_summary"):
                             res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                        elif hasattr(gs, "generate_analysis"):
+                            res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash")
                         else:
-                            res = gs.generate_analysis(
-                                summary,
-                                prefer="auto",
-                                text_only=True,
-                                model="gemini-2.5-flash"
-                            ) if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
+                            res = {"error": "Serviço indisponível"}
                 except Exception as e:
-                    # captura qualquer exceção e transforma em dict consistente
                     logger.exception("Erro ao chamar serviço de geração: %s", e)
                     res = {"error": str(e)}
 
                 # garantir que res é dict e normalizar campos esperados
                 if not isinstance(res, dict):
-                    logger.warning("Resposta do serviço não é dict: %r — normalizando para dict vazio", res)
+                    logger.warning("Resposta do serviço não é dict: %r — normalizando para dict", res)
                     res = {"error": "Resposta inválida do serviço", "raw_response": str(res)}
+
+                # garantir chaves mínimas para evitar AttributeError e fallback silencioso
+                res.setdefault("error", None)
+                res.setdefault("analysis_text", "")
+                res.setdefault("analysis_json", None)
+                res.setdefault("svg", "")
+                res.setdefault("source", "unknown")
+                res.setdefault("raw_text", res.get("raw_text") or "")
+
+                # DEBUG temporário (remova em produção)
+                logger.debug("Retorno IA normalizado: %s", {k: type(v).__name__ for k, v in res.items()})
+                st.write("DEBUG retorno IA:", res)
 
                 # agora é seguro usar res.get(...)
                 if res.get("error"):
@@ -1432,8 +1440,22 @@ if use_ai:
                         st.warning("Não foi possível gerar a interpretação via serviço.")
                         st.write(res.get("error"))
                 else:
-                    ai_text = res.get("analysis_text") or res.get("text") or res.get("message") or res.get("output") or ""
+                    ai_text = (res.get("analysis_text") or res.get("text") or res.get("raw_text") or "").strip()
                     parsed = res.get("analysis_json") or res.get("analysis") or None
+
+                    # fallback legível para o usuário (sempre preencher algo)
+                    if not ai_text:
+                        ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento. Verifique a configuração de IA ou tente novamente."
+
+                    # exibir
+                    if res.get("error"):
+                        with st.expander("Detalhes do erro"):
+                            st.warning("Não foi possível gerar a interpretação via serviço.")
+                            st.write(res.get("error"))
+                    else:
+                        st.success("Interpretação IA gerada" if ai_text else "Interpretação IA (fallback)")
+                        st.markdown("#### Interpretação IA")
+                        st.write(ai_text)
 
                     if ai_text:
                         st.success("Interpretação IA gerada")
