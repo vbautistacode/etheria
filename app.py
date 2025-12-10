@@ -1014,6 +1014,8 @@ with tab_cabalistica:
                 st.markdown("### Principais números")
                 cols = st.columns(4)
                 cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
+                cols[0].help("O Caminho de Vida representa a essência numerológica do indivíduo.")
+
                 cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
                 cols[2].metric("Desejo da Alma", report.get("soul_urge", {}).get("value", "—"))
                 cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
@@ -1113,9 +1115,9 @@ with tab_cabalistica:
                     col_text, col_img = st.columns([2, 1])
                     with col_text:
                         st.write(f"**Data:** {ann_analysis.get('date','—')}")
-                        st.write(f"**Número reduzido:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
+                        st.write(f"**Número:** {ann_analysis.get('reduced_number', ann_analysis.get('reduced','—'))}")
                         st.write(f"**Tríade:** {ann_analysis.get('quadrant','—')} — {ann_analysis.get('theme','—')}")
-                        st.write(f"**Chakra:** {ann_analysis.get('chakra','—')}")
+                        st.write(f"**Chakra trabalhado:** {ann_analysis.get('chakra','—')}")
                         st.markdown("**Qualidade:**")
                         st.write(ann_analysis.get('short','—'))
                         st.markdown("**Definição:**")
