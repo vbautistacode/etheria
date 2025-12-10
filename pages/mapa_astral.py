@@ -1017,10 +1017,7 @@ with st.sidebar:
             max_value=date(2100, 12, 31))
         btime_free = st.text_input("Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)", value="")
         source = "swisseph"
-
-        default_code = st.session_state.get("house_system", "P")
-        default_index = next((i for i, (_, code) in enumerate(HOUSE_CHOICES) if code == default_code), 0)
-        selected_code = selected_label.split("(")[-1].strip(")")
+        # Sistema de casas fixo: Placidus (código P)
         st.session_state["house_system"] = "P"
 
         submitted = st.form_submit_button("Gerar Mapa")
