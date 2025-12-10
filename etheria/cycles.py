@@ -11,18 +11,24 @@ import pandas as pd
 # Descrições curtas (UI)
 # -------------------------
 CICLO_MAIOR_DESC = (
-    "Ciclo Maior: Ciclo astrológico que compreende um período de 35 anos, "
-    "sua sequência são os dias da semana andando ao contrário."
+    "O Ciclo Maior, estendendo-se por 35 anos, é como uma longa travessia da alma. "
+    "Assim como os dias da semana se sucedem em ordem inversa, ele nos lembra que o tempo "
+    "não é apenas linear, mas também espiralado. Cada retorno é um convite à reflexão: "
+    "o que aprendemos ao caminhar contra o fluxo aparente da vida?"
 )
 
 CICLO_MENOR_TEOSOFICO_DESC = (
-    "Ciclo Menor Teosófico: O ciclo teosófico compreende o período de um ano, "
-    "sua sequência é determinada pelos dias da semana mas em seu sentido contrário."
+    "O Ciclo Menor Teosófico, que se desenrola em um ano, revela o paradoxo do tempo: "
+    "os dias da semana giram em sentido contrário, como se nos ensinassem que o espírito "
+    "cresce ao desafiar a direção comum. É um chamado à interioridade, à escuta do silêncio, "
+    "onde o ritmo do cosmos se torna espelho da nossa própria busca."
 )
 
 CICLO_MENOR_ASTROLOGICO_DESC = (
-    "Ciclo Menor Astrológico: O ciclo astrológico compreende o período de um ano, "
-    "sua sequência é determinada pelo tempo em que esses planetas desenvolvem seu período de translação em relação ao Sol."
+    "O Ciclo Menor Astrológico, também de um ano, é guiado pela dança dos planetas em torno do Sol. "
+    "Cada translação é um gesto cósmico que nos recorda: somos parte de uma sinfonia maior. "
+    "A influência planetária não é destino fixo, mas metáfora viva daquilo que pulsa em nós. "
+    "Assim como os astros se movem, também nós somos chamados a mover-nos em direção à verdade interior."
 )
 
 # -------------------------
