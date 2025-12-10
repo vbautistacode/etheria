@@ -285,7 +285,8 @@ c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
-    f"<h3 title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico - Matéria</h3>",
+    f"<h3 style='font-size:20px;color:{style['color']};font-weight:600' "
+    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico - Matéria</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
