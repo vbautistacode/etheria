@@ -284,23 +284,29 @@ planet_35  = short_regent_label(reg_35.get("regent"))
 c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
-    st.markdown(f"### {style.get('icon','')} Ano Astrológico - Matéria")
     st.markdown(
-    f"<div style='font-size:20px;color:{style['color']};font-weight:600' title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{planet_ast}</div>",
+    f"<h3 title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico - Matéria</h3>",
     unsafe_allow_html=True
-)
-
-    # st.caption(CICLO_MENOR_ASTROLOGICO_DESC)
+    )
+    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
+    
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
-    st.markdown(f"### {style.get('icon','')} Ano Teosófico - Espírito")
+    st.markdown(
+    f"<h3 style='font-size:20px;color:{style['color']};font-weight:600' "
+    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ano Teosófico - Espírito</h3>",
+    unsafe_allow_html=True
+    )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
-    st.caption(CICLO_MENOR_TEOSOFICO_DESC)
+
 with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
-    st.markdown(f"### {style.get('icon','')} Ciclo Maior de 35")
+    st.markdown(
+    f"<h3 style='font-size:20px;color:{style['color']};font-weight:600' "
+    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior de 35</h3>",
+    unsafe_allow_html=True
+    )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
-    st.caption(CICLO_MAIOR_DESC)
 
 # --------------------------------------------------------------------
 # --- Interpretação coletiva dinâmica
