@@ -60,11 +60,10 @@ st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="e
 st.title("Etheria | Painel Esotérico")
 st.markdown(
     """
-    **Definição:**  
     *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
     O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
     são chaves para compreender tanto os movimentos externos quanto os internos.  
-    Aqui, o usuário é convidado a transformar símbolos em práticas, e práticas em consciência.
+    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
     """
 )
 
@@ -776,7 +775,7 @@ with tab_num:
     )
 
     # decidir valores finais: priorizar sidebar (full_name/dob) se preenchidos, senão inputs locais
-    full_name_val = st.session_state.get("full_name") or full_name_input or ""
+    full_name_val = st.session_state.get("full_name") or st.session_state.get("full_name_input", "")
     dob_val = st.session_state.get("dob") or dob_input or None
 
     # Mensagem informativa se dados faltarem
