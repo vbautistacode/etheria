@@ -550,7 +550,7 @@ with tab_influencias:
         _dob = data.get("dob")
 
     if not _dob:
-        st.warning("Data de nascimento (dob) não encontrada. Use a entrada do consulente; usando data atual como fallback.")
+        st.warning("Data de nascimento não encontrada. Use a entrada do consulente, usando data atual.")
         _dob = datetime.now()
 
     # garantir variáveis derivadas de dob
@@ -617,7 +617,7 @@ with tab_influencias:
     mat = (data.get("matrices") or {}).get("Planeta") if isinstance(data, dict) else None
 
     if mat is None:
-        st.info("Matriz de planetas não encontrada em data['matrices']. Leituras por hora serão ignoradas.")
+        st.info("Matriz de planetas não encontrada. Leituras por hora serão ignoradas.")
     else:
         try:
             p_hour = planet_from_matrix_safe(mat, weekday, birth_time)
