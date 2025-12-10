@@ -550,7 +550,7 @@ with tab_influencias:
         _dob = data.get("dob")
 
     if not _dob:
-        st.warning("Data de nascimento não encontrada. Use a entrada do consulente, usando data atual.")
+        st.warning("Data de nascimento não encontrada. Use a entrada do consulente.")
         _dob = datetime.now()
 
     # garantir variáveis derivadas de dob
