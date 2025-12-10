@@ -369,179 +369,180 @@ def _keywords_from_text(text: Optional[str], max_items: int = 4) -> List[str]:
 _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
     "Sun": {
         "technical": {
-            "short": "Identidade, propósito e visibilidade.",
+            "short": "É tempo de: afirmar identidade e propósito.",
             "long": (
-                "Resumo: foco em identidade e liderança.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Defina um objetivo central que represente sua expressão principal.\n"
-                "- 2) Meça progresso por visibilidade ou impacto (ex.: número de interações, entregas concluídas).\n"
-                "- 3) Revise mensalmente e ajuste prioridades.\n\n"
+                "Resumo: foco em ações que reforcem sua identidade.\n\n"
+                "Ações práticas:\n"
+                "- Defina um objetivo central para o ano.\n"
+                "- Meça impacto por visibilidade (ex.: feitos, reconhecimento recebido).\n"
+                "- Revise mensalmente prioridades e ajuste conforme resultados.\n\n"
                 "Métricas sugeridas:\n"
-                "- Primária: frequência de ações alinhadas ao propósito.\n"
-                "- Secundária: feedback qualitativo."
+                "- Primária: frequência de ações alinhadas ao seu propósito.\n"
+                "- Secundária: relatos de mudanças percebida."
             )
         },
         "poetic": {
-            "short": "Luz sobre identidade e presença.",
+            "short": "É tempo de: deixar o Sol revelar sua presença.",
             "long": (
-                "O Sol é um farol que pede presença. Imagine-se abrindo uma janela ao amanhecer: "
-                "pequenos gestos diários revelam a forma verdadeira do seu brilho.\n\n"
-                "Rituais sugeridos:\n"
-                "- 5 minutos matinais para afirmar intenção.\n"
-                "- Diário de 21 dias para notar mudanças sutis.\n\n"
-                "Metáfora: trate sua expressão como um jardim que pede sol e poda cuidadosa."
+                "O Sol é a centelha que revela quem somos. Sua luz não pede permissão, apenas se mostra. "
+                "Cada gesto é um raio que ilumina o caminho da identidade.\n\n"
+                "Reflexão filosófica:\n"
+                "- A presença é prática de autenticidade.\n"
+                "- O brilho não é medido em números, mas em coerência.\n\n"
+                "Metáfora: cultivar o próprio Sol é aprender a ser janela aberta para o mundo."
             )
         }
     },
     "Moon": {
         "technical": {
-            "short": "Emoções, rotina e necessidades internas.",
+            "short": "É tempo de: cuidar das emoções e da rotina.",
             "long": (
-                "Resumo: atenção a padrões emocionais e bem-estar.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Identifique um hábito de autocuidado diário.\n"
-                "- 2) Meça bem-estar por humor e qualidade do sono.\n"
-                "- 3) Faça revisões semanais para ajustar suporte emocional.\n\n"
+                "Resumo: atenção a padrões emocionais e autocuidado.\n\n"
+                "Ações práticas:\n"
+                "- Crie um hábito noturno de relaxamento.\n"
+                "- Registre humor e qualidade do sono diariamente.\n"
+                "- Ajuste hábitos semanais conforme padrões percebidos.\n\n"
                 "Métricas sugeridas:\n"
                 "- Primária: consistência do autocuidado.\n"
                 "- Secundária: variação de humor registrada."
             )
         },
         "poetic": {
-            "short": "Marés internas e cuidado íntimo.",
+            "short": "É tempo de: ouvir as marés internas da Lua.",
             "long": (
-                "A Lua sussurra ciclos. Pense em pequenas marés internas que moldam seu dia: "
-                "um gesto de cuidado repetido é como devolver água ao leito do rio.\n\n"
-                "Rituais sugeridos:\n"
-                "- Banho simbólico ou escrita breve antes de dormir.\n"
-                "- Registro de sensações por 21 dias.\n\n"
-                "Metáfora: cuide da sua maré para que a costa se mantenha fértil."
+                "A Lua nos lembra que somos feitos de ciclos. Suas fases refletem o movimento íntimo das emoções. "
+                "Cuidar da maré interior é manter fértil a costa da vida.\n\n"
+                "Reflexão filosófica:\n"
+                "- Emoções são ondas que pedem aceitação.\n"
+                "- O silêncio noturno é convite à escuta.\n\n"
+                "Metáfora: cada hábito de cuidado é como devolver água ao rio que nos sustenta."
             )
         }
     },
     "Mercury": {
         "technical": {
-            "short": "Comunicação, aprendizado e processos mentais.",
+            "short": "É tempo de: comunicar com clareza e foco.",
             "long": (
-                "Resumo: otimizar fluxo de informação e clareza.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Defina um objetivo de comunicação (ex.: clareza em 1 mensagem-chave).\n"
-                "- 2) Meça por tempo de resposta e taxa de compreensão.\n"
-                "- 3) Use ciclos curtos de revisão para reduzir ruído.\n\n"
+                "Resumo: otimizar fluxo de informação.\n\n"
+                "Ações práticas:\n"
+                "- Defina uma mensagem-chave por semana.\n"
+                "- Meça clareza pelo feedback recebido.\n"
+                "- Use ciclos curtos de revisão para reduzir ruído.\n\n"
                 "Métricas sugeridas:\n"
-                "- Primária: taxa de compreensão ou feedback.\n"
-                "- Secundária: tempo médio de processamento."
+                "- Primária: taxa de compreensão.\n"
+                "- Secundária: tempo médio de resposta."
             )
         },
         "poetic": {
-            "short": "Sopro ágil que organiza ideias.",
+            "short": "É tempo de: deixar Mercúrio soprar ideias organizadas.",
             "long": (
-                "Mercúrio é vento que organiza palavras. Visualize fios de luz conectando pontos: "
-                "cada nota escrita é um nó que torna a teia mais clara.\n\n"
-                "Rituais sugeridos:\n"
-                "- Escreva 3 frases que resumam sua intenção antes de agir.\n"
-                "- Revisão de 7 dias para ajustar linguagem.\n\n"
-                "Metáfora: trate suas ideias como cartas que precisam ser endereçadas com cuidado."
+                "Mercúrio é vento que leva palavras. Cada frase é fio que tece a rede da convivência. "
+                "Comunicar é mais que transmitir: é criar pontes invisíveis.\n\n"
+                "Reflexão filosófica:\n"
+                "- A palavra é gesto de cuidado.\n"
+                "- O silêncio também comunica.\n\n"
+                "Metáfora: tratar ideias como cartas que precisam ser endereçadas com atenção."
             )
         }
     },
     "Venus": {
         "technical": {
-            "short": "Valor, relações e estética.",
+            "short": "É tempo de: nutrir valores, vínculos e estética.",
             "long": (
-                "Resumo: alinhar valores e recursos.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Identifique uma prioridade relacional ou estética para nutrir.\n"
-                "- 2) Meça por qualidade de interação ou satisfação.\n"
-                "- 3) Estabeleça rituais de apreciação semanais.\n\n"
+                "Resumo: alinhar valores e nutrir vínculos.\n\n"
+                "Ações práticas:\n"
+                "- Ofereça um gesto de carinho ou apreço por dia.\n"
+                "- Crie um ritual semanal de apreciação (flores, música, encontro).\n"
+                "- Observe como a reciprocidade se transforma em 21 dias.\n\n"
                 "Métricas sugeridas:\n"
                 "- Primária: satisfação relacional.\n"
                 "- Secundária: frequência de gestos de cuidado."
             )
         },
         "poetic": {
-            "short": "Beleza e afeto como prática.",
+            "short": "É tempo de: deixar Vênus suavizar o mundo com beleza.",
             "long": (
-                "Vênus convida a suavizar o mundo com beleza. Pequenos atos de apreço transformam ambientes e vínculos.\n\n"
-                "Rituais sugeridos:\n"
-                "- Ofereça um gesto estético ou de carinho por dia.\n"
-                "- Observe como a reciprocidade muda em 21 dias.\n\n"
-                "Metáfora: cultive um vaso de afeto e veja as flores aparecerem."
+                "Vênus lembra que relações e estética são práticas de cuidado. "
+                "Pequenos atos de apreço transformam ambientes e vínculos.\n\n"
+                "Reflexão filosófica:\n"
+                "- A beleza é ponte para o afeto.\n"
+                "- O gesto simples é o que sustenta o vínculo.\n\n"
+                "Metáfora: cada gesto é uma semente que floresce em vínculos."
             )
         }
     },
     "Mars": {
         "technical": {
-            "short": "Ação, energia e foco operacional.",
+            "short": "É tempo de: agir com energia e direção.",
             "long": (
                 "Resumo: canalizar energia para execução.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Defina uma tarefa de alta prioridade para executar em blocos de tempo.\n"
-                "- 2) Meça por entregas concluídas e tempo gasto.\n"
-                "- 3) Use sprints curtos e pausas para manter intensidade sustentável.\n\n"
+                "Ações práticas:\n"
+                "- Trabalhe em blocos de 25–50 minutos com foco total.\n"
+                "- Registre ao final de cada bloco o que foi conquistado.\n"
+                "- Use pausas conscientes para renovar a chama.\n\n"
                 "Métricas sugeridas:\n"
                 "- Primária: tarefas concluídas por sprint.\n"
                 "- Secundária: qualidade vs velocidade."
             )
         },
         "poetic": {
-            "short": "Fogo que impulsiona movimento.",
+            "short": "É tempo de: acender a tocha de Marte.",
             "long": (
-                "Marte é faísca. Imagine acender pequenas tochas que iluminam um caminho: cada ação é um passo que cria trilha.\n\n"
-                "Rituais sugeridos:\n"
-                "- Blocos de 25–50 minutos para ação concentrada.\n"
-                "- Registro breve do que foi conquistado ao final do bloco.\n\n"
-                "Metáfora: acenda uma tocha por dia e veja o caminho se revelar."
+                "Marte é faísca que pede direção. Cada ação é uma tocha acesa no caminho.\n\n"
+                "Reflexão filosófica:\n"
+                "- Energia sem foco é dispersão.\n"
+                "- O movimento consciente é criação.\n\n"
+                "Metáfora: acender uma tocha por dia é revelar o caminho."
             )
         }
     },
     "Jupiter": {
         "technical": {
-            "short": "Expansão, aprendizado e oportunidades.",
+            "short": "É tempo de: expandir horizontes com prudência.",
             "long": (
                 "Resumo: ampliar escopo com prudência.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Identifique uma área para expansão com metas trimestrais.\n"
-                "- 2) Meça por alcance e qualidade de aprendizado.\n"
-                "- 3) Balanceie ambição com recursos disponíveis.\n\n"
+                "Ações práticas:\n"
+                "- Escolha uma área para expandir e defina metas trimestrais.\n"
+                "- Experimente uma nova prática de aprendizado por 30 dias.\n"
+                "- Registre insights e aplique um por semana.\n\n"
                 "Métricas sugeridas:\n"
                 "- Primária: novos contatos ou conhecimentos aplicados.\n"
                 "- Secundária: impacto qualitativo."
             )
         },
         "poetic": {
-            "short": "Horizontes que se abrem.",
+            "short": "É tempo de: abrir a janela de Júpiter.",
             "long": (
-                "Júpiter amplia o campo de visão. Pense em abrir uma janela grande: novas paisagens aparecem, exigindo escolha consciente.\n\n"
-                "Rituais sugeridos:\n"
-                "- Experimente uma nova prática de aprendizado por 30 dias.\n"
-                "- Registre insights e aplique um por semana.\n\n"
-                "Metáfora: plante sementes de curiosidade e observe a copa crescer."
+                "Júpiter amplia o campo de visão. Cada curiosidade é uma semente que cresce em árvore de sabedoria.\n\n"
+                "Reflexão filosófica:\n"
+                "- Crescer é escolher conscientemente.\n"
+                "- A expansão é convite à responsabilidade.\n\n"
+                "Metáfora: plantar sementes de curiosidade é ver a copa se erguer."
             )
         }
     },
     "Saturn": {
         "technical": {
-            "short": "Estrutura, limites e disciplina.",
+            "short": "É tempo de: construir com disciplina e método.",
             "long": (
                 "Resumo: construir com método e responsabilidade.\n\n"
-                "Ações recomendadas:\n"
-                "- 1) Defina um plano com marcos e prazos realistas.\n"
-                "- 2) Meça por cumprimento de marcos e qualidade estrutural.\n"
-                "- 3) Reserve tempo para manutenção e revisão.\n\n"
+                "Ações práticas:\n"
+                "- Planeje projetos com etapas claras e prazos realistas.\n"
+                "- Revise progresso mensalmente e ajuste estruturas.\n"
+                "- Reserve tempo para manutenção e cuidado das bases.\n\n"
                 "Métricas sugeridas:\n"
                 "- Primária: cumprimento de marcos.\n"
                 "- Secundária: estabilidade ao longo do tempo."
             )
         },
         "poetic": {
-            "short": "Pedra que sustenta a construção.",
+            "short": "É tempo de: erguer a pedra de Saturno.",
             "long": (
-                "Saturno pede forma e cuidado. Imagine erguer uma parede com pedras bem assentadas: cada peça é um compromisso.\n\n"
-                "Rituais sugeridos:\n"
-                "- Planeje um pequeno projeto com etapas claras.\n"
-                "- Revise progresso mensalmente.\n\n"
-                "Metáfora: construa devagar para que a obra dure."
+                "Saturno ensina que disciplina é liberdade construída. Cada compromisso é uma pedra que fortalece a obra da vida.\n\n"
+                "Reflexão filosófica:\n"
+                "- A disciplina é forma de cuidado.\n"
+                "- O limite é espaço para crescer.\n\n"
+                "Metáfora: construir devagar é garantir que a obra dure."
             )
         }
     },
