@@ -56,9 +56,17 @@ from etheria.cycles import (
     CICLO_MENOR_TEOSOFICO_DESC,
 )
 
-st.set_page_config(page_title="Etheria — Painel Esotérico", layout="wide")
-st.title("Etheria — Painel Esotérico")
-st.markdown("Leituras personalizadas: Numerologia pitagórica e Cabalística, Arcanos, Influências planetárias.")
+st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
+st.title("Etheria | Painel Esotérico")
+st.markdown(
+    """
+    **Definição:**  
+    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
+    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
+    são chaves para compreender tanto os movimentos externos quanto os internos.  
+    Aqui, o usuário é convidado a transformar símbolos em práticas, e práticas em consciência.
+    """
+)
 
 # -------------------------
 # Parâmetros padrão
