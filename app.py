@@ -293,7 +293,7 @@ with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;color:{style['color']};font-weight:600' "
-    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico - Matéria</h3>",
+    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ano Astrológico</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
@@ -302,7 +302,7 @@ with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;color:{style['color']};font-weight:600' "
-    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ano Teosófico - Espírito</h3>",
+    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ano Teosófico</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
