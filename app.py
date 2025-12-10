@@ -291,7 +291,7 @@ planet_35  = short_regent_label(reg_35.get("regent"))
 st.header("Ciclos Astrológicos")
 st.markdown("Os ciclos anuais refletem as energias predominantes que influenciam o consulente ao longo do ano atual.")
 
-c1, c2, c3 = st.columns([2,2,2])
+c1, c2, c3 = st.columns([1,1,1])
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
