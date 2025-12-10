@@ -84,12 +84,12 @@ PHASES: List[Tuple[str, int, int]] = [
 # -------------------------
 PLANET_TO_TATWA: Dict[str, str] = {
     "Moon": "Apas",
-    "Mercury": "Vayu",
-    "Venus": "Prithvi",
-    "Sun": "Tejas",
+    "Mercury": "Anupádaka",
+    "Venus": "Akasha",
+    "Sun": "Prithvi",
     "Mars": "Tejas",
-    "Jupiter": "Akasha",
-    "Saturn": "Prithvi"
+    "Jupiter": "Adi",
+    "Saturn": "Vayu"
 }
 
 # manter textos originais, mas indexados por canonical
@@ -108,7 +108,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "com líquidos: pescadores, marinheiros, leiteiros, etc.; nesta hora não se deve iniciar nada que deva ter longa duração ou que "
             "exija esforços continuados. É associada com o sistema alimentar, incluindo o esôfago, estomago, fígado, vesícula, pâncreas e "
             "intestinos. Está, portanto, intimamente ligada à dieta; relaciona-se também com os seios (regidos em geral por Câncer). "
-            "Mãe, mulheres em geral, esposa, rainha, líquidos, imaginação, impressionabilidade, mediunidade, duplo etérico, alma, crendices, "
+            "Qualidades: Mãe, mulheres em geral, esposa, rainha, líquidos, imaginação, impressionabilidade, mediunidade, duplo etérico, alma, crendices, "
             "lar, família, sonhador, inconstância, hereditariedade, etc."
         ),
         "advice": (
@@ -117,7 +117,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
         )
     },
     "Mercury": {
-        "title": "Mercúrio — Vayu",
+        "title": "Mercúrio — Anupádaka",
         "summary": "Atividade mental, memória, estudos, comunicação, comércio.",
         "long": (
             "MERCÚRIO diz respeito, principalmente, à atividade mental, à memória, aos estudos. Mercúrio dá uma disposição eloqüente, "
@@ -126,7 +126,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "calor da alma. Por tudo isto favorece muita a profissão do comerciante. A hora de Mercúrio é própria para os assuntos que requerem "
             "expressão literária, verbal ou escrita, tais como escrever cartas, documentos, trabalhos literários, discursos, conferências, aulas, "
             "etc., por isto que também é favorável para tratar com professores, escritores e todos os que se ocupam com empresas literárias e jornalísticas. "
-            "Irmãos, comércio, intelecto, estudo, praticidade, viagem, roubo, mentira, mensageiro, falar, escrever, curso, publicação, telefone, livro, raciocínio, etc. "
+            "Qualidades: Irmãos, comércio, intelecto, estudo, praticidade, viagem, roubo, mentira, mensageiro, falar, escrever, curso, publicação, telefone, livro, raciocínio, etc. "
             "O cérebro e o sistema nervoso como um todo são regidos por Mercúrio, que exerce influências também na maneira pela qual respiramos."
         ),
         "advice": (
@@ -134,13 +134,13 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
         )
     },
     "Venus": {
-        "title": "Vênus — Prithvi",
+        "title": "Vênus — Akasha",
         "summary": "Beleza, artes, vida social, afeto, estética.",
         "long": (
             "VÊNUS representa o aspecto belo da existência, as artes, a alegria, a vida social, as coisas supérfluas. Vênus cria a ordem, a harmonia; "
             "fornece os temperamentos artísticos, quer como criadores de novas formas de expressão estética, quer como os grandes intérpretes da arte. "
             "A hora do Tattwa de Vênus favorece as alegrias, as reuniões sociais e artísticas, as diversões, a dança, os concertos; é a hora favorável "
-            "às exibições de vestuários, de ornamentos, de luxo, e por isto, também própria para a aquisição desses objetos, jóias, etc. Estética, beleza, afeto, "
+            "às exibições de vestuários, de ornamentos, de luxo, e por isto, também própria para a aquisição desses objetos, jóias, etc. Qualidades: Estética, beleza, afeto, "
             "união, casamento, mulheres em geral, festas, luxuria, charme, canto, amor, jóia, dança, elegância, dinheiro, arte, etc. As paratireóides, que controla o nível "
             "de cálcio nos fluidos do corpo, são regidas por Vênus que tradicionalmente é relacionado com a garganta, rins e região lombar."
         ),
@@ -149,14 +149,14 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
         )
     },
     "Sun": {
-        "title": "Sol — Tejas",
+        "title": "Sol — Prithvi",
         "summary": "Vitalidade, vontade, autoridade, criatividade.",
         "long": (
             "O SOL é o distribuidor da vida. Representa, pois, no homem, sua saúde geral e sua vitalidade; indica a força de vontade e o idealismo. Dá uma disposição magnânima "
             "e um espírito compreensivo. Relaciona-se com tudo o que de nobre há na vida e na natureza. É o centro motor, a causa da ação, o que dá impulso às realizações. "
             "As influências do Sol fornecem qualidades de sinceridade, confiança e franqueza, constância, firmeza e justiça. A hora em que vibra o Tattwa Solar é especialmente "
             "próprio para manter relações com pessoas de posição firme e elevada, com as autoridades, juizes, chefes de empresas distribuidoras de mercadorias e pedir os seus préstimos. "
-            "SOL - Autoridade, realeza, Pai, glória, tudo que brilha, honra, rei, dirigente, palácio, ouro, teatro, vigor, criatividade, etc. é particularmente associado com o timo, "
+            "Qualidades: Autoridade, realeza, Pai, glória, tudo que brilha, honra, rei, dirigente, palácio, ouro, teatro, vigor, criatividade, etc. é particularmente associado com o timo, "
             "embora também governe (tradicionalmente) o coração, costas e coluna vertebral."
         ),
         "advice": (
@@ -172,7 +172,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "fabricantes de armas, ferreiros, instrumentos cirúrgicos, cirurgiões, etc. As influências de Marte são avassaladoras, arrastam todos os obstáculos; não admite perda de tempo, não faz considerações. "
             "Marte representa o poder criador que antes tem de destruir; é o realizador por excelência, em todos os ramos da atividade. As horas do Tatwa são próprias para as realizações temerosas, empresas ousadas, "
             "para travar lutas e abrir questões; esta hora leva ao impulso irresponsável. Assim, não se deve tratar nesta hora de assuntos que exigem ponderação, calma, diplomacia e argumentação; evite-se realizações de risco. "
-            "No entanto, a hora de Marte é própria pra negócios relativos a coisas brutas, como mecânicos, fundição, minas, materiais pesados, industria extrativa, etc. Cirurgia, luta, exército, esporte, raiva, ataque, competição, "
+            "No entanto, a hora de Marte é própria pra negócios relativos a coisas brutas, como mecânicos, fundição, minas, materiais pesados, industria extrativa, etc. Qualidades: Cirurgia, luta, exército, esporte, raiva, ataque, competição, "
             "assassino, soldado, crime, perigo, instrumento cortante, míssil, incêndio, violência, guerra, paixão, sexo, energia, bomba, etc. é tradicionalmente um planeta de violência, mas é relacionado também com o sexo: não é de surpreender, "
             "portanto, sua ligação com as glândulas sexuais (gônadas), e também com o sistema muscular em geral."
         ),
@@ -181,13 +181,13 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
         )
     },
     "Jupiter": {
-        "title": "Júpiter — Akasha",
+        "title": "Júpiter — Adi",
         "summary": "Sabedoria, expansão, ensino, estabilidade de longo prazo.",
         "long": (
             "JÚPITER caracteriza a ponderação, a sabedoria interior, a mística elevada. Suas vibrações fornecem o temperamento do juiz, do religioso, do sacerdote, do ministro, do professor universitário, "
-            "em fim, a autoridade em qualquer ramo, com todos os seus característicos, como a serenidade, a decisão, a austeridade. Pode também, em seu aspecto inferior, representar o conservador, o reacionário, o dogmático. "
+            "enfim, a autoridade em qualquer ramo, com todos os seus característicos, como a serenidade, a decisão, a austeridade. Pode também, em seu aspecto inferior, representar o conservador, o reacionário, o dogmático. "
             "A hora de Júpiter é favorável ao começo de qualquer nova empresa, principalmente as permanentes ou de longa duração, em virtude da firmeza serena que caracteriza este Planeta, e de sua fecundidade, como resultado favorável de qualquer negócio. "
-            "Júpiter preside as posses materiais e a solidez moral. É favorável a solicitação de proteção e favores. Religião, leis, universidades, filosofias, valores éticos, sacerdote, guru, professor, juiz, fórum, filantropia, protetor, ritual, cerimônia, fortuna, estrangeiro, etc. "
+            "Júpiter preside as posses materiais e a solidez moral. É favorável a solicitação de proteção e favores.Qualidades: Religião, leis, universidades, filosofias, valores éticos, sacerdote, guru, professor, juiz, fórum, filantropia, protetor, ritual, cerimônia, fortuna, estrangeiro, etc. "
             "O relacionamento de Júpiter com o fígado e sua função digestiva, mas afeta também a glândula pituitária, que regula a produção de hormônios e governa nosso desenvolvimento físico."
         ),
         "advice": (
@@ -195,7 +195,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
         )
     },
     "Saturn": {
-        "title": "Saturno — Prithvi",
+        "title": "Saturno — Vayu",
         "summary": "Perseverança, responsabilidade, estrutura, provas e limitações.",
         "long": (
             "SATURNO significa a experiência sólida, a abnegação, a responsabilidade; fornece o temperamento melancólico que pode se tornar avaro, miserável, ou elevar-se ao pícaro do saber profundo e místico. Saturno é o Planeta que dá força ao destino, que precipita os efeitos, por isto que é considerado como violento e mau, embora as causas não tenham sido por ele geradas; é o Planeta que recolhe o que foi deixado pelos outros; é o que faz ressaltar os obstáculos, mas também é o que não esquece de premiar as boas ações semeadas. Saturno não permite que fique nada por fazer; ele é o grande redutor universal. Saturno dá ao ser um temperamento laborioso, tenaz, critico e desconfiado; favorece os filósofos incompreendidos, quer sejam místicos espirituais, quer ateus materialistas. A hora de Saturno favorece o trato com assuntos de natureza durável e sólida, as terras, as construções e tudo o que exige tempo, perseverança e paciência, como a agricultura. Tudo o que se inicia nesta hora desenvolve-se devagar, sofre atrasos, encontra obstáculos; por isto não é própria para assuntos que requerem rápida conclusão, inclusive reuniões sociais, viagens rápidas e tratamentos médicos. É boa hora para travar relações e negócios com pessoas ligadas aos assuntos de Saturno. Qualidades: Austeridade, avareza, medo, agricultura, sofrimento, isolamento, calamidade, conservador, cronômetro, desastre, responsabilidade, duro, gelo, limitação, morte, trabalhador, depressão, minas, miséria, velhice, rocha, etc. Os dentes e ossos são regidos por Saturno, que se relaciona também com a vesícula e baço e com a pele. Age sobre o lóbulo anterior da glândula pituitária, regulando a estrutura óssea e muscular das glândulas sexuais."

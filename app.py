@@ -657,9 +657,6 @@ with tab_influencias:
     # --- Leituras por ciclo: um expander por ciclo (ordem da tabela) ---
     st.markdown("### Influências dos Tattwas ao longo da vida")
     st.markdown("Esta seção apresenta as influências planetárias ao longo dos ciclos de vida, com interpretações específicas para cada período.")
-    # st.write(f"**Nome:** {full_name or '—'}")
-    # st.write(f"**Nascimento:** {dob.isoformat()}  **Idade:** {birth_age}")
-    # checkbox para controlar exibição da tabela (opcional)
     show_table = st.checkbox("Mostrar tabela resumida de ciclos ao final", value=False)
     st.success(f"**Roadmap de ciclos (ordem de interpretação)**")
     
