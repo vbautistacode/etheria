@@ -1016,14 +1016,13 @@ with st.sidebar:
             min_value=date(1900, 1, 1),
             max_value=date(2100, 12, 31))
         btime_free = st.text_input("Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)", value="")
-        source = st.radio("Fonte de cálculo", ["swisseph", "api"], index=0)
+        source = "swisseph"
 
         default_code = st.session_state.get("house_system", "P")
         default_index = next((i for i, (_, code) in enumerate(HOUSE_CHOICES) if code == default_code), 0)
         selected_label = st.selectbox("Sistema de casas", house_labels, index=default_index, help="Escolha o sistema de casas.")
         selected_code = selected_label.split("(")[-1].strip(")")
-        st.session_state["house_system"] = selected_code
-        st.write("Sistema selecionado:", HOUSE_NAME_MAP.get(selected_code, selected_code))
+        st.session_state["house_system"] = "P"
 
         submitted = st.form_submit_button("Gerar Mapa")
 
@@ -1139,16 +1138,6 @@ try:
     from etheria.services import generator_service as gs
 except Exception:
     gs = None
-
-# if st.session_state.get("map_ready"):
-#     st.sidebar.markdown("**Preview: posições calculadas**")
-#     preview_table = st.session_state["map_summary"].get("table", []) or []
-#     if gs and hasattr(gs, "normalize_chart_positions"):
-#         preview_positions = gs.normalize_chart_positions(preview_table)
-#     else:
-#         # fallback simples (sem normalização completa)
-#         preview_positions = preview_table
-#     st.sidebar.json(preview_positions)
 
     # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
     if st.sidebar.button("Gerar interpretação IA"):
