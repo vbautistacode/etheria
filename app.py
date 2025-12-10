@@ -1013,14 +1013,24 @@ with tab_cabalistica:
             with c2:
                 st.markdown("##### Principais números")
                 cols = st.columns(4)
-                cols[0].caption("O Caminho de Vida representa a essência numerológica do indivíduo.")
+                # Caminho de Vida
+                cols[0].caption("representa a essência numerológica do indivíduo.")
                 cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
-                
 
 
+                # Expressão
+                cols[1].caption("mostra como você manifesta talentos e habilidades no mundo.")
                 cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
+
+
+                # Desejo da Alma
+                cols[2].caption("revela motivações internas e o que traz realização profunda.")
                 cols[2].metric("Desejo da Alma", report.get("soul_urge", {}).get("value", "—"))
+
+                # Personalidade
+                cols[3].caption("indica como você é percebido externamente e sua forma de interação.")
                 cols[3].metric("Personalidade", report.get("personality", {}).get("value", "—"))
+
             with c3:
                 st.markdown("**Maturidade**")
                 maturity = report.get("maturity", {}) or {}
