@@ -1478,7 +1478,7 @@ if use_ai:
                     if not ai_text and not parsed:
                         st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
 
-# RIGHT: painel de análise e numerologia
+# RIGHT: painel de análise
 with right_col:
     st.subheader("Painel de Análise")
 

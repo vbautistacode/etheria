@@ -632,13 +632,9 @@ def generate_interpretation_from_summary(
     timeout_seconds: int = 60,
 ) -> Dict[str, Any]:
     """
-    Normaliza e valida chart_positions, exibe preview via streamlit sidebar (se disponível),
-    monta prompt e chama generate_fn (ex: generate_analysis). Retorna o dict de resposta.
+    Normaliza e valida chart_positions, monta prompt e chama generate_fn (ex: generate_analysis).
+    Retorna o dict de resposta.
     """
-    try:
-        import streamlit as st  # opcional, usado apenas para preview/avisos
-    except Exception:
-        st = None
 
     table = summary.get("table") or summary.get("planets") or []
     if isinstance(table, dict):
@@ -646,21 +642,10 @@ def generate_interpretation_from_summary(
 
     chart_positions = normalize_chart_positions(table)
 
-    # preview no sidebar para depuração
-    if st:
-        st.sidebar.markdown("**Preview: chart_positions**")
-        try:
-            st.sidebar.json(chart_positions)
-        except Exception:
-            st.sidebar.text(str(chart_positions)[:4000])
-
+    # validação silenciosa (sem preview)
     warnings = validate_chart_positions(chart_positions)
     if warnings:
-        if st:
-            for w in warnings:
-                st.sidebar.warning(w)
-            st.sidebar.info("Corrija os dados ou confirme manualmente antes de enviar à IA.")
-        return {"error": "Dados incompletos: verifique chart_positions no sidebar.", "warnings": warnings}
+        return {"error": "Dados incompletos: chart_positions inválido.", "warnings": warnings}
 
     chart_input = {
         "name": summary.get("name"),
@@ -674,16 +659,11 @@ def generate_interpretation_from_summary(
         "summary": summary,
     }
 
-    # prompt preview (curto) para debug
+    # log interno apenas (sem mostrar no sidebar)
     prompt_preview = build_prompt_from_chart_summary(chart_input)
     logger.debug("Prompt preview (first 2000 chars): %s", prompt_preview[:2000])
-    if st:
-        try:
-            st.sidebar.text_area("Prompt preview (início)", value=prompt_preview[:4000], height=200)
-        except Exception:
-            pass
 
-    # chamar a função de geração com timeout em executor
+    # chamar a função de geração com timeout
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
             future = ex.submit(generate_fn, chart_input, prefer="auto", text_only=True)
