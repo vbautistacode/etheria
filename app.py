@@ -442,7 +442,7 @@ with col_info:
         r = st.session_state["reading"]
         st.write(f"**Idade (estimada):** {r.get('age', '—')} anos")
     else:
-        st.info("Gere a leitura para habilitar as abas com conteúdo detalhado.")
+        st.info("Preencha os dados de nascimento no formulário lateral para habilitar as abas com conteúdo detalhado.")
 
 def planet_from_matrix_safe(mat: pd.DataFrame, weekday: str, hhmm: str) -> Optional[str]:
     """
