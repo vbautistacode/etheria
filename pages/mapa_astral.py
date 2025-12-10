@@ -995,18 +995,6 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 # -------------------------
 # UI: formulário lateral
 # -------------------------
-HOUSE_CHOICES = [
-    ("Placidus", "P"),
-    ("Koch", "K"),
-    ("Campanus", "C"),
-    ("Porphyry", "O"),
-    ("Equal", "E"),
-    ("Whole Sign", "W"),
-    ("Regiomontanus", "R")
-]
-house_labels = [f"{name} ({code})" for name, code in HOUSE_CHOICES]
-HOUSE_NAME_MAP = {code: name for name, code in HOUSE_CHOICES}
-
 with st.sidebar:
     with st.form("birth_form_sidebar", border=False):
         name = st.text_input("Nome", value="")
