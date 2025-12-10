@@ -1404,6 +1404,7 @@ if use_ai:
             if st.button("Gerar interpretação IA", key="gen_ai_button"):
                 st.session_state["generating"] = True
 
+                # chamada ao serviço (exemplo dentro do bloco com spinner)
                 try:
                     with st.spinner("Gerando sua interpretação personalizada com IA..."):
                         if hasattr(gs, "generate_interpretation_from_summary"):
@@ -1416,11 +1417,16 @@ if use_ai:
                                 model="gemini-2.5-flash"
                             ) if hasattr(gs, "generate_analysis") else {"error": "Serviço indisponível"}
                 except Exception as e:
+                    # captura qualquer exceção e transforma em dict consistente
+                    logger.exception("Erro ao chamar serviço de geração: %s", e)
                     res = {"error": str(e)}
 
-                st.session_state["generating"] = False
+                # garantir que res é dict e normalizar campos esperados
+                if not isinstance(res, dict):
+                    logger.warning("Resposta do serviço não é dict: %r — normalizando para dict vazio", res)
+                    res = {"error": "Resposta inválida do serviço", "raw_response": str(res)}
 
-                # exibir resultado
+                # agora é seguro usar res.get(...)
                 if res.get("error"):
                     with st.expander("Detalhes do erro"):
                         st.warning("Não foi possível gerar a interpretação via serviço.")
