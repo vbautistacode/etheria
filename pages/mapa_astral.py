@@ -1418,6 +1418,8 @@ if use_ai:
                 except Exception as e:
                     res = {"error": str(e)}
 
+                st.write("DEBUG retorno IA:", res)
+
                 st.session_state["generating"] = False
 
                 # exibir resultado
