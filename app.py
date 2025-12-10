@@ -1004,7 +1004,7 @@ with tab_cabalistica:
 
         # Renderers
         def _render_header(report):
-            c1, c2, c3 = st.columns([2, 3, 2])
+            c1, c2, c3 = st.columns([1, 4, 2])
             with c1:
                 st.markdown("**Nome**")
                 st.write(report.get("full_name", "—"))
