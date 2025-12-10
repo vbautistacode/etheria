@@ -1197,7 +1197,7 @@ with left_col:
     # show_houses = st.checkbox("Mostrar casas", value=True)
     # numerology_toggle = st.checkbox("Mostrar numerologia", value=True)
     use_ai = st.checkbox(
-        "Usar IA para interpretações",
+        "Usar IA para interpretações astrológicas",
         value=False,
         help="Gera texto via IA Generativa proprietária."
     )
@@ -1242,17 +1242,6 @@ with left_col:
             key="planet_selectbox",
             on_change=_on_select_planet
         )
-
-    st.divider()
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
-    st.markdown("")
     
     st.markdown("#### Leitura Sintética")
 
