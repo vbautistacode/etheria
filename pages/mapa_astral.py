@@ -1426,7 +1426,7 @@ if use_ai:
                         st.warning("Não foi possível gerar a interpretação via serviço.")
                         st.write(res.get("error"))
                 else:
-                    ai_text = res.get("analysis_text") or res.get("text") or ""
+                    ai_text = res.get("analysis_text") or res.get("text") or res.get("message") or res.get("output") or ""
                     parsed = res.get("analysis_json") or res.get("analysis") or None
 
                     if ai_text:
