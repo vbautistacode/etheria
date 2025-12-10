@@ -324,7 +324,7 @@ with c3:
 # UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
 interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
 
-col1, col2, col3 = st.columns([1,1,1])
+col1, col2, col3 = st.columns([0.5, 0.5, 0.5])
 
 with col1:
     
