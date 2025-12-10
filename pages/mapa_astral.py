@@ -1020,7 +1020,6 @@ with st.sidebar:
 
         default_code = st.session_state.get("house_system", "P")
         default_index = next((i for i, (_, code) in enumerate(HOUSE_CHOICES) if code == default_code), 0)
-        selected_label = st.selectbox("Sistema de casas", house_labels, index=default_index, help="Escolha o sistema de casas.")
         selected_code = selected_label.split("(")[-1].strip(")")
         st.session_state["house_system"] = "P"
 
