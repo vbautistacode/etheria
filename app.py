@@ -1011,10 +1011,11 @@ with tab_cabalistica:
                 st.markdown("**Nascimento**")
                 st.write(report.get("dob", "—"))
             with c2:
-                st.markdown("### Principais números")
+                st.markdown("##### Principais números")
                 cols = st.columns(4)
-                cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
                 cols[0].caption("O Caminho de Vida representa a essência numerológica do indivíduo.")
+                cols[0].metric("Caminho de Vida", report.get("life_path", {}).get("value", "—"))
+                
 
 
                 cols[1].metric("Expressão", report.get("expression", {}).get("value", "—"))
