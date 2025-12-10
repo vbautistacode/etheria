@@ -481,8 +481,8 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
                 "- Registre ao final de cada bloco o que foi conquistado.\n"
                 "- Use pausas conscientes para renovar a chama.\n\n"
                 "Métricas sugeridas:\n"
-                "- Primária: tarefas concluídas por sprint.\n"
-                "- Secundária: qualidade vs velocidade."
+                "- Primária: tarefas concluídas por dia.\n"
+                "- Secundária: qualidade e rapidez de seus feitos."
             )
         },
         "poetic": {
@@ -500,7 +500,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
         "technical": {
             "short": "É tempo de: expandir horizontes com prudência.",
             "long": (
-                "Resumo: ampliar escopo com prudência.\n\n"
+                "Resumo: ampliar suas opções com cautela.\n\n"
                 "Ações práticas:\n"
                 "- Escolha uma área para expandir e defina metas trimestrais.\n"
                 "- Experimente uma nova prática de aprendizado por 30 dias.\n"
