@@ -11,6 +11,26 @@ Gerador unificado de análise astrológica (SVG + texto).
     - generate_analysis(chart_input, prefer="auto", text_only=False, ...)
 """
 
+
+from functools import wraps
+
+def log_io(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            logger.debug("Entrando %s args=%s kwargs_keys=%s", func.__name__, 
+                         type(args[1]) if len(args)>1 else None, list(kwargs.keys()))
+        except Exception:
+            logger.exception("Erro ao logar entrada")
+        res = func(*args, **kwargs)
+        try:
+            logger.debug("Saindo %s retorno_type=%s keys=%s", func.__name__, type(res).__name__, list(res.keys()) if isinstance(res, dict) else None)
+        except Exception:
+            logger.exception("Erro ao logar saída")
+        return res
+    return wrapper
+
+
 import os
 import json
 import time
@@ -788,6 +808,7 @@ def prepare_chart_summary_from_inputs(
 # -------------------------
 # Função principal: gerar texto via GenAI
 # -------------------------
+@log_io
 def generate_ai_text_from_chart(
     chart_summary: Dict[str, Any],
     model: Optional[str] = None,
@@ -970,6 +991,7 @@ def generate_ai_text_from_chart(
 # -------------------------
 # Função de alto nível: gerar SVG + texto (usa API externa quando disponível)
 # -------------------------
+@log_io
 def generate_analysis(
     chart_input: Dict[str, Any],
     prefer: str = "auto",
