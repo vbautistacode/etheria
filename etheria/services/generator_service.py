@@ -588,7 +588,7 @@ def build_prompt_from_chart_summary(
             if callable(normalize_fn):
                 records = normalize_fn(records)
         except Exception:
-            _logger.exception("normalize_chart_positions falhou; prosseguindo com registros originais")
+            logger.exception("normalize_chart_positions falhou; prosseguindo com registros originais")
 
     # montar positions_text legível
     if records:
@@ -668,6 +668,18 @@ def generate_interpretation_from_summary(
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
             future = ex.submit(generate_fn, chart_input, prefer="auto", text_only=True)
             res = future.result(timeout=timeout_seconds)
+            if res is None:
+                logger.warning("generate_fn retornou None para chart_input=%r", chart_input)
+                return {
+                    "error": "Serviço retornou None",
+                    "raw_response": None,
+                    "analysis_text": "",
+                    "analysis_json": None,
+                    "svg": "",
+                    "source": "unknown",
+                    "raw_text": ""
+                }
+
     except concurrent.futures.TimeoutError:
         logger.exception("Timeout ao chamar generate_fn")
         return {"error": f"Timeout: o serviço demorou mais que {timeout_seconds} segundos."}
@@ -785,14 +797,13 @@ def generate_ai_text_from_chart(
       - chart_summary: summary normalizado.
     """
     result: Dict[str, Any] = {
-        "analysis_text": "",
-        "analysis_json": None,
-        "raw_text": None,
-        "error": None,
-        "prompt": None,
-        "chart_summary": None,
-        "source": "local_ai",
-    }
+        "analysis_text": "<string>",   # nunca None (pode ser fallback)
+        "analysis_json": None or dict,
+        "svg": "",
+        "source": "local|api|local_ai|none",
+        "error": None or "<mensagem>",
+        "raw_text": "<string>"
+        }
 
     target_model = model or os.getenv("GEMINI_MODEL") or os.getenv("GENAI_MODEL") or GEMINI_MODEL
     if not target_model:
@@ -962,15 +973,19 @@ def generate_analysis(
     Retorna dict com keys: svg, analysis_text, analysis_json, source, error
     """
     result: Dict[str, Any] = {
+        "analysis_text": "<string>",   # nunca None (pode ser fallback)
+        "analysis_json": None or dict,
         "svg": "",
-        "analysis_text": "",
-        "analysis_json": None,
-        "source": "none",
-        "error": None
-    }
+        "source": "local|api|local_ai|none",
+        "error": None or "<mensagem>",
+        "raw_text": "<string>"
+        }
 
     def _fallback_text(name: Optional[str] = None) -> str:
         base = name or chart_input.get("name") or "Interpretação"
+        logger.debug("generate_analysis entrada keys=%s", list(chart_input.keys()))
+        logger.debug("generate_analysis retorno: %r", result)
+
         return f"{base}: interpretação não disponível no momento. Verifique os dados do mapa ou tente novamente."
 
     # Decide se usa API externa
