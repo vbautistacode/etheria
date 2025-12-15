@@ -663,13 +663,27 @@ def generate_interpretation_from_summary(
     prompt_preview = build_prompt_from_chart_summary(chart_input)
     logger.debug("Prompt preview (first 2000 chars): %s", prompt_preview[:2000])
 
-    # chamar a função de geração com timeout
+    # chamar a função de geração com timeout (defensivo)
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
             future = ex.submit(generate_fn, chart_input, prefer="auto", text_only=True)
-            res = future.result(timeout=timeout_seconds)
+            try:
+                res = future.result(timeout=timeout_seconds)
+            except concurrent.futures.TimeoutError:
+                logger.exception("Timeout ao chamar generate_fn")
+                return {"error": f"Timeout: o serviço demorou mais que {timeout_seconds} segundos."}
+            except Exception as e:
+                # captura exceção da execução da função
+                logger.exception("generate_fn lançou exceção: %s", e)
+                # se a future tiver exceção, log detalhado
+                exc = future.exception()
+                if exc:
+                    logger.exception("Detalhe da exceção na future: %s", exc)
+                return {"error": f"Erro interno no gerador: {e}"}
+
+            # defesa extra: se a função retornou None, log e retornar dict de erro
             if res is None:
-                logger.warning("generate_fn retornou None para chart_input=%r", chart_input)
+                logger.error("generate_fn retornou None para chart_input=%r", chart_input)
                 return {
                     "error": "Serviço retornou None",
                     "raw_response": None,
@@ -679,15 +693,9 @@ def generate_interpretation_from_summary(
                     "source": "unknown",
                     "raw_text": ""
                 }
-
-    except concurrent.futures.TimeoutError:
-        logger.exception("Timeout ao chamar generate_fn")
-        return {"error": f"Timeout: o serviço demorou mais que {timeout_seconds} segundos."}
     except Exception as e:
-        logger.exception("Erro ao chamar generate_fn: %s", e)
+        logger.exception("Erro inesperado ao submeter generate_fn: %s", e)
         return {"error": str(e)}
-
-    return res
 
 # -------------------------
 # prepare_chart_summary_from_inputs (garante chart_positions como lista de dicts)
