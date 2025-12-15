@@ -1430,10 +1430,6 @@ if use_ai:
                 res.setdefault("source", "unknown")
                 res.setdefault("raw_text", res.get("raw_text") or "")
 
-                # DEBUG temporário (remova em produção)
-                logger.debug("Retorno IA normalizado: %s", {k: type(v).__name__ for k, v in res.items()})
-                st.write("DEBUG retorno IA:", res)
-
                 # agora é seguro usar res.get(...)
                 if res.get("error"):
                     with st.expander("Detalhes do erro"):
