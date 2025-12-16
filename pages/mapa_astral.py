@@ -1531,7 +1531,7 @@ with right_col:
     # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
     # -------------------------
         with tabs[1]:
-            st.markdown("### Influência Arcano x Signo")
+            #st.markdown("### Influência Arcano x Signo")
 
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
@@ -1544,7 +1544,7 @@ with right_col:
                     raw = row.get("sign") or row.get("zodiac")
                     if not raw:
                         continue
-                    norm = _normalize_sign(raw)
+                    norm = interpretations._normalize_sign(raw)
                     if not norm:
                         continue
                     # preservar o primeiro raw encontrado para este norm
@@ -1559,7 +1559,7 @@ with right_col:
                         # display com a forma original (raw_sign) quando possível
                         display_sign = str(raw_sign).strip()
                         # chamar arcano_for_sign com raw_sign (arcano_for_sign normaliza internamente)
-                        arc_res = arcano_for_sign(raw_sign, name=summary.get("name"))
+                        arc_res = interpretations.arcano_for_sign(raw_sign, name=summary.get("name"))
 
                         st.markdown(f"#### {display_sign} — Arcano {arc_res.get('arcano') or '—'}")
 
