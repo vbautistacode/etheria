@@ -1506,8 +1506,8 @@ with right_col:
                 if isinstance(arc, dict):
                     arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
                     arc_num = arc.get("arcano") or arc.get("value")
-                    arc_conf = arc.get("confidence")
-                    st.write(f"{arc_name} (#{arc_num}) — confiança {arc_conf}")
+                    #arc_conf = arc.get("confidence")
+                    st.write(f"{arc_name} (#{arc_num})")
                 else:
                     st.write(f"Arcano {arc}")
             st.markdown("**Resumo**")
@@ -1565,7 +1565,7 @@ with right_col:
 
                             # título com arcano (se disponível)
                             arcano_label = arc_res.get("arcano") or "—"
-                            st.markdown(f"**Arcano: {arcano_label}**")
+                            #st.markdown(f"**Arcano: {arcano_label}**")
 
                             # erro ou texto
                             if arc_res.get("error"):
