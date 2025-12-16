@@ -591,7 +591,7 @@ def render_wheel_plotly(planets: dict, cusps: list):
     except Exception:
         return None
 
-    import math, logging
+    import math, logging, unicodedata
     logger = logging.getLogger("render_wheel_plotly")
 
     def extract_lon(pdata):
@@ -605,6 +605,7 @@ def render_wheel_plotly(planets: dict, cusps: list):
             except Exception:
                 return None
         if isinstance(pdata, dict):
+            # aceita dict com longitude e opcionalmente sign/house
             for key in ("lon", "longitude", "long", "ecl_lon", "ecliptic_longitude"):
                 if key in pdata and pdata[key] is not None:
                     try:
@@ -613,14 +614,25 @@ def render_wheel_plotly(planets: dict, cusps: list):
                         return None
         return None
 
+    # extrair também sign/house se vierem em dict
+    def extract_meta(pdata):
+        if not isinstance(pdata, dict):
+            return {}
+        return {
+            "sign": pdata.get("sign") or pdata.get("zodiac") or pdata.get("sign_name"),
+            "house": pdata.get("house") or pdata.get("casa") or pdata.get("house_number")
+        }
+
     valid_planets = {}
+    planet_meta = {}
     invalid_planets = []
     for name, pdata in (planets or {}).items():
         lon = extract_lon(pdata)
         if lon is None:
             invalid_planets.append((name, pdata))
         else:
-            valid_planets[name] = lon
+            valid_planets[name] = float(lon)
+            planet_meta[name] = extract_meta(pdata) if isinstance(pdata, dict) else {}
 
     valid_cusps = []
     invalid_cusps = []
@@ -645,6 +657,7 @@ def render_wheel_plotly(planets: dict, cusps: list):
     def lon_to_theta(lon_deg):
         return (360.0 - float(lon_deg)) % 360.0
 
+    # símbolos e mapeamentos (mantive os nomes em pt/en)
     planet_symbols = {
         "Sun": "☉", "Sol": "☉",
         "Moon": "☾", "Lua": "☾",
@@ -656,35 +669,74 @@ def render_wheel_plotly(planets: dict, cusps: list):
         "Uranus": "♅", "Urano": "♅",
         "Neptune": "♆", "Netuno": "♆",
         "Pluto": "♇", "Plutão": "♇",
-        "Asc": "ASC", "ASCENDANT": "ASC"
+        "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC",
+        "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
     }
 
+    # ordenar por longitude para consistência visual
+    ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
     names = []
     thetas = []
     hover_texts = []
     symbol_texts = []
     lon_values = []
+    marker_sizes = []
+    text_sizes = []
+    marker_colors = []
 
-    for name, lon in valid_planets.items():
+    for name, lon in ordered:
         try:
             theta = lon_to_theta(lon)
         except Exception:
             logger.warning("Falha ao converter longitude para theta: %s -> %s", name, lon)
             continue
+
+        # detectar Asc/MC para destaque
+        lname = str(name).lower()
+        is_asc = lname in ("asc", "ascendant", "ascendente")
+        is_mc = lname in ("mc", "medium coeli", "meio do ceu", "meio do céu")
+
         sign_index = int(float(lon) // 30) % 12
         degree_in_sign = float(lon) % 30
+
+        meta = planet_meta.get(name, {}) or {}
+        meta_sign = meta.get("sign")
+        meta_house = meta.get("house")
+
+        # montar hover com informações adicionais quando disponíveis
+        hover_parts = [f"<b>{name}</b>", f"{lon:.2f}° eclíptico", f"{degree_in_sign:.1f}° no signo"]
+        if meta_sign:
+            hover_parts.append(f"Signo (meta): {meta_sign}")
+        # inferir signo textual a partir do índice (opcional)
+        sign_names_short = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
+        hover_parts.append(f"Signo (calc): {sign_names_short[sign_index]}")
+        if meta_house:
+            hover_parts.append(f"Casa (meta): {meta_house}")
+        hover_text = "<br>".join(hover_parts)
+
+        # símbolos e tamanhos (Asc/MC maiores)
+        symbol = planet_symbols.get(name, planet_symbols.get(name.capitalize(), name))
+        size = 22 if is_asc or is_mc else 18  # marcador maior para Asc/MC
+        text_size = 16 if is_asc or is_mc else 13
+        color = "#d62728" if is_asc else ("#9467bd" if is_mc else "#ff7f0e")
+
         names.append(name)
         thetas.append(theta)
         lon_values.append(float(lon))
-        hover_texts.append(f"{name}<br>{lon:.2f}° eclíptico<br>{degree_in_sign:.1f}°")
-        symbol_texts.append(planet_symbols.get(name, name))
+        hover_texts.append(hover_text)
+        symbol_texts.append(symbol)
+        marker_sizes.append(size)
+        text_sizes.append(text_size)
+        marker_colors.append(color)
 
     fig = go.Figure()
+
+    # plot dos marcadores (com tamanhos individuais)
     fig.add_trace(go.Scatterpolar(
         r=[1.0]*len(thetas),
         theta=thetas,
         mode="markers+text",
-        marker=dict(size=14, color="#ff7f0e", line=dict(color="#333", width=1)),
+        marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#333", width=1)),
         text=symbol_texts,
         textfont=dict(size=14, family="DejaVu Sans, Arial"),
         hovertext=hover_texts,
@@ -693,37 +745,65 @@ def render_wheel_plotly(planets: dict, cusps: list):
         name="Planetas"
     ))
 
+    # nomes dos planetas (um pouco mais afastados)
     fig.add_trace(go.Scatterpolar(
-        r=[1.08]*len(thetas),
+        r=[1.12]*len(thetas),
         theta=thetas,
         mode="text",
         text=names,
-        textfont=dict(size=11, color="#111"),
+        textfont=dict(size=12, color="#111"),
         hoverinfo="none",
         showlegend=False
     ))
 
+    # desenhar linhas das cúspides (casas) e numerá-las
     if valid_cusps:
+        # desenhar cada linha de cuspide
         for i, cusp in enumerate(valid_cusps, start=1):
             theta_cusp = lon_to_theta(cusp)
             fig.add_trace(go.Scatterpolar(
                 r=[0.15, 1.0],
                 theta=[theta_cusp, theta_cusp],
                 mode="lines",
-                line=dict(color="#888", width=1.2, dash="dot"),
+                line=dict(color="#444", width=1.6, dash="solid"),
                 hoverinfo="none",
                 showlegend=False
             ))
-            fig.add_trace(go.Scatterpolar(
-                r=[0.08],
-                theta=[theta_cusp],
-                mode="text",
-                text=[f"C{i}"],
-                textfont=dict(size=10, color="#444"),
-                hoverinfo="none",
-                showlegend=False
-            ))
+        # numerar casas no meio entre cúspides
+        # garantir que valid_cusps tenha 12 valores; se não, tentar inferir
+        if len(valid_cusps) >= 12:
+            for i in range(12):
+                c1 = valid_cusps[i]
+                c2 = valid_cusps[(i+1) % 12]
+                # calcular meio angular (em longitude eclíptica)
+                mid = ( (c1 + ((c2 - c1) % 360) / 2) ) % 360
+                theta_mid = lon_to_theta(mid)
+                # colocar número da casa (i+1) um pouco antes do anel externo
+                fig.add_trace(go.Scatterpolar(
+                    r=[1.02],
+                    theta=[theta_mid],
+                    mode="text",
+                    text=[str(i+1)],
+                    textfont=dict(size=11, color="#333"),
+                    hoverinfo="none",
+                    showlegend=False
+                ))
+        else:
+            # fallback: marcar C1..C12 nas posições padrão (cada 30°) se cusps incompletos
+            for i in range(12):
+                mid = (i * 30 + 15) % 360
+                theta_mid = lon_to_theta(mid)
+                fig.add_trace(go.Scatterpolar(
+                    r=[1.02],
+                    theta=[theta_mid],
+                    mode="text",
+                    text=[str(i+1)],
+                    textfont=dict(size=11, color="#333"),
+                    hoverinfo="none",
+                    showlegend=False
+                ))
 
+    # desenhar aspectos (mantive sua lógica, adaptando para os arrays ordenados)
     if len(lon_values) >= 2:
         ASPECTS = [
             ("Conjunção", 0, 8, "#222222", 2.5),
@@ -764,6 +844,7 @@ def render_wheel_plotly(planets: dict, cusps: list):
                         ))
                         break
 
+    # ticks e labels dos signos (mantidos)
     sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
     sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
     tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
@@ -780,7 +861,8 @@ def render_wheel_plotly(planets: dict, cusps: list):
         margin=dict(l=10, r=10, t=30, b=10),
         height=700
     )
-    fig.update_traces(textfont=dict(size=12))
+    # ajuste global de fontes
+    fig.update_traces(textfont=dict(size=14))
     return fig
 
 st.markdown("<h1 style='text-align:left'>Mapa Astral ♎ </h1>", unsafe_allow_html=True)
