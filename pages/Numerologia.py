@@ -202,6 +202,14 @@ if generate_btn:
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 # (o visualizador já está na coluna esquerda; aqui criamos as abas na área principal inteira)
 st.title("Análises Planetárias e Numerológicas")
+st.markdown(
+    """
+    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
+    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
+    são chaves para compreender tanto os movimentos externos quanto os internos.  
+    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
+    """
+)
 
 # Mostrar resumo rápido do consulente no topo da área principal
 col_info, _ = st.columns([3, 1])
@@ -283,15 +291,6 @@ def planet_from_matrix_safe(mat: pd.DataFrame, weekday: str, hhmm: str) -> Optio
 # Criar abas principais
 tab_influencias, tab_num, tab_cabalistica = st.tabs(
     ["Influências", "Numerologia", "Numerologia Cabalística"]
-)
-
-st.markdown(
-    """
-    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
-    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
-    são chaves para compreender tanto os movimentos externos quanto os internos.  
-    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
-    """
 )
 
 #-------------------------
