@@ -10,6 +10,8 @@ import pytz
 import plotly.graph_objects as go
 import streamlit as st
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 def main():
 
     from datetime import datetime, date, time as dtime
@@ -18,7 +20,6 @@ def main():
     from pathlib import Path
 
     # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
-    PROJECT_ROOT = Path(__file__).resolve().parents[1]
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
     from datetime import datetime, date, time as dt_time
@@ -1760,7 +1761,7 @@ def main():
                                         st.write("Interpretação não disponível para este signo no momento.")
                                     else:
                                         st.write(text)
-                                        
+
 # permite executar diretamente para desenvolvimento
 if __name__ == "__main__":
     st.set_page_config(page_title="Astrologia", layout="wide")
