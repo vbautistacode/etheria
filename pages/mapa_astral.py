@@ -1406,7 +1406,7 @@ if use_ai:
 
                 # chamada ao serviço (defensiva)
                 try:
-                    with st.spinner("Gerando sua interpretação personalizada com IA..."):
+                    with st.spinner("Gerando sua interpretação personalizada com IA Etheria"):
                         if hasattr(gs, "generate_interpretation_from_summary"):
                             res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
                         elif hasattr(gs, "generate_analysis"):
