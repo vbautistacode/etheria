@@ -7,6 +7,7 @@ import time
 import threading
 import hashlib
 import logging
+import random
 from typing import Any, Dict, Optional, Union, List
 from datetime import datetime, date
 import concurrent.futures
@@ -69,6 +70,57 @@ def _make_cache_key(model: str, payload: Any) -> str:
     rep = repr(payload).encode("utf-8")
     h = hashlib.sha256(rep).hexdigest()[:16]
     return f"ai_text:{model}:{h}"
+
+# -------------------------
+# Retry e Circuit Breaker
+# -------------------------
+_circuit_lock = threading.Lock()
+_circuit_failures = 0
+_CIRCUIT_THRESHOLD = int(os.getenv("GENERATOR_CIRCUIT_THRESHOLD", "3"))
+_CIRCUIT_OPEN_SECONDS = float(os.getenv("GENERATOR_CIRCUIT_OPEN_SECONDS", "60"))
+_circuit_open_until = 0.0
+
+def _is_transient_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(x in msg for x in ("503", "unavailable", "overloaded", "timeout", "temporarily unavailable"))
+
+def _circuit_allows_call() -> bool:
+    global _circuit_open_until
+    now = time.time()
+    return now >= _circuit_open_until
+
+def _record_failure():
+    global _circuit_failures, _circuit_open_until
+    with _circuit_lock:
+        _circuit_failures += 1
+        if _circuit_failures >= _CIRCUIT_THRESHOLD:
+            _circuit_open_until = time.time() + _CIRCUIT_OPEN_SECONDS
+            logger.warning("Circuit breaker aberto por %.0f segundos (falhas=%d)", _CIRCUIT_OPEN_SECONDS, _circuit_failures)
+
+def _record_success():
+    global _circuit_failures
+    with _circuit_lock:
+        _circuit_failures = 0
+
+def retry_with_backoff(fn, max_attempts: int = 4, base_delay: float = 0.6, max_delay: float = 8.0):
+    attempt = 0
+    last_exc = None
+    while attempt < max_attempts:
+        try:
+            return fn()
+        except Exception as e:
+            last_exc = e
+            if not _is_transient_error(e):
+                # erro não transitório: propagar imediatamente
+                raise
+            attempt += 1
+            delay = min(max_delay, base_delay * (2 ** (attempt - 1)))
+            jitter = random.uniform(0, delay * 0.25)
+            sleep_for = delay + jitter
+            logger.warning("Erro transitório detectado (tentativa %d/%d): %s. Retentando em %.2fs", attempt, max_attempts, e, sleep_for)
+            time.sleep(sleep_for)
+    logger.error("Esgotadas tentativas de retry; última exceção: %s", last_exc)
+    raise last_exc
 
 # -------------------------
 # Logging helpers / decorator
@@ -417,6 +469,28 @@ def _call_gemini_sdk(
         msg += f" Último erro: {last_exc}"
     raise RuntimeError(msg)
 
+def _call_gemini_sdk_with_retry(prompt: Union[str, Dict[str, Any], List[Dict[str, Any]]], model: str = GEMINI_MODEL, max_tokens: int = 2000):
+    """
+    Envolve _call_gemini_sdk com circuit breaker e retry.
+    Retorna string com texto bruto ou lança exceção.
+    """
+    cache_key = None
+    # Se circuito aberto, recusar chamada
+    if not _circuit_allows_call():
+        raise RuntimeError("Circuit breaker aberto: serviço de IA temporariamente indisponível")
+
+    def _call():
+        return _call_gemini_sdk(prompt, model=model, max_tokens=max_tokens)
+
+    try:
+        raw = retry_with_backoff(_call, max_attempts=int(os.getenv("GENERATOR_RETRY_ATTEMPTS", "4")), base_delay=float(os.getenv("GENERATOR_RETRY_BASE_DELAY", "0.6")))
+        _record_success()
+        return raw
+    except Exception as e:
+        _record_failure()
+        logger.exception("Chamada ao SDK falhou após retries: %s", e)
+        raise
+
 # -------------------------
 # Builder de prompt a partir de chart_summary
 # -------------------------
@@ -632,14 +706,26 @@ def generate_ai_text_from_chart(
         result["analysis_text"] = "Interpretação não disponível: erro ao montar prompt."
         return _log_and_return(result, "generate_ai_text_from_chart")
 
-    # Chama SDK
+        # Chamada ao SDK com retry e circuit breaker; fallback para cache se disponível
     try:
-        raw = _call_gemini_sdk(prompt, model=target_model, **kwargs)
+        raw = _call_gemini_sdk_with_retry(prompt, model=target_model, max_tokens=kwargs.get("max_tokens", 2000))
         result["raw_text"] = raw or ""
     except Exception as e:
-        logger.exception("Erro ao chamar _call_gemini_sdk")
+        logger.exception("Erro ao chamar _call_gemini_sdk_with_retry: %s", e)
+        # tentar retornar cache se existir
+        try:
+            cache_key = _make_cache_key(target_model, chart_summary_struct)
+            cached = _cache_get(cache_key)
+            if cached:
+                logger.warning("Retornando resultado em cache devido a falha no SDK")
+                return cached
+        except Exception:
+            logger.exception("Erro ao acessar cache durante fallback")
+        # fallback amigável
         result["error"] = str(e)
-        result["analysis_text"] = "Interpretação não disponível: erro ao chamar serviço de IA."
+        result["analysis_text"] = "Interpretação não disponível no momento: serviço de IA temporariamente indisponível."
+        result["raw_text"] = ""
+        result["source"] = "fallback"
         return _log_and_return(result, "generate_ai_text_from_chart")
 
     # Normaliza saída
