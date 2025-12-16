@@ -210,6 +210,71 @@ st.markdown(
     """
 )
 
+def planet_from_matrix_safe(mat: pd.DataFrame, weekday: str, hhmm: str) -> Optional[str]:
+    """
+    Retorna o valor da matriz 'mat' para o weekday e hora aproximada.
+    - mat: DataFrame com índice de horas no formato 'HH:00' e colunas com nomes de dias.
+    - weekday: nome do dia (ex.: 'Segunda-feira', 'Terça-feira', etc.).
+    - hhmm: hora no formato 'HH:MM' ou 'HH'.
+    Retorna string do planeta ou None se não encontrado.
+    """
+    if mat is None or not isinstance(mat, pd.DataFrame):
+        return None
+
+    # normalizar weekday para corresponder às colunas da matriz
+    weekday_candidates = [weekday, weekday.capitalize(), weekday.title()]
+    col = None
+    for c in weekday_candidates:
+        if c in mat.columns:
+            col = c
+            break
+    if col is None:
+        # tentar correspondência por substring curta (ex.: 'Segunda' -> 'Segunda-feira')
+        for c in mat.columns:
+            if weekday.lower().split("-")[0] in c.lower():
+                col = c
+                break
+    if col is None:
+        return None
+
+    # extrair hora do hhmm
+    try:
+        hour = int(str(hhmm).split(":")[0])
+    except Exception:
+        try:
+            hour = int(str(hhmm))
+        except Exception:
+            return None
+
+    # formar bucket esperado 'HH:00'
+    bucket = f"{hour:02d}:00"
+    if bucket in mat.index:
+        val = mat.at[bucket, col]
+        return None if pd.isna(val) else str(val)
+
+    # se bucket não existir, procurar índice de horas mais próximo
+    try:
+        # extrair horas do índice que contenham ':'
+        idx_hours = []
+        for idx in mat.index:
+            s = str(idx)
+            if ":" in s:
+                try:
+                    idx_hours.append(int(s.split(":")[0]))
+                except Exception:
+                    continue
+        if not idx_hours:
+            return None
+        closest = min(idx_hours, key=lambda x: abs(x - hour))
+        bucket = f"{closest:02d}:00"
+        if bucket in mat.index:
+            val = mat.at[bucket, col]
+            return None if pd.isna(val) else str(val)
+    except Exception:
+        return None
+
+    return None
+
 # Criar abas principais
 tab_influencias, tab_num, tab_cabalistica = st.tabs(
     ["Influências", "Numerologia", "Numerologia Cabalística"]
