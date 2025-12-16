@@ -942,12 +942,14 @@ st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 
 
 st.markdown(
     """
-    Em *Etheria*, os astros e os números formam a arquitetura invisível da alma. As **Análises Planetárias** revelam o cenário celeste e as marés emocionais que moldam sua jornada. 
-    vibracional que estrutura seu propósito e identidade.
-    Este painel é um ponto de encontro entre o movimento dos céus e a precisão dos ciclos. Aqui, os arquétipos 
-    planetários são frequências que ativam as **chaves do autoconhecimento**. Ao explorar 
-    essas ferramentas, você integra a sabedoria cósmica à sua realidade prática, transformando a observação em 
-    consciência e o potencial em destino vivido.
+    A Astrologia em *Etheria* é vista como a linguagem silenciosa do cosmos que pulsa em sintonia com nossa 
+    própria existência. Mais do que previsões, os astros oferecem um **mapa de potencialidades**: a posição 
+    dos planetas no momento do seu nascimento atua como uma bússola vibracional, influenciando temperamentos, 
+    desafios e o florescer de talentos únicos.
+
+    Ao compreender as energias arquetípicas que regem seu mapa, você deixa de apenas reagir ao destino e passa 
+    a **cocriar com o universo**. Cada trânsito e aspecto é um convite para o autoconhecimento, revelando que 
+    o que está em cima, nos céus, reflete diretamente o que vibra dentro de você.
     """
 )
 # -------------------- UI --------------------
