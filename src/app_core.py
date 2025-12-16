@@ -9,7 +9,6 @@ import json
 import sys
 import logging
 import streamlit as st
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 # Ler secrets do Streamlit (retorna None se não existir)
 sa_json = st.secrets.get("GCP_SA_JSON")
