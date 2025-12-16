@@ -1550,7 +1550,7 @@ with right_col:
                 except Exception:
                     pass
                 # chamar de forma segura
-                arc_block = safe_arcano_for_planet(summary, canonical_selected)
+                arc_block = interpretations.safe_arcano_for_planet(summary, canonical_selected)
 
             # garantir estrutura mínima
             arc_block = arc_block or {}
