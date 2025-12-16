@@ -1479,7 +1479,7 @@ if use_ai:
 with right_col:
     st.subheader("Interpretação dos Arcanos")
     st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores. " \
-    "A partir da posição dos planetas,veja quais signos são influenciados")
+    "A partir da posição dos planetas, veja abaixo, quais signos são influenciados:")
 
     # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
     # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
