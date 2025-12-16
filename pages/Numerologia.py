@@ -136,6 +136,84 @@ def canonical_planet_name(name: str) -> Optional[str]:
             return k
     return None
 
+def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
+    """
+    Retorna o dicionário de estilo para o planeta dado (aceita variantes).
+    - name: qualquer variante (ex.: 'Vênus', 'venus', 'Venus', 'Júpiter', 'Jupiter')
+    - lang: 'pt' ou 'en' para obter label no idioma desejado (label_pt/label_en)
+    Retorna o estilo 'default' se não encontrar.
+    """
+    canon = canonical_planet_name(name)
+    style = PLANET_STYLES.get(canon) if canon else PLANET_STYLES["default"]
+    # construir retorno com label no idioma pedido
+    label_key = "label_pt" if lang and lang.lower().startswith("pt") else "label_en"
+    return {
+        "color": style.get("color", PLANET_STYLES["default"]["color"]),
+        "icon": style.get("icon", PLANET_STYLES["default"]["icon"]),
+        "label": style.get(label_key, style.get("label_en", "—"))
+    }
+
+# -------------------------
+# Snippets de ciclos (usando base_years do sidebar)
+# -------------------------
+# --- Interpretação coletiva dinâmica
+# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
+
+_now = datetime.now()
+reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+reg_teo = get_regent_for_cycle("teosofico", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+reg_35  = get_regent_for_cycle("maior", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+
+planet_ast = short_regent_label(reg_ast.get("regent"))
+planet_teo = short_regent_label(reg_teo.get("regent"))
+planet_35  = short_regent_label(reg_35.get("regent"))
+
+types = list(data["matrices"].keys())
+if not types:
+    st.info("Nenhum tipo disponível para visualização.")
+else:
+    # três seletores na mesma linha: Tipo | Dia | Hora
+    col_type, col_day, col_hour = st.columns([1, 1, 1])
+
+    with col_type:
+        type_choice = st.selectbox("Seleção", options=types, index=0, key="type_choice")
+
+    # obter matriz após escolher o tipo
+    mat = data["matrices"][type_choice].fillna("-")
+    weekdays = mat.columns.tolist()
+    hours = mat.index.tolist()
+
+    # Ordem correta dos dias da semana
+    ordered_days = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
+    # Reordenar colunas da matriz
+    mat = mat[[day for day in ordered_days if day in mat.columns]]
+
+    with col_day:
+        default_weekday_idx = 0
+        if "Segunda-feira" in weekdays:
+            default_weekday_idx = weekdays.index("Segunda-feira")
+        weekday_choice = st.selectbox("Dia", options=weekdays, index=default_weekday_idx, key="weekday_choice")
+
+    with col_hour:
+        default_hour_idx = 0
+        if "06:00" in hours:
+            default_hour_idx = hours.index("06:00")
+        hour_choice = st.selectbox("Hora", options=hours, index=default_hour_idx, key="hour_choice")
+
+    def highlight_selected(df: pd.DataFrame, sel_wd: str, sel_hr: str) -> pd.io.formats.style.Styler:
+        def _style(row):
+            return [("background-color: #fffb0" if (col == sel_wd and row.name == sel_hr) else "") for col in df.columns]
+        return df.style.apply(_style, axis=1)
+
+    st.dataframe(highlight_selected(mat, weekday_choice, hour_choice), use_container_width=True, width=800)
+    try:
+        val = mat.loc[hour_choice, weekday_choice]
+    except Exception:
+        val = None
+        
 # Garantir que a leitura esteja no session_state
 if "reading" not in st.session_state:
     st.session_state["reading"] = None
@@ -169,10 +247,6 @@ if generate_btn:
             st.sidebar.success("Leitura gerada e armazenada.")
         except Exception as e:
             st.sidebar.error(f"Erro ao gerar leitura: {e}")
-
-#---
-#---
-#---
 
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 # (o visualizador já está na coluna esquerda; aqui criamos as abas na área principal inteira)
