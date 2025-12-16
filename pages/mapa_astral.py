@@ -624,7 +624,7 @@ def render_wheel_plotly(
 
     # defaults
     if cusp_colors_by_quadrant is None:
-        cusp_colors_by_quadrant = ["#f7b6d2", "#c7c7c7", "#9edae5", "#c49c94"]  # 4 tons distintos
+        cusp_colors_by_quadrant = ["#000000", "#000000", "#000000", "#000000"]  # 4 tons distintos
 
     # helper: extrair longitude
     def extract_lon(pdata):
@@ -707,12 +707,14 @@ def render_wheel_plotly(
     # destacar grupos
     groups = highlight_groups or {
         "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"],
-        "sociais": ["Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]
+        "sociais": ["Jupiter", "Saturn"],
+        "geracionais": ["Uranus", "Neptune", "Pluto"]
     }
     # cores por grupo (padrão)
     group_colors = {
         "pessoais": "#ff7f0e",
-        "sociais": "#1f77b4"
+        "sociais": "#1f77b4",
+        "geracionais": "#581fb4"
     }
 
     # ordenar por longitude
