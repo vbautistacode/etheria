@@ -1175,7 +1175,7 @@ with left_col:
         help="Gera texto via IA Generativa proprietária."
     )
 
-    st.markdown("### Positions")
+    st.markdown("### Posições")
     import pandas as _pd
 
     if summary:
@@ -1549,7 +1549,8 @@ with right_col:
                     logger.exception("Erro em interpretations.arcano_for_planet: %s", e)
                 except Exception:
                     pass
-                arc_block = None
+                # chamar de forma segura
+                arc_block = safe_arcano_for_planet(summary, canonical_selected)
 
             # garantir estrutura mínima
             arc_block = arc_block or {}

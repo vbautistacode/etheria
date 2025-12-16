@@ -205,6 +205,49 @@ BASE_TEMPLATES: Dict[str, Dict[str, str]] = {
     }
 }
 
+# correlação Signo -> Arcano (usar nomes em português; normalização aplicada)
+SIGN_TO_ARCANO = {
+    "aries": "5",
+    "touro": "6",
+    "gemeos": "7",
+    "gêmeos": "7",
+    "gemeós": "7",
+    "cancer": "8",
+    "câncer": "8",
+    "leao": "9",
+    "leão": "9",
+    "virgem": "10",
+    "libra": "12",
+    "escorpiao": "14",
+    "escorpião": "14",
+    "escorpiÃo": "14",
+    "sagitario": "15",
+    "sagitário": "15",
+    "capricornio": "16",
+    "capricórnio": "16",
+    "aquario": "18",
+    "aquário": "18",
+    "peixes": "19"
+}
+
+import unicodedata
+
+def _normalize_sign(s: Optional[str]) -> Optional[str]:
+    """
+    Normaliza nome do signo: remove acentos, lower, strip.
+    Retorna None se s for falsy.
+    """
+    if not s:
+        return None
+    try:
+        s2 = str(s).strip().lower()
+        # remover acentos
+        s2 = unicodedata.normalize("NFKD", s2)
+        s2 = "".join(ch for ch in s2 if not unicodedata.combining(ch))
+        return s2
+    except Exception:
+        return str(s).strip().lower()
+
 # -------------------------
 # Helpers internos
 # -------------------------
@@ -249,40 +292,157 @@ def classic_for_planet(summary: Dict[str, Any], planet_name: str) -> Dict[str, s
     long = r.get("interpretation_long_classic") or r.get("interpretation_long") or short
     return {"short": short, "long": long}
 
+def _normalize_arcano_input(arc):
+    """
+    Normaliza o valor de arcano para um formato previsível:
+    - se dict: retorna dict
+    - se int/str: retorna str(id)
+    - se None: retorna None
+    """
+    if arc is None:
+        return None
+    if isinstance(arc, dict):
+        return arc
+    try:
+        # tenta converter números para string
+        return str(int(arc)) if (isinstance(arc, (int, float)) or (isinstance(arc, str) and arc.isdigit())) else str(arc)
+    except Exception:
+        return str(arc)
+
+def safe_arcano_for_planet(summary: Dict[str, Any], planet_name: str) -> Dict[str, Any]:
+    """
+    Wrapper defensivo para arcano_for_planet.
+    Garante que sempre retorne um dict com chaves mínimas:
+      - planet
+      - arcano
+      - influence
+      - text
+      - error (opcional)
+    Use este wrapper no UI para evitar None/exceptions.
+    """
+    try:
+        # chama a implementação principal (se existir)
+        res = arcano_for_planet(summary, planet_name)
+    except Exception as e:
+        # captura qualquer exceção e retorna dict consistente
+        try:
+            logger.exception("Erro em arcano_for_planet: %s", e)
+        except Exception:
+            pass
+        return {
+            "planet": planet_name,
+            "arcano": None,
+            "influence": None,
+            "text": "",
+            "error": f"Erro interno ao gerar interpretação por arcanos: {e}"
+        }
+
+    # normalizar retorno inesperado
+    if res is None:
+        return {"planet": planet_name, "arcano": None, "influence": None, "text": "", "error": "Retorno None do gerador de arcanos"}
+
+    if not isinstance(res, dict):
+        return {"planet": planet_name, "arcano": res, "influence": None, "text": "", "error": "Retorno inesperado (não-dict) do gerador de arcanos"}
+
+    # garantir chaves mínimas e normalizar arcano
+    arc = res.get("arcano")
+    arc_norm = _normalize_arcano_input(arc)
+    influence = res.get("influence")
+    text = res.get("text") or res.get("interpretation") or ""
+
+    out = {
+        "planet": res.get("planet", planet_name),
+        "arcano": arc_norm,
+        "influence": influence,
+        "text": text,
+        "error": res.get("error")
+    }
+    return out
+
+# Versão reforçada de arcano_for_planet (substitua a original por esta se preferir)
 def arcano_for_planet(summary: Dict[str, Any], planet_name: str) -> Dict[str, Any]:
     """
-    Retorna estrutura com arcano associado e texto de influência do arcano sobre a casa.
-    Usa:
-      - leitura em summary['readings'][planet]['arcano_info'] ou ['arcano'] quando disponível
-      - rules.get_position_from_summary para descobrir a casa
-      - influences.arcano_house_influence para obter tema da casa + texto base do arcano
-      - rules.render_arcano_text para montar o parágrafo final
-    Retorno:
-      {
-        "planet": planet_name,
-        "arcano": arcano_obj_or_id,
-        "influence": influence_obj,
-        "text": rendered_text
-      }
+    Versão defensiva de arcano_for_planet que tenta:
+      - usar arcano explícito em summary['readings'][planet]['arcano_info'|'arcano']
+      - se ausente, inferir arcano a partir do signo do planeta usando SIGN_TO_ARCANO
+      - obter influência da casa via influences.arcano_house_influence
+      - renderizar texto via rules.render_arcano_text
+    Sempre retorna dict com chaves mínimas.
     """
-    readings = summary.get("readings", {}) if summary else {}
-    r = readings.get(planet_name, {}) or {}
-    arc = r.get("arcano_info") or r.get("arcano") or None
+    try:
+        readings = summary.get("readings", {}) if summary else {}
+        r = readings.get(planet_name, {}) or {}
+        arc_raw = r.get("arcano_info") or r.get("arcano") or None
 
-    pos = rules.get_position_from_summary(summary, planet_name)
-    house = pos.get("house") if pos else None
+        # posição/casa e signo
+        try:
+            pos = rules.get_position_from_summary(summary, planet_name)
+        except Exception as e:
+            logger.exception("Erro ao obter posição do planeta via rules.get_position_from_summary: %s", e)
+            pos = None
 
-    # obter estrutura de influência (arcano + tema da casa)
-    influence = influences.arcano_house_influence(arc if arc is not None else "0", house)
-    # montar texto final combinando arcano e casa
-    arc_text = rules.render_arcano_text(arc, influence)
+        house = pos.get("house") if isinstance(pos, dict) else None
+        sign = None
+        if isinstance(pos, dict):
+            # pos pode ter 'sign' ou 'zodiac' etc.
+            sign = pos.get("sign") or pos.get("zodiac") or pos.get("sign_name")
+        # fallback: procurar na tabela summary['table']
+        if not sign and isinstance(summary, dict):
+            table = summary.get("table") or []
+            for row in table:
+                try:
+                    if (row.get("planet") or "").lower() == (planet_name or "").lower():
+                        sign = row.get("sign") or row.get("zodiac") or sign
+                        break
+                except Exception:
+                    continue
 
-    return {
-        "planet": planet_name,
-        "arcano": arc,
-        "influence": influence,
-        "text": arc_text
-    }
+        # normalizar arcano explícito
+        arc = _normalize_arcano_input(arc_raw)
+
+        # se não houver arcano explícito, tentar inferir pelo signo
+        if not arc:
+            norm_sign = _normalize_sign(sign)
+            if norm_sign:
+                inferred = SIGN_TO_ARCANO.get(norm_sign)
+                if inferred:
+                    arc = str(inferred)
+                    logger.debug("Arcano inferido por signo: planet=%s sign=%s arcano=%s", planet_name, sign, arc)
+
+        # obter estrutura de influência (arcano + tema da casa)
+        try:
+            influence = influences.arcano_house_influence(arc if arc is not None else "0", house)
+        except Exception as e:
+            logger.exception("Erro ao obter influence via influences.arcano_house_influence: %s", e)
+            influence = None
+
+        # montar texto final combinando arcano e casa
+        try:
+            arc_text = rules.render_arcano_text(arc, influence)
+            if arc_text is None:
+                arc_text = ""
+        except Exception as e:
+            logger.exception("Erro ao renderizar texto do arcano via rules.render_arcano_text: %s", e)
+            arc_text = ""
+
+        return {
+            "planet": planet_name,
+            "arcano": arc,
+            "influence": influence,
+            "text": arc_text
+        }
+    except Exception as e:
+        try:
+            logger.exception("Erro inesperado em arcano_for_planet: %s", e)
+        except Exception:
+            pass
+        return {
+            "planet": planet_name,
+            "arcano": None,
+            "influence": None,
+            "text": "",
+            "error": f"Erro interno ao gerar arcano: {e}"
+        }
 
 def chart_overview(summary: Dict[str, Any]) -> str:
     """
