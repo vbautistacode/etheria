@@ -1,6 +1,10 @@
-def main_inicio():
-    import streamlit as st
+# app.py
+import streamlit as st
+
+def main():
+    st.title("App principal")
+    # resto da UI
 
 if __name__ == "__main__":
-    import streamlit as st
-    main_inicio()
+    st.set_page_config(page_title="App")
+    main()
