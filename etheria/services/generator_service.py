@@ -696,9 +696,12 @@ def generate_interpretation_from_summary(
                 # captura exceção da execução da função
                 logger.exception("generate_fn lançou exceção: %s", e)
                 # se a future tiver exceção, log detalhado
-                exc = future.exception()
-                if exc:
-                    logger.exception("Detalhe da exceção na future: %s", exc)
+                try:
+                    exc = future.exception()
+                    if exc:
+                        logger.exception("Detalhe da exceção na future: %s", exc)
+                except Exception:
+                    logger.exception("Falha ao obter exceção da future")
                 return {"error": f"Erro interno no gerador: {e}"}
 
             # defesa extra: se a função retornou None, log e retornar dict de erro
@@ -826,8 +829,8 @@ def generate_ai_text_from_chart(
       - chart_summary: summary normalizado.
     """
     result: Dict[str, Any] = {
-        "analysis_text": "<string>",   # nunca None (pode ser fallback)
-        "analysis_json": None or dict,
+        "analysis_text": "",   # nunca None (pode ser fallback)
+        "analysis_json": None,
         "svg": "",
         "source": "local|api|local_ai|none",
         "error": None or "<mensagem>",
@@ -992,33 +995,14 @@ def generate_ai_text_from_chart(
 # Função de alto nível: gerar SVG + texto (usa API externa quando disponível)
 # -------------------------
 @log_io
-def generate_analysis(
-    chart_input: Dict[str, Any],
-    prefer: str = "auto",
-    text_only: bool = False,
-    **kwargs
-) -> Dict[str, Any]:
+def generate_analysis(chart_input: Dict[str, Any], prefer: str = "auto", text_only: bool = False, **kwargs) -> Dict[str, Any]:
     """
-    Gera SVG do mapa e/ou texto de análise.
-    Retorna dict com keys: svg, analysis_text, analysis_json, source, error
+    Gera apenas texto de análise (SVG removido).
+    Retorna: analysis_text, analysis_json, source, error, raw_text
     """
-    result: Dict[str, Any] = {
-        "analysis_text": "<string>",   # nunca None (pode ser fallback)
-        "analysis_json": None or dict,
-        "svg": "",
-        "source": "local|api|local_ai|none",
-        "error": None or "<mensagem>",
-        "raw_text": "<string>"
-        }
+    result = {"analysis_text": "", "analysis_json": None, "source": "none", "error": None, "raw_text": ""}
 
-    def _fallback_text(name: Optional[str] = None) -> str:
-        base = name or chart_input.get("name") or "Interpretação"
-        logger.debug("generate_analysis entrada keys=%s", list(chart_input.keys()))
-        logger.debug("generate_analysis retorno: %r", result)
-
-        return f"{base}: interpretação não disponível no momento. Verifique os dados do mapa ou tente novamente."
-
-    # Decide se usa API externa
+    # decidir uso de API (mesma lógica sua)
     use_api = False
     if prefer == "api":
         use_api = True
@@ -1029,70 +1013,58 @@ def generate_analysis(
         except Exception:
             use_api = False
 
-    api_error: Optional[str] = None
+    api_error = None
 
-    # Fluxo somente texto
-    if text_only:
-        if use_api:
-            try:
-                name = chart_input.get("name", "")
-                dt = chart_input.get("dt")
-                lat = chart_input.get("lat", 0.0)
-                lon = chart_input.get("lon", 0.0)
-                tz = chart_input.get("tz", "")
-                api_resp = api_client.fetch_natal_chart_api(
-                    name, dt if isinstance(dt, datetime) else dt, lat, lon, tz
-                )
-                analysis_text = api_resp.get("analysis_text") or api_resp.get("interpretation") or ""
-                result.update({
-                    "analysis_text": analysis_text or _fallback_text(name),
-                    "analysis_json": api_resp.get("analysis_json"),
-                    "source": "api"
-                })
-                result["svg"] = chart_input.get("svg", "")
-                return result
-            except Exception as e:
-                api_error = str(e)
-
-        # Fallback IA local
+    # text_only: tentar API primeiro
+    if use_api:
         try:
-            summary = chart_input.get("summary")
-            if not summary and chart_input.get("place") and chart_input.get("bdate"):
-                if not chart_input.get("btime"):
-                    result["error"] = (result.get("error") or "") + "; Hora de nascimento não informada."
-                    result["analysis_text"] = _fallback_text(chart_input.get("name"))
-                    result["analysis_json"] = None
-                    result["source"] = "local_ai"
-                    result["svg"] = chart_input.get("svg", "")
-                    return result
-
-                summary = prepare_chart_summary_from_inputs(
-                    chart_input.get("place"),
-                    chart_input.get("bdate"),
-                    chart_input.get("btime", "")
-                )
-
-            if summary:
-                model = kwargs.get("model") or kwargs.get("model_choice")
-                _extra = {k: v for k, v in kwargs.items() if k != "model"}
-                ai_res = generate_ai_text_from_chart(summary, model=model, **_extra)
-
-                if ai_res.get("error"):
-                    combined_err = (api_error or "") + ("; " if api_error else "") + ai_res.get("error", "")
-                    result["error"] = combined_err or result.get("error")
-
-                # Usa saída normalizada da função IA
-                analysis_text = ai_res.get("analysis_text") or ""
-                analysis_json = ai_res.get("analysis_json")
-                result["analysis_text"] = analysis_text or _fallback_text(chart_input.get("name"))
-                result["analysis_json"] = analysis_json
-                result["source"] = "local_ai"
-            else:
-                result["analysis_text"] = _fallback_text(chart_input.get("name"))
-                result["analysis_json"] = None
-                result["source"] = "local_ai"
-
+            name = chart_input.get("name", "")
+            dt = chart_input.get("dt")
+            lat = chart_input.get("lat", 0.0)
+            lon = chart_input.get("lon", 0.0)
+            tz = chart_input.get("tz", "")
+            api_resp = api_client.fetch_natal_chart_api(name, dt if isinstance(dt, datetime) else dt, lat, lon, tz)
+            analysis_text = api_resp.get("analysis_text") or api_resp.get("interpretation") or ""
+            result.update({
+                "analysis_text": analysis_text or f"{name or 'Interpretação'}: interpretação não disponível no momento.",
+                "analysis_json": api_resp.get("analysis_json"),
+                "source": "api",
+                "raw_text": api_resp.get("raw_text", "")
+            })
+            return result
         except Exception as e:
-            result["error"] = (result.get("error") or "") + f"; AI generation error: {e}"
-            result["analysis_text"] = _fallback_text(chart_input.get("name"))
+            api_error = str(e)
+
+    # fallback local AI
+    try:
+        summary = chart_input.get("summary")
+        if not summary and chart_input.get("place") and chart_input.get("bdate"):
+            if not chart_input.get("btime"):
+                result["error"] = (result.get("error") or "") + "; Hora de nascimento não informada."
+                result["analysis_text"] = f"{chart_input.get('name','Interpretação')}: hora não informada."
+                result["source"] = "local_ai"
+                return result
+            summary = prepare_chart_summary_from_inputs(chart_input.get("place"), chart_input.get("bdate"), chart_input.get("btime", ""))
+
+        if summary:
+            model = kwargs.get("model") or kwargs.get("model_choice")
+            _extra = {k: v for k, v in kwargs.items() if k != "model"}
+            ai_res = generate_ai_text_from_chart(summary, model=model, **_extra)
+            if ai_res.get("error"):
+                combined_err = (api_error or "") + ("; " if api_error else "") + ai_res.get("error", "")
+                result["error"] = combined_err or result.get("error")
+            result["analysis_text"] = ai_res.get("analysis_text") or ai_res.get("raw_text") or f"{summary.get('name','Interpretação')}: interpretação não disponível."
+            result["analysis_json"] = ai_res.get("analysis_json")
+            result["source"] = "local_ai"
+        else:
+            result["analysis_text"] = f"{chart_input.get('name','Interpretação')}: interpretação não disponível."
             result["analysis_json"] = None
+            result["source"] = "local_ai"
+    except Exception as e:
+        logger.exception("Erro no fallback local AI: %s", e)
+        result["error"] = (result.get("error") or "") + f"; AI generation error: {e}"
+        result["analysis_text"] = f"{chart_input.get('name','Interpretação')}: interpretação não disponível."
+        result["analysis_json"] = None
+        result["source"] = "local_ai"
+
+    return result
