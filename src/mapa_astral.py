@@ -955,8 +955,7 @@ def main():
         """
     )
     # -------------------- UI --------------------
-    # mapa_astral.py
-
+    
     # Interface de captura do mapa natal e integração com generator_service.
     # - Valida e normaliza inputs do usuário.
     # - Resolve geocode e timezone com fallback.

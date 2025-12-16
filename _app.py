@@ -1,6 +1,5 @@
 def main_inicio():
     import streamlit as st
-    st.title("Início")
 
 if __name__ == "__main__":
     import streamlit as st
