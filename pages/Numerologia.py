@@ -180,49 +180,6 @@ def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
         "icon": style.get("icon", PLANET_STYLES["default"]["icon"]),
         "label": style.get(label_key, style.get("label_en", "—"))
     }
-
-types = list(data["matrices"].keys())
-if not types:
-    st.info("Nenhum tipo disponível para visualização.")
-else:
-    # três seletores na mesma linha: Tipo | Dia | Hora
-    col_type, col_day, col_hour = st.columns([1, 1, 1])
-
-    with col_type:
-        type_choice = st.selectbox("Seleção", options=types, index=0, key="type_choice")
-
-    # obter matriz após escolher o tipo
-    mat = data["matrices"][type_choice].fillna("-")
-    weekdays = mat.columns.tolist()
-    hours = mat.index.tolist()
-
-    # Ordem correta dos dias da semana
-    ordered_days = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
-    # Reordenar colunas da matriz
-    mat = mat[[day for day in ordered_days if day in mat.columns]]
-
-    with col_day:
-        default_weekday_idx = 0
-        if "Segunda-feira" in weekdays:
-            default_weekday_idx = weekdays.index("Segunda-feira")
-        weekday_choice = st.selectbox("Dia", options=weekdays, index=default_weekday_idx, key="weekday_choice")
-
-    with col_hour:
-        default_hour_idx = 0
-        if "06:00" in hours:
-            default_hour_idx = hours.index("06:00")
-        hour_choice = st.selectbox("Hora", options=hours, index=default_hour_idx, key="hour_choice")
-
-    def highlight_selected(df: pd.DataFrame, sel_wd: str, sel_hr: str) -> pd.io.formats.style.Styler:
-        def _style(row):
-            return [("background-color: #fffb0" if (col == sel_wd and row.name == sel_hr) else "") for col in df.columns]
-        return df.style.apply(_style, axis=1)
-
-    st.dataframe(highlight_selected(mat, weekday_choice, hour_choice), use_container_width=True, width=800)
-    try:
-        val = mat.loc[hour_choice, weekday_choice]
-    except Exception:
-        val = None
         
 # Garantir que a leitura esteja no session_state
 if "reading" not in st.session_state:
