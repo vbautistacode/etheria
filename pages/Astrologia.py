@@ -1,46 +1,30 @@
 # pages/Astrologia.py
-import os
-import importlib.util
-import runpy
-from pathlib import Path
 import streamlit as st
+from pathlib import Path
+import importlib.util
 
-# Lista de caminhos candidatos (ordem de preferência)
+# set_page_config deve ser a primeira chamada Streamlit neste arquivo
+st.set_page_config(page_title="Astrologia", layout="wide")
+
+# caminhos candidatos
 candidates = [
     Path(__file__).parent / "mapa_astral.py",
     Path(__file__).parent / "_src" / "mapa_astral.py",
-    Path(__file__).parent / "src" / "mapa_astral.py",
-    Path(__file__).parent.parent / "pages" / "_src" / "mapa_astral.py",
-    Path(__file__).parent.parent / "pages" / "mapa_astral.py",
     Path(__file__).parent.parent / "src" / "mapa_astral.py",
-    Path(__file__).parent.parent / "mapa_astral.py",
 ]
 
-found = None
-for p in candidates:
-    if p.is_file():
-        found = p.resolve()
-        break
-
+found = next((p for p in candidates if p.is_file()), None)
 if not found:
-    st.error(
-        "Não foi possível localizar `mapa_astral.py` para a página Astrologia.\n\n"
-        "Verifique onde o arquivo está no repositório e mova-o para um dos locais esperados.\n\n"
-        "Locais verificados:\n" + "\n".join(str(x) for x in candidates)
-    )
+    st.error("Arquivo mapa_astral.py não encontrado. Verifique o caminho.")
 else:
-    # Tentar importar dinamicamente se o arquivo define uma função main() ou similar
-    try:
-        spec = importlib.util.spec_from_file_location("mapa_astral_dynamic", str(found))
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        # se existir função pública para rodar a página, chame-a
-        if hasattr(module, "main") and callable(module.main):
-            module.main()
-        elif hasattr(module, "render") and callable(module.render):
-            module.render()
-        else:
-            # fallback: executar como script (preserva comportamento __main__)
-            runpy.run_path(str(found), run_name="__main__")
-    except Exception as e:
-        st.error(f"Erro ao carregar {found.name}: {e}")
+    spec = importlib.util.spec_from_file_location("mapa_astral_dynamic", str(found))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    # preferir chamar uma função pública do módulo
+    if hasattr(module, "main") and callable(module.main):
+        module.main()
+    elif hasattr(module, "main_inicio") and callable(module.main_inicio):
+        module.main_inicio()
+    else:
+        st.error("mapa_astral.py não define uma função pública 'main' ou 'main_inicio'.")
