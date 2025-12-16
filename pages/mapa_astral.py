@@ -1535,7 +1535,7 @@ with right_col:
     # -------------------------
         with tabs[1]:
             # obter nome do consulente (priorizar campo do sidebar)
-            client_name = st.session_state.get("client_name") or summary.get("name") if summary else "Consulente"
+            client_name = st.session_state.get("client_name") or (summary.get("name") if isinstance(summary, dict) else "Consulente")
 
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
