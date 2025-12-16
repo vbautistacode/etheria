@@ -586,7 +586,7 @@ def render_wheel_plotly(
     cusps: list,
     *,
     highlight_groups: dict = None,
-    house_label_position: str = "outer",  # "inner", "mid", "outer"
+    house_label_position: str = "inner",  # "inner", "mid", "outer"
     marker_scale: float = 1.4,
     text_scale: float = 1.2,
     cusp_colors_by_quadrant: list = None,
@@ -624,7 +624,7 @@ def render_wheel_plotly(
 
     # defaults
     if cusp_colors_by_quadrant is None:
-        cusp_colors_by_quadrant = ["#000000", "#000000", "#000000", "#000000"]  # 4 tons distintos
+        cusp_colors_by_quadrant = ["#6E6E6E", "#6E6E6E", "#6E6E6E", "#6E6E6E"]  # 4 tons distintos
 
     # helper: extrair longitude
     def extract_lon(pdata):
@@ -873,9 +873,9 @@ def render_wheel_plotly(
         ASPECTS = [
             ("Conjunção", 0, 8, "#222222", 3.0),
             ("Sextil", 60, 6, "#2ca02c", 2.0),
-            ("Quadratura", 90, 7, "#d62728", 2.4),
+            ("Quadratura", 90, 7, "#e05353", 2.4),
             ("Trígono", 120, 7, "#1f77b4", 2.4),
-            ("Oposição", 180, 8, "#9467bd", 2.8),
+            ("Oposição", 180, 8, "#ff0000", 2.8),
         ]
         n = len(names)
         for i in range(n):
