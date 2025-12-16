@@ -1561,7 +1561,7 @@ with right_col:
                         # criar expander por signo (abre/fecha)
                         with st.expander(f"{display_sign} — Arcano"):
                             # gerar interpretação (arcano_for_sign normaliza internamente)
-                            arc_res = arcano_for_sign(raw_sign, name=client_name)
+                            arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name)
 
                             # título com arcano (se disponível)
                             arcano_label = arc_res.get("arcano") or "—"
