@@ -1546,7 +1546,7 @@ with right_col:
                     raw = row.get("sign") or row.get("zodiac")
                     if not raw:
                         continue
-                    norm = _normalize_sign(raw)
+                    norm = interpretations._normalize_sign(raw)
                     if not norm:
                         continue
                     if norm not in sign_map:
