@@ -1530,26 +1530,47 @@ with right_col:
     # -------------------------
     # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
     # -------------------------
-    with tabs[1]:
-        st.markdown("### Influência Arcano x Signo")
-        table = summary.get("table", []) if summary else []
-        # coletar signos únicos
-        signs = []
-        for row in table:
-            s = row.get("sign") or row.get("zodiac")
-            if s:
-                norm = _normalize_sign(s)
-                if norm not in signs:
-                    signs.append(norm)
+        with tabs[1]:
+            st.markdown("### Influência Arcano x Signo")
 
-        if not signs:
-            st.info("Nenhum signo detectado no mapa.")
-        else:
-            for s in signs:
-                display_sign = s.title()
-                arc_res = arcano_for_sign(s, name=summary.get("name"))
-                st.markdown(f"#### {display_sign} — Arcano {arc_res.get('arcano') or '—'}")
-                if arc_res.get("error"):
-                    st.write("Erro: " + arc_res["error"])
+            if not summary:
+                st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
+            else:
+                table = summary.get("table", []) or []
+
+                # construir mapa norm -> primeiro raw encontrado (preserva forma original para exibição)
+                sign_map: Dict[str, str] = {}
+                for row in table:
+                    raw = row.get("sign") or row.get("zodiac")
+                    if not raw:
+                        continue
+                    norm = _normalize_sign(raw)
+                    if not norm:
+                        continue
+                    # preservar o primeiro raw encontrado para este norm
+                    if norm not in sign_map:
+                        sign_map[norm] = raw
+
+                if not sign_map:
+                    st.info("Nenhum signo detectado no mapa.")
                 else:
-                    st.write(arc_res["text"])
+                    # iterar em ordem de aparição (sign_map preserva a primeira ocorrência)
+                    for norm, raw_sign in sign_map.items():
+                        # display com a forma original (raw_sign) quando possível
+                        display_sign = str(raw_sign).strip()
+                        # chamar arcano_for_sign com raw_sign (arcano_for_sign normaliza internamente)
+                        arc_res = arcano_for_sign(raw_sign, name=summary.get("name"))
+
+                        st.markdown(f"#### {display_sign} — Arcano {arc_res.get('arcano') or '—'}")
+
+                        if arc_res.get("error"):
+                            st.write("Erro: " + str(arc_res["error"]))
+                            # opcional: mostrar motivo técnico em modo dev
+                            if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
+                                st.write(arc_res)
+                        else:
+                            text = arc_res.get("text") or ""
+                            if not text.strip():
+                                st.write("Interpretação não disponível para este signo no momento.")
+                            else:
+                                st.write(text)
