@@ -1559,13 +1559,13 @@ with right_col:
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
                         # criar expander por signo (abre/fecha)
-                        with st.expander(f"{display_sign}"):
+                        with st.expander(f"**{display_sign}**"):
                             # gerar interpretação (arcano_for_sign normaliza internamente)
                             arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name)
 
                             # título com arcano (se disponível)
                             arcano_label = arc_res.get("arcano") or "—"
-                            st.markdown(f"**Arcano inferido: {arcano_label}**")
+                            st.markdown(f"**Arcano: {arcano_label}**")
 
                             # erro ou texto
                             if arc_res.get("error"):
