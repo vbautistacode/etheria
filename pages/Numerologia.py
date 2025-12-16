@@ -136,6 +136,75 @@ def canonical_planet_name(name: str) -> Optional[str]:
             return k
     return None
 
+def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
+    """
+    Retorna o dicionário de estilo para o planeta dado (aceita variantes).
+    - name: qualquer variante (ex.: 'Vênus', 'venus', 'Venus', 'Júpiter', 'Jupiter')
+    - lang: 'pt' ou 'en' para obter label no idioma desejado (label_pt/label_en)
+    Retorna o estilo 'default' se não encontrar.
+    """
+    canon = canonical_planet_name(name)
+    style = PLANET_STYLES.get(canon) if canon else PLANET_STYLES["default"]
+    # construir retorno com label no idioma pedido
+    label_key = "label_pt" if lang and lang.lower().startswith("pt") else "label_en"
+    return {
+        "color": style.get("color", PLANET_STYLES["default"]["color"]),
+        "icon": style.get("icon", PLANET_STYLES["default"]["icon"]),
+        "label": style.get(label_key, style.get("label_en", "—"))
+    }
+
+# -------------------------
+# Snippets de ciclos (usando base_years do sidebar)
+# -------------------------
+# --- Interpretação coletiva dinâmica
+# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
+
+_now = datetime.now()
+reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+reg_teo = get_regent_for_cycle("teosofico", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+reg_35  = get_regent_for_cycle("maior", _now, {"corr_df": data["corr_df"]},
+                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+
+planet_ast = short_regent_label(reg_ast.get("regent"))
+planet_teo = short_regent_label(reg_teo.get("regent"))
+planet_35  = short_regent_label(reg_35.get("regent"))
+
+# Garantir que a leitura esteja no session_state
+if "reading" not in st.session_state:
+    st.session_state["reading"] = None
+
+# Quando o botão Gerar leitura for pressionado, gerar e armazenar leitura
+if generate_btn:
+    try:
+        from etheria import rules, interpretations
+    except Exception:
+        try:
+            from esoteric_rules import rules, interpretations
+        except Exception:
+            rules = None
+            interpretations = None
+
+    if rules is None:
+        # mostrar erro global no topo da página (ou no sidebar)
+        st.sidebar.error("O pacote de regras não foi encontrado. Coloque 'etheria' ou 'esoteric_rules' no PYTHONPATH.")
+    elif not full_name:
+        st.sidebar.warning("Digite o nome completo.")
+    else:
+        tables = {
+            "cycle_35": data.get("cycle_35"),
+            "cycle_1year": data.get("cycle_1year"),
+            "letter_map": data.get("letter_map"),
+            "correlations": data["corr_df"],
+        }
+        try:
+            reading = rules.generate_reading(full_name, dob, tables=tables, cycle_mode=DEFAULT_CYCLE_MODE)
+            st.session_state["reading"] = reading
+            st.sidebar.success("Leitura gerada e armazenada.")
+        except Exception as e:
+            st.sidebar.error(f"Erro ao gerar leitura: {e}")
+
 #---
 #---
 #---
