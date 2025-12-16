@@ -58,6 +58,7 @@ from etheria.cycles import (
 )
 
 st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
+
 st.title("Etheria | Painel Esotérico")
 st.markdown(
     """
