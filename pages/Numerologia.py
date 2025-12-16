@@ -36,6 +36,34 @@ from etheria.cycles import (
     CICLO_MENOR_TEOSOFICO_DESC,
 )
 
+DEFAULT_CYCLE_MODE = "astrologico"
+
+# -------------------------
+# Carregamento centralizado (sem uploads)
+# -------------------------
+@st.cache_data
+def load_data() -> Dict[str, Any]:
+    default_matrix_path = "data/matrix_hour.csv"
+    default_corr_path = "data/correlations.csv"
+
+    df_matrix = read_matrix_csv(default_matrix_path, sep=";")
+    df_corr = read_correlations(default_corr_path, sep=";")
+
+    df_long = wide_matrix_to_long(df_matrix)
+    df_merged = join_matrix_with_map(df_long, df_corr)
+    matrices = build_type_matrices(df_merged)
+    report = validation_report(df_long, df_corr)
+    return {
+        "matrix_df": df_matrix,
+        "corr_df": df_corr,
+        "long": df_long,
+        "merged": df_merged,
+        "matrices": matrices,
+        "report": report,
+    }
+
+data = load_data()
+
 st.sidebar.header("Entrada do Consulente")
 # --- Sidebar (exemplo) ---
 def _sync_sidebar_to_tab():
