@@ -1532,46 +1532,50 @@ with right_col:
     # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
     # -------------------------
         with tabs[1]:
-            #st.markdown("### Influência Arcano x Signo")
+            # obter nome do consulente (priorizar campo do sidebar)
+            client_name = st.session_state.get("client_name") or summary.get("name") if summary else "Consulente"
 
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
             else:
                 table = summary.get("table", []) or []
 
-                # construir mapa norm -> primeiro raw encontrado (preserva forma original para exibição)
+                # construir mapa norm -> primeiro raw encontrado (preserva forma original)
                 sign_map: Dict[str, str] = {}
                 for row in table:
                     raw = row.get("sign") or row.get("zodiac")
                     if not raw:
                         continue
-                    norm = interpretations._normalize_sign(raw)
+                    norm = _normalize_sign(raw)
                     if not norm:
                         continue
-                    # preservar o primeiro raw encontrado para este norm
                     if norm not in sign_map:
                         sign_map[norm] = raw
 
                 if not sign_map:
                     st.info("Nenhum signo detectado no mapa.")
                 else:
-                    # iterar em ordem de aparição (sign_map preserva a primeira ocorrência)
+                    # iterar em ordem de aparição
                     for norm, raw_sign in sign_map.items():
-                        # display com a forma original (raw_sign) quando possível
                         display_sign = str(raw_sign).strip()
-                        # chamar arcano_for_sign com raw_sign (arcano_for_sign normaliza internamente)
-                        arc_res = interpretations.arcano_for_sign(raw_sign, name=summary.get("name"))
+                        # criar expander por signo (abre/fecha)
+                        with st.expander(f"{display_sign} — Arcano"):
+                            # gerar interpretação (arcano_for_sign normaliza internamente)
+                            arc_res = arcano_for_sign(raw_sign, name=client_name)
 
-                        st.markdown(f"#### {display_sign} — Arcano {arc_res.get('arcano') or '—'}")
+                            # título com arcano (se disponível)
+                            arcano_label = arc_res.get("arcano") or "—"
+                            st.markdown(f"**Arcano inferido: {arcano_label}**")
 
-                        if arc_res.get("error"):
-                            st.write("Erro: " + str(arc_res["error"]))
-                            # opcional: mostrar motivo técnico em modo dev
-                            if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
-                                st.write(arc_res)
-                        else:
-                            text = arc_res.get("text") or ""
-                            if not text.strip():
-                                st.write("Interpretação não disponível para este signo no momento.")
+                            # erro ou texto
+                            if arc_res.get("error"):
+                                st.warning("Não foi possível gerar interpretação por signo: " + str(arc_res["error"]))
+                                # opção de debug por expander
+                                if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
+                                    st.write(arc_res)
                             else:
-                                st.write(text)
+                                text = arc_res.get("text") or ""
+                                if not text.strip():
+                                    st.write("Interpretação não disponível para este signo no momento.")
+                                else:
+                                    st.write(text)
