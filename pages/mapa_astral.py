@@ -997,7 +997,7 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 # -------------------------
 with st.sidebar:
     with st.form("birth_form_sidebar", border=False):
-        name = st.text_input("Nome", value="")
+        st.text_input("Nome", value=summary.get("name", "") if summary else "", key="client_name")
         place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="São Paulo, São Paulo, Brasil")
         bdate = st.date_input("Data de nascimento",
             value=date(1990, 4, 25),
@@ -1482,7 +1482,7 @@ with right_col:
 
     # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
     # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
-    tabs = st.tabs(["Planetas", "Signos"])
+    tabs = st.tabs(["Planeta", "Signo"])
 
     # dados selecionados
     selected_raw = st.session_state.get("selected_planet")
@@ -1506,7 +1506,6 @@ with right_col:
                 if isinstance(arc, dict):
                     arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
                     arc_num = arc.get("arcano") or arc.get("value")
-                    #arc_conf = arc.get("confidence")
                     st.write(f"{arc_name} (#{arc_num})")
                 else:
                     st.write(f"Arcano {arc}")
