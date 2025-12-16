@@ -1,8 +1,4 @@
 # pages/Inicio.py
-import os, sys
-ROOT = os.path.dirname(os.path.dirname(__file__))  # pasta raiz do projeto
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-from src.app_core import main_inicio
-main_inicio()
+import runpy, os
+script_path = os.path.join(os.path.dirname(__file__), "..", "src", "app_core.py")
+runpy.run_path(os.path.abspath(script_path), run_name="__main__")
