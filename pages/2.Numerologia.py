@@ -101,7 +101,7 @@ birth_time = st.sidebar.text_input(
     key="birth_time_influences"
 )
 
-generate_btn = st.sidebar.button("Gerar leitura")
+generate_btn = st.sidebar.button("Gerar Leitura")
 
 # -------------------------
 
@@ -201,6 +201,7 @@ if generate_btn:
 
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
 st.title("Análises Planetárias e Numerológicas")
+st.caption("Preencha seu nome completo e seu nascimento no formulário lateral e clique em 'Gerar Leitura'.")
 st.markdown(
     """
     Em *Etheria*, os astros e os números formam a arquitetura invisível da alma. Enquanto as **Análises Planetárias** revelam o cenário celeste e as marés emocionais que moldam sua jornada, a **Numerologia** decifra o código 
