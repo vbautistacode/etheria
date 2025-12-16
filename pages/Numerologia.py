@@ -104,22 +104,6 @@ birth_time = st.sidebar.text_input(
 generate_btn = st.sidebar.button("Gerar leitura")
 
 # -------------------------
-# Planet styles (cores e ícones)
-# --- Planet styles (canônico em inglês) + aliases PT/EN ---
-PLANET_STYLES = {
-    # nomes canônicos (usar internamente)
-    "Sun":    {"color": "#FFA500", "icon": "☉", "label_pt": "Sol",     "label_en": "Sun"},
-    "Moon":   {"color": "#EE82EE", "icon": "☾", "label_pt": "Lua",     "label_en": "Moon"},
-    "Mars":   {"color": "#FF0000", "icon": "♂️", "label_pt": "Marte",   "label_en": "Mars"},
-    "Mercury":{"color": "#FFD700", "icon": "☿️", "label_pt": "Mercúrio","label_en": "Mercury"},
-    "Jupiter":{"color": "#0000FF", "icon": "♃", "label_pt": "Júpiter", "label_en": "Jupiter"},
-    "Venus":  {"color": "#87CEEB", "icon": "♀️", "label_pt": "Vênus",   "label_en": "Venus"},
-    "Saturn": {"color": "#008000", "icon": "♄", "label_pt": "Saturno", "label_en": "Saturn"},
-    "Uranus": {"color": "#7FFFD4", "icon": "⛢", "label_pt": "Urano",   "label_en": "Uranus"},
-    "Neptune":{"color": "#6A5ACD", "icon": "♆", "label_pt": "Netuno",  "label_en": "Neptune"},
-    "Pluto":  {"color": "#A52A2A", "icon": "♇", "label_pt": "Plutão",  "label_en": "Pluto"},
-    "default":{"color": "#E0E0E0", "icon": "✨", "label_pt": "Default", "label_en": "Default"}
-}
 
 # aliases para mapear variantes (sem acento, pt/eng, abreviações)
 PLANET_ALIASES = {
@@ -299,6 +283,15 @@ def planet_from_matrix_safe(mat: pd.DataFrame, weekday: str, hhmm: str) -> Optio
 # Criar abas principais
 tab_influencias, tab_num, tab_cabalistica = st.tabs(
     ["Influências", "Numerologia", "Numerologia Cabalística"]
+)
+
+st.markdown(
+    """
+    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
+    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
+    são chaves para compreender tanto os movimentos externos quanto os internos.  
+    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
+    """
 )
 
 #-------------------------

@@ -940,6 +940,14 @@ def render_wheel_plotly(
 st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
 st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
 
+st.markdown(
+    """
+    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
+    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
+    são chaves para compreender tanto os movimentos externos quanto os internos.  
+    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
+    """
+)
 # -------------------- UI --------------------
 # mapa_astral.py
 
@@ -1151,6 +1159,7 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 # -------------------------
 PAGE_ID = "mapa_astral"  # identifique a página; troque se necessário
 
+st.sidebar.header("Entrada do Consulente")
 with st.sidebar:
     form_key = f"birth_form_sidebar_{PAGE_ID}"
     with st.form(key=form_key, border=False):
