@@ -136,41 +136,6 @@ def canonical_planet_name(name: str) -> Optional[str]:
             return k
     return None
 
-def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
-    """
-    Retorna o dicionário de estilo para o planeta dado (aceita variantes).
-    - name: qualquer variante (ex.: 'Vênus', 'venus', 'Venus', 'Júpiter', 'Jupiter')
-    - lang: 'pt' ou 'en' para obter label no idioma desejado (label_pt/label_en)
-    Retorna o estilo 'default' se não encontrar.
-    """
-    canon = canonical_planet_name(name)
-    style = PLANET_STYLES.get(canon) if canon else PLANET_STYLES["default"]
-    # construir retorno com label no idioma pedido
-    label_key = "label_pt" if lang and lang.lower().startswith("pt") else "label_en"
-    return {
-        "color": style.get("color", PLANET_STYLES["default"]["color"]),
-        "icon": style.get("icon", PLANET_STYLES["default"]["icon"]),
-        "label": style.get(label_key, style.get("label_en", "—"))
-    }
-
-# -------------------------
-# Snippets de ciclos (usando base_years do sidebar)
-# -------------------------
-# --- Interpretação coletiva dinâmica
-# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
-
-_now = datetime.now()
-reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_teo = get_regent_for_cycle("teosofico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_35  = get_regent_for_cycle("maior", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-
-planet_ast = short_regent_label(reg_ast.get("regent"))
-planet_teo = short_regent_label(reg_teo.get("regent"))
-planet_35  = short_regent_label(reg_35.get("regent"))
-
 # Garantir que a leitura esteja no session_state
 if "reading" not in st.session_state:
     st.session_state["reading"] = None
