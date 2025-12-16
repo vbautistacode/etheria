@@ -624,7 +624,7 @@ def render_wheel_plotly(
 
     # defaults
     if cusp_colors_by_quadrant is None:
-        cusp_colors_by_quadrant = ["#6E6E6E", "#6E6E6E", "#6E6E6E", "#6E6E6E"]  # 4 tons distintos
+        cusp_colors_by_quadrant = ["#6E6E6E52", "#6E6E6E52", "#6E6E6E52", "#6E6E6E52"]  # 4 tons distintos
 
     # helper: extrair longitude
     def extract_lon(pdata):
@@ -712,9 +712,9 @@ def render_wheel_plotly(
     }
     # cores por grupo (padrão)
     group_colors = {
-        "pessoais": "#ff7f0e",
-        "sociais": "#1f77b4",
-        "geracionais": "#581fb4"
+        "pessoais": "#ffcfa4",
+        "sociais": "#83a1b6",
+        "geracionais": "#886eb3"
     }
 
     # ordenar por longitude
