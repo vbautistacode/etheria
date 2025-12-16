@@ -307,8 +307,8 @@ with c1:
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
     
     st.write(interp_ast["short"])
-    st.expander("Ver interpretação completa")
-    st.markdown(interp_ast["long"])
+    with st.expander("Ver interpretação completa"):
+        st.markdown(interp_ast["long"])
 
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
@@ -320,8 +320,8 @@ with c2:
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
 
     st.write(interp_teo["short"])
-    st.expander("Ver interpretação completa")
-    st.markdown(interp_teo["long"])
+    with st.expander("Ver interpretação completa"):
+        st.markdown(interp_teo["long"])
 
 with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
@@ -333,8 +333,8 @@ with c3:
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
 
     st.write(interp_35["short"])
-    st.expander("Ver interpretação completa")
-    st.markdown(interp_35["long"])
+    with st.expander("Ver interpretação completa"):
+        st.markdown(interp_35["long"])
 # --------------------------------------------------------------------
 
 # -------------------------
