@@ -200,7 +200,7 @@ if generate_btn:
             st.sidebar.error(f"Erro ao gerar leitura: {e}")
 
 # Área principal: manter visualizador (esquerda) e abaixo criar abas
-st.title("Análises Planetárias e Numerológicas")
+st.title("Análises Planetárias e Numerológicas 9️⃣")
 st.caption("Preencha seu nome completo e seu nascimento no formulário lateral e clique em 'Gerar Leitura'.")
 st.markdown(
     """
