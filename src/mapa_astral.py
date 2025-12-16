@@ -1761,5 +1761,4 @@ def main():
                                         
 # permite executar diretamente para desenvolvimento
 if __name__ == "__main__":
-    st.set_page_config(page_title="Astrologia", layout="wide")
     main()
