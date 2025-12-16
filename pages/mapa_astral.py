@@ -95,7 +95,7 @@ __all__ = [
 _aspects_cache: Dict[str, dict] = {}
 
 # Page config
-st.set_page_config(page_title="Etheria — Painel Esotérico", layout="wide")
+st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
 
 # Inicialização segura de session_state
 _defaults = {
