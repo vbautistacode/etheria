@@ -1,6 +1,5 @@
-def main_inicio():
-    import streamlit as st
+import streamlit as st
+st.set_page_config(page_title="Início", layout="wide")
 
-if __name__ == "__main__":
-    import streamlit as st
-    main_inicio()
+from pages.Inicio import main as inicio_main
+inicio_main()
