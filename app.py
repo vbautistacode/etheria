@@ -276,6 +276,9 @@ def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
 # -------------------------
 # Snippets de ciclos (usando base_years do sidebar)
 # -------------------------
+# --- Interpretação coletiva dinâmica
+# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
+
 _now = datetime.now()
 reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
                                base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
@@ -291,6 +294,8 @@ planet_35  = short_regent_label(reg_35.get("regent"))
 st.header("Ciclos Astrológicos")
 st.markdown("Os ciclos anuais refletem as energias predominantes que influenciam o consulente ao longo do ano atual.")
 
+interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
+
 c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
@@ -301,6 +306,10 @@ with c1:
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
     
+    st.write(interp_ast["short"])
+    st.expander("Ver interpretação completa")
+    st.markdown(interp_ast["long"])
+
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
@@ -309,6 +318,10 @@ with c2:
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
+
+    st.write(interp_teo["short"])
+    st.expander("Ver interpretação completa")
+    st.markdown(interp_teo["long"])
 
 with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
@@ -319,29 +332,10 @@ with c3:
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
 
-# --------------------------------------------------------------------
-# --- Interpretação coletiva dinâmica
-# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
-interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
-
-col1, col2, col3 = st.columns([0.5, 0.5, 0.5])
-
-with col1:
-    
-    st.write(interp_ast["short"])
-    with st.expander("Ver interpretação completa"):
-        st.markdown(interp_ast["long"])
-
-with col2:
-    st.write(interp_teo["short"])
-    with st.expander("Ver interpretação completa"):
-        st.markdown(interp_teo["long"])
-
-with col3:
     st.write(interp_35["short"])
-    with st.expander("Ver interpretação completa"):
-        st.markdown(interp_35["long"])
-# -------------------------
+    st.expander("Ver interpretação completa")
+    st.markdown(interp_35["long"])
+# --------------------------------------------------------------------
 
 # -------------------------
 # Layout principal: visualizador e área de resultados
