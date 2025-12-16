@@ -609,18 +609,29 @@ def main():
         Returns:
         fig ou (fig, png_bytes) se export_png True.
         """
-        if not PLOTLY_AVAILABLE:
+        import logging
+        logger = logging.getLogger("render_wheel_plotly")
+
+        # dentro da função render_wheel_plotly(...):
+        # --- início corrigido ---
+        # garantir logger pronto
+        logger.debug("Entrando em render_wheel_plotly")
+
+        # tentar importar plotly aqui e definir disponibilidade localmente
+        try:
+            import plotly.graph_objects as go  # noqa: F401
+            PLOTLY_OK = True
+        except Exception as e:
+            PLOTLY_OK = False
+            logger.exception("Plotly import failed: %s", e)
+
+        if not PLOTLY_OK:
             logger.warning("Plotly não disponível; render_wheel_plotly retornará None")
             return None
 
-        try:
-            import plotly
-            import plotly.graph_objects as go
-        except Exception:
-            return None
-
-        import math, logging, unicodedata
-        logger = logging.getLogger("render_wheel_plotly")
+        # agora importe de fato (usando a referência já testada)
+        import plotly.graph_objects as go
+        # --- fim do início corrigido ---
 
         # defaults
         if cusp_colors_by_quadrant is None:
