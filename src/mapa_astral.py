@@ -938,7 +938,7 @@ def render_wheel_plotly(
     return fig
 
 st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
-st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
+st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
 
 st.markdown(
     """
