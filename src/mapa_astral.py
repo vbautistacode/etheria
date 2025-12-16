@@ -937,7 +937,7 @@ def render_wheel_plotly(
 
     return fig
 
-st.markdown("<h1 style='text-align:left'>Mapa Astral ♎ </h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
 st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
 
 # -------------------- UI --------------------
@@ -1442,7 +1442,7 @@ with left_col:
 
 # CENTER: mapa + IA + interpretação
 with center_col:
-    st.subheader("Mapa Zodiacal")
+    st.subheader("Mapa Astral")
     if not map_ready or fig_saved is None:
         st.info("Nenhum mapa gerado. Preencha os parâmetros e clique em 'Gerar Mapa'.")
     else:
