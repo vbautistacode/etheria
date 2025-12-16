@@ -105,7 +105,7 @@ data = load_data()
 from datetime import datetime
 current_year = datetime.now().year
 
-st.sidebar.header("Ajustes de ciclos")
+st.sidebar.header("Ajustes de Ciclos")
 # usar session_state para persistência entre interações
 if "base_astro" not in st.session_state:
     st.session_state["base_astro"] = current_year
