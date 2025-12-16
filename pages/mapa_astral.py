@@ -997,10 +997,7 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 # -------------------------
 with st.sidebar:
     with st.form("birth_form_sidebar", border=False):
-        default_name = ""
-        if "summary" in globals() and isinstance(globals().get("summary"), dict):
-            default_name = globals().get("summary", {}).get("name", "") or ""
-        st.text_input("Nome", value=default_name, key="client_name")
+        name = st.text_input("Nome", value="")
         place = st.text_input("Cidade de nascimento (ex: São Paulo, Brasil)", value="São Paulo, São Paulo, Brasil")
         bdate = st.date_input("Data de nascimento",
             value=date(1990, 4, 25),
@@ -1535,7 +1532,7 @@ with right_col:
     # -------------------------
         with tabs[1]:
             # obter nome do consulente (priorizar campo do sidebar)
-            client_name = st.session_state.get("client_name") or (summary.get("name") if isinstance(summary, dict) else "Consulente")
+            client_name = st.session_state.get("client_name") or summary.get("name") if summary else "Consulente"
 
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
