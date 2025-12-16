@@ -942,10 +942,10 @@ st.markdown("Preencha os dados de nascimento no formulário lateral e clique em 
 
 st.markdown(
     """
-    Em *Etheria*, os astros e os números formam a arquitetura invisível da alma. Enquanto as **Análises Planetárias** revelam o cenário celeste e as marés emocionais que moldam sua jornada, a **Numerologia** decifra o código 
+    Em *Etheria*, os astros e os números formam a arquitetura invisível da alma. As **Análises Planetárias** revelam o cenário celeste e as marés emocionais que moldam sua jornada. 
     vibracional que estrutura seu propósito e identidade.
     Este painel é um ponto de encontro entre o movimento dos céus e a precisão dos ciclos. Aqui, os arquétipos 
-    planetários e as frequências numéricas não são apenas dados, mas **chaves de autoconhecimento**. Ao explorar 
+    planetários são frequências que ativam as **chaves do autoconhecimento**. Ao explorar 
     essas ferramentas, você integra a sabedoria cósmica à sua realidade prática, transformando a observação em 
     consciência e o potencial em destino vivido.
     """
