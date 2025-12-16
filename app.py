@@ -1,39 +1,34 @@
 # app.py - wrapper que executa pages/Inicio.py como entrypoint
-
+import streamlit as st
 from pathlib import Path
 import importlib.util
 import logging
-import streamlit as st
+
+# set_page_config deve ser a primeira chamada st.* neste arquivo
+st.set_page_config(page_title="Início", layout="wide")
 
 logger = logging.getLogger("app_wrapper")
 
 def _call_inicio_main():
-    # tentar import direto (caso o módulo seja importável)
+    # tentativa direta de import (quando pages é um pacote importável)
     try:
         from pages.Inicio import main as inicio_main  # type: ignore
         if callable(inicio_main):
             inicio_main()
             return
     except Exception:
-        logger.debug("Import direto pages.Inicio falhou, prosseguindo com busca por arquivo", exc_info=True)
+        logger.debug("Import direto pages.Inicio falhou, tentando import dinâmico", exc_info=True)
 
-    pages_dir = Path(__file__).parent / "pages"
-    if not pages_dir.is_dir():
-        st.error(f"Diretório pages/ não encontrado em: {pages_dir}")
+    # fallback: localizar o arquivo pages/Inicio.py e carregar dinamicamente
+    candidates = [
+        Path(__file__).parent / "pages" / "Inicio.py",
+        Path.cwd() / "pages" / "Inicio.py",
+    ]
+    found = next((p for p in candidates if p.is_file()), None)
+    if not found:
+        st.error("Arquivo pages/Inicio.py não encontrado. Verifique a estrutura do projeto.")
         return
 
-    # procurar qualquer arquivo que contenha 'Inicio' no nome (case-insensitive)
-    candidates = sorted(pages_dir.glob("*[Ii]nicio*.py"))
-    if not candidates:
-        # fallback mais amplo
-        candidates = sorted(pages_dir.glob("*Inicio*.py")) + sorted(pages_dir.glob("*inicio*.py"))
-
-    if not candidates:
-        st.error("Nenhum arquivo contendo 'Inicio' encontrado em pages/. Verifique o nome do arquivo.")
-        return
-
-    found = candidates[0]
-    logger.info("Carregando dinamicamente %s", found)
     try:
         spec = importlib.util.spec_from_file_location("pages_inicio_dynamic", str(found))
         module = importlib.util.module_from_spec(spec)
@@ -42,11 +37,10 @@ def _call_inicio_main():
         if hasattr(module, "main") and callable(module.main):
             module.main()
         else:
-            st.error(f"{found.name} não define uma função pública 'main()'.")
+            st.error("pages/Inicio.py não define uma função pública 'main()'.")
     except Exception as e:
-        logger.exception("Falha ao carregar %s dinamicamente: %s", found, e)
+        logger.exception("Falha ao carregar pages/Inicio.py dinamicamente: %s", e)
         st.error("Erro ao iniciar a página Início. Veja logs do servidor para detalhes.")
-
 
 if __name__ == "__main__":
     _call_inicio_main()
