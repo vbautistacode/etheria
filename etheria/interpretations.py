@@ -248,6 +248,56 @@ def _normalize_sign(s: Optional[str]) -> Optional[str]:
     except Exception:
         return str(s).strip().lower()
 
+def arcano_for_sign(sign: Optional[str], name: Optional[str] = None, length: str = "long") -> Dict[str, Any]:
+    """
+    Retorna dict com keys: sign, arcano, text, template_key, error.
+    Usa SIGN_TO_ARCANO e BASE_TEMPLATES. name é usado para formatar o template (ex: nome do consulente).
+    """
+    out = {"sign": sign, "arcano": None, "text": "", "template_key": None, "error": None}
+    try:
+        if not sign:
+            out["error"] = "Signo não informado"
+            return out
+
+        norm = _normalize_sign(sign)
+        arc = SIGN_TO_ARCANO.get(norm)
+        if not arc:
+            out["error"] = f"Não foi possível inferir arcano para o signo '{sign}' (normalizado: '{norm}')"
+            return out
+
+        out["arcano"] = str(arc)
+        out["template_key"] = str(arc) if str(arc) in BASE_TEMPLATES else "default"
+
+        # montar contexto mínimo para format
+        ctx = {
+            "name": name or "Consulente",
+            "life_path": out["arcano"],
+            "cabalistic": "-",
+            "challenge": "-",
+            "fluency": "-",
+            "practice": "-",
+            "quantics_potential": "-"
+        }
+
+        template_entry = BASE_TEMPLATES.get(out["template_key"], BASE_TEMPLATES.get("default"))
+        text_template = template_entry.get(length) or template_entry.get("long") or template_entry.get("short") or ""
+        try:
+            text = text_template.format(**ctx)
+        except Exception:
+            # fallback simples de substituição
+            text = text_template
+            for k, v in ctx.items():
+                text = text.replace("{" + k + "}", str(v))
+        out["text"] = textwrap.fill(text, width=100)
+        return out
+    except Exception as e:
+        try:
+            logger.exception("Erro em arcano_for_sign: %s", e)
+        except Exception:
+            pass
+        out["error"] = str(e)
+        return out
+
 # -------------------------
 # Helpers internos
 # -------------------------
