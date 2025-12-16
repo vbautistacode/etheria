@@ -155,7 +155,6 @@ st.session_state["base_major"] = int(base_major)
 
 use_colors = st.sidebar.checkbox("Ativar cores por planeta", value=True)
 
-#st.sidebar.markdown("---")
 st.sidebar.divider()
 st.sidebar.header("Entrada do Consulente")
 # --- Sidebar (exemplo) ---
