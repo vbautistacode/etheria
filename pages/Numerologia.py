@@ -181,24 +181,6 @@ def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
         "label": style.get(label_key, style.get("label_en", "—"))
     }
 
-# -------------------------
-# Snippets de ciclos (usando base_years do sidebar)
-# -------------------------
-# --- Interpretação coletiva dinâmica
-# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
-
-_now = datetime.now()
-reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_teo = get_regent_for_cycle("teosofico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_35  = get_regent_for_cycle("maior", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-
-planet_ast = short_regent_label(reg_ast.get("regent"))
-planet_teo = short_regent_label(reg_teo.get("regent"))
-planet_35  = short_regent_label(reg_35.get("regent"))
-
 types = list(data["matrices"].keys())
 if not types:
     st.info("Nenhum tipo disponível para visualização.")
