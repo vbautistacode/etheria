@@ -232,19 +232,21 @@ SIGN_TO_ARCANO = {
 
 import unicodedata
 
+EN_TO_PT = {
+    "aries":"aries","taurus":"touro","gemini":"gemeos","cancer":"cancer","leo":"leao",
+    "virgo":"virgem","libra":"libra","scorpio":"escorpiao","sagittarius":"sagitario",
+    "capricorn":"capricornio","aquarius":"aquario","pisces":"peixes"
+}
+
 def _normalize_sign(s: Optional[str]) -> Optional[str]:
-    """
-    Normaliza nome do signo: remove acentos, lower, strip.
-    Retorna None se s for falsy.
-    """
     if not s:
         return None
     try:
         s2 = str(s).strip().lower()
-        # remover acentos
         s2 = unicodedata.normalize("NFKD", s2)
         s2 = "".join(ch for ch in s2 if not unicodedata.combining(ch))
-        return s2
+        # mapear inglês para pt quando aplicável
+        return EN_TO_PT.get(s2, s2)
     except Exception:
         return str(s).strip().lower()
 
