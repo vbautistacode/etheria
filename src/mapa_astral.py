@@ -614,6 +614,7 @@ def main():
             return None
 
         try:
+            import plotly
             import plotly.graph_objects as go
         except Exception:
             return None
