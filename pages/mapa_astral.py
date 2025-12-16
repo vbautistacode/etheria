@@ -1559,7 +1559,7 @@ with right_col:
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
                         # criar expander por signo (abre/fecha)
-                        with st.expander(f"{display_sign} — Arcano"):
+                        with st.expander(f"{display_sign}"):
                             # gerar interpretação (arcano_for_sign normaliza internamente)
                             arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name)
 
