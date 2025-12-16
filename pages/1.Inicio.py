@@ -5,8 +5,6 @@ import json
 import sys
 import logging
 import streamlit as st
-from app import main  # ou from src.app import main
-main()
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
