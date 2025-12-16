@@ -354,33 +354,3 @@ with left:
 # Garantir que a leitura esteja no session_state
 if "reading" not in st.session_state:
     st.session_state["reading"] = None
-
-# Quando o botão Gerar leitura for pressionado, gerar e armazenar leitura
-if generate_btn:
-    try:
-        from etheria import rules, interpretations
-    except Exception:
-        try:
-            from esoteric_rules import rules, interpretations
-        except Exception:
-            rules = None
-            interpretations = None
-
-    if rules is None:
-        # mostrar erro global no topo da página (ou no sidebar)
-        st.sidebar.error("O pacote de regras não foi encontrado. Coloque 'etheria' ou 'esoteric_rules' no PYTHONPATH.")
-    elif not full_name:
-        st.sidebar.warning("Digite o nome completo.")
-    else:
-        tables = {
-            "cycle_35": data.get("cycle_35"),
-            "cycle_1year": data.get("cycle_1year"),
-            "letter_map": data.get("letter_map"),
-            "correlations": data["corr_df"],
-        }
-        try:
-            reading = rules.generate_reading(full_name, dob, tables=tables, cycle_mode=DEFAULT_CYCLE_MODE)
-            st.session_state["reading"] = reading
-            st.sidebar.success("Leitura gerada e armazenada.")
-        except Exception as e:
-            st.sidebar.error(f"Erro ao gerar leitura: {e}")
