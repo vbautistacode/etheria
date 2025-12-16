@@ -1477,11 +1477,12 @@ if use_ai:
 
 # RIGHT: painel de análise
 with right_col:
-    st.subheader("Painel de Análise")
+    st.subheader("Interpretação dos Arcanos")
+    st.caption("cada elemento do mapa possui uma relação com os 22 Arcanos Maiores, veja abaixo")
 
     # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
     # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
-    tabs = st.tabs(["Interpretação via Arcanos", "Influencia Arcano x Signo"])
+    tabs = st.tabs(["Planetas e Arcanos", "Signos e Arcanos"])
 
     # dados selecionados
     selected_raw = st.session_state.get("selected_planet")
