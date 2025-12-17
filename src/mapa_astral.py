@@ -1666,41 +1666,30 @@ def main():
                         ai_text = (res.get("analysis_text") or res.get("text") or res.get("raw_text") or "").strip()
                         parsed = res.get("analysis_json") or res.get("analysis") or None
 
-                        # fallback legível para o usuário (sempre preencher algo)
                         if not ai_text:
-                            ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento. Verifique a configuração de IA ou tente novamente."
+                            ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento."
 
-                        # exibir
-                        if res.get("error"):
-                            with st.expander("Detalhes do erro"):
-                                st.warning("Não foi possível gerar a interpretação via serviço.")
-                                st.write(res.get("error"))
-                        else:
-                            st.success("Interpretação IA gerada" if ai_text else "Interpretação IA (fallback)")
-                            st.markdown("#### Interpretação IA")
-                            st.write(ai_text)
+                        st.success("Interpretação IA Etheria gerada especialmente para você" if ai_text else "Interpretação IA (fallback)")
+                        st.write(ai_text)
 
-                        if ai_text:
-                            st.success("Interpretação IA gerada")
-                            st.markdown("#### Interpretação IA")
-                            st.write(ai_text)
-                            st.download_button(
-                                "Exportar interpretação(.txt)",
-                                data=ai_text,
-                                file_name=f"interpretacao_ia.txt",
-                                mime="text/plain"
-                            )
+                        st.download_button(
+                            "Exportar interpretação (.txt)",
+                            data=ai_text,
+                            file_name="interpretacao_ia.txt",
+                            mime="text/plain"
+                        )
+
                         if parsed:
                             with st.expander("Ver JSON estruturado (expandir)"):
                                 st.json(parsed)
                                 st.download_button(
                                     "Baixar JSON",
                                     data=json.dumps(parsed, ensure_ascii=False, indent=2),
-                                    file_name=f"interpretacao_ia.json",
+                                    file_name="interpretacao_ia.json",
                                     mime="application/json"
                                 )
-                        if not ai_text and not parsed:
-                            st.info("Geração concluída, mas não houve texto de interpretação. Verifique configuração de IA ou use templates locais.")
+                        elif not ai_text:
+                            st.info("Geração concluída, mas não houve texto de interpretação.")
 
     # RIGHT: painel de análise
     with right_col:
