@@ -8,7 +8,9 @@ st.set_page_config(page_title="Etheria — Apresentação", layout="wide")
 st.title("Etheria — Apresentação")
 
 # URL do vídeo no YouTube
-youtube_url = "https://www.youtube.com/watch?v=odibXYdEBPo"
+col1, col2 = st.columns([2,1])  # proporção 2:1
+with col1:
+    st.video("https://www.youtube.com/watch?v=odibXYdEBPo")
 
 # Alternativa local (fallback) — use apenas se o arquivo for pequeno
 local_demo = Path("static/institucional.mp4")
