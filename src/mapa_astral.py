@@ -704,9 +704,9 @@ def main():
             "geracionais": ["Uranus", "Neptune", "Pluto"]
         }
         group_colors = {
-            "pessoais": "#a87e59",
-            "sociais": "#588cb1",
-            "geracionais": "#9a6fdf"
+            "pessoais": "#b94d4d",
+            "sociais": "#4b7fbb",
+            "geracionais": "#8a7829"
         }
 
         # ordenar por longitude crescente
@@ -807,7 +807,7 @@ def main():
             for i, cusp in enumerate(cusps12, start=1):
                 theta_cusp = lon_to_theta(cusp)
                 quadrant = ((i - 1) // 3) % 4
-                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#6D6D6D"
+                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#4E4D4D"
                 fig.add_trace(go.Scatterpolar(
                     r=[0.12, 1.0],
                     theta=[theta_cusp, theta_cusp],
@@ -1567,8 +1567,6 @@ def main():
                 if st.session_state.get("selected_planet") != canonical_clicked:
                     st.session_state["selected_planet"] = canonical_clicked
 
-            st.divider()
-            
             # interpretação curta + expander para completa
             st.markdown("### Interpretação Astrológica")
 
