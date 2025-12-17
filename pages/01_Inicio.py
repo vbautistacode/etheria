@@ -300,15 +300,15 @@ with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
 
     # colunas: título (maior) + botão (estreita)
-    col_title, col_help = st.columns([0.88, 0.12])
+    col_title, col_help = st.columns([0.50, 0.50])
 
     # título com display:flex para garantir alinhamento vertical do conteúdo interno
     with col_title:
         st.markdown(
             f"""
-            <div style="display:flex; align-items:center; gap:8px; margin:0;">
+            <div style="display:flex; align-items:center; gap:2px; margin:0;">
                 <div style="font-size:20px; font-weight:600; line-height:1;">
-                    {style.get('icon','')} Ciclo Anual Astrológico
+                    {style.get('icon','')} Ciclo Astrológico
                 </div>
             </div>
             """,
