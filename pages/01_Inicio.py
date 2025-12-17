@@ -299,8 +299,7 @@ with c1:
     col_title, col_help = st.columns([0.70, 0.05])
     with col_title:
         st.markdown(
-            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
-            unsafe_allow_html=True
+            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",unsafe_allow_html=True
         )
     # botão de ajuda (funciona em desktop e mobile)
     help_key = f"help_btn_{planet_ast}"
