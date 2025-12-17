@@ -1567,6 +1567,8 @@ def main():
                 if st.session_state.get("selected_planet") != canonical_clicked:
                     st.session_state["selected_planet"] = canonical_clicked
 
+            st.divider()
+            
             # interpretação curta + expander para completa
             st.markdown("### Interpretação Astrológica")
 
