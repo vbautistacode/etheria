@@ -781,7 +781,7 @@ def main():
             r=[1.0] * len(thetas),
             theta=thetas,
             mode="markers+text",
-            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#040607", width=1.5)),
+            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#4E585E", width=1.5)),
             text=symbol_texts,
             textfont=dict(size=int(14 * text_scale), family="DejaVu Sans, Arial"),
             hovertext=hover_texts,
@@ -796,7 +796,7 @@ def main():
             theta=thetas,
             mode="text",
             text=names,
-            textfont=dict(size=int(12 * text_scale), color="#040607"),
+            textfont=dict(size=int(12 * text_scale), color="#4E585E"),
             hoverinfo="none",
             showlegend=True
         ))
@@ -960,7 +960,7 @@ def main():
                     tickmode="array",
                     tickvals=tickvals,
                     ticktext=ticktext,
-                    tickfont=dict(size=int(18 * text_scale)),
+                    tickfont=dict(size=int(14 * text_scale)),
                     gridcolor="#eee"
                 )
             ),
