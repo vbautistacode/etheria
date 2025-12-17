@@ -332,7 +332,7 @@ with c1:
     if st.session_state.get(flag_key, False):
         with st.expander("*Saiba mais!*", expanded=True):
             st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
-            if st.button("Fechar", key=f"close_help_{planet_ast}"):
+            if st.button("", key=f"close_help_{planet_ast}"):
                 st.session_state[flag_key] = False
 
     # restante do conteúdo
