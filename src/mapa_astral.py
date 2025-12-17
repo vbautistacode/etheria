@@ -1388,9 +1388,6 @@ def main():
     # LEFT: controles e tabela (se houver summary)
     with left_col:
         st.markdown("### Controles")
-        # show_aspects = st.checkbox("Mostrar aspectos", value=True)
-        # show_houses = st.checkbox("Mostrar casas", value=True)
-        # numerology_toggle = st.checkbox("Mostrar numerologia", value=True)
         use_ai = st.checkbox(
             "Usar IA para interpretações astrológicas",
             value=False,

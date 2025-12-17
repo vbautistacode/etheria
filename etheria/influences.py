@@ -23,17 +23,18 @@ CANONICAL_PLANETS = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "
 
 # mapeamento PT <-> canonical
 PT_TO_CANONICAL: Dict[str, str] = {
-    "Moon": "Lua",
-    "Mercury": "Mercúrio",
-    "Mercury": "Mercurio",
-    "Venus": "Vênus",
-    "Venus": "Venus", 
-    "Sun": "Sol",
-    "Mars": "Marte",
-    "Jupiter": "Júpiter", 
-    "Jupiter": "Jupiter", 
-    "Saturn": "Saturno"
+    "Lua": "Moon",
+    "Mercúrio": "Mercury",
+    "Mercurio": "Mercury",
+    "Vênus": "Venus",
+    "Venus": "Venus",
+    "Sol": "Sun",
+    "Marte": "Mars",
+    "Júpiter": "Jupiter",
+    "Jupiter": "Jupiter",
+    "Saturno": "Saturn",
 }
+
 CANONICAL_TO_PT: Dict[str, str] = {v: k for k, v in PT_TO_CANONICAL.items()}
 
 def _to_canonical(name: Optional[str]) -> Optional[str]:
