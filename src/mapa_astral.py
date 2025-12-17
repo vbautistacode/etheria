@@ -683,38 +683,19 @@ def main():
             return (360.0 - float(lon_deg)) % 360.0
 
         # símbolos e grupos
-        # Mapeamento de nomes em inglês para português
-        EN_TO_PT = {
-            "Sun": "Sol",
-            "Moon": "Lua",
-            "Mercury": "Mercúrio",
-            "Venus": "Vênus",
-            "Mars": "Marte",
-            "Jupiter": "Júpiter",
-            "Saturn": "Saturno",
-            "Uranus": "Urano",
-            "Neptune": "Netuno",
-            "Pluto": "Plutão",
-            "Asc": "ASC",           # mantido como código
-            "ASCENDANT": "ASC",
-            "MC": "MC",
-            "Medium Coeli": "MC"
-        }
-
-        # Símbolos por nome canônico em inglês (útil para lógica interna)
-        PLANET_SYMBOLS_EN = {
-            "Sun": "☉",
-            "Moon": "☾",
-            "Mercury": "☿",
-            "Venus": "♀",
-            "Mars": "♂",
-            "Jupiter": "♃",
-            "Saturn": "♄",
-            "Uranus": "♅",
-            "Neptune": "♆",
-            "Pluto": "♇",
-            "Asc": "ASC",
-            "MC": "MC"
+        planet_symbols = {
+            "Sol": "☉", "Sun": "☉",
+            "Lua": "☾", "Moon": "☾",
+            "Mercúrio": "☿", "Mercury": "☿", "Mercurio": "☿",
+            "Vênus": "♀", "Venus": "♀",
+            "Marte": "♂", "Mars": "♂",
+            "Júpiter": "♃", "Jupiter": "♃",
+            "Saturno": "♄", "Saturn": "♄",
+            "Urano": "♅", "Uranus": "♅",
+            "Netuno": "♆", "Neptune": "♆",
+            "Plutão": "♇", "Pluto": "♇",
+            "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC",
+            "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
         }
 
         groups = highlight_groups or {
