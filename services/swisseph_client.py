@@ -26,16 +26,16 @@ except Exception as e:
 # IDs de planetas conforme convenção Swiss Ephemeris
 # Nomes de planetas em português (códigos inteiros)
 PLANET_CODES = {
-    "Sol": 0,
-    "Lua": 1,
-    "Mercúrio": 2,
-    "Vênus": 3,
-    "Marte": 4,
-    "Júpiter": 5,
-    "Saturno": 6,
-    "Urano": 7,
-    "Netuno": 8,
-    "Plutão": 9,
+    "Sun": 0,
+    "Moon": 1,
+    "Mercury": 2,
+    "Venus": 3,
+    "Mars": 4,
+    "Jupiter": 5,
+    "Saturn": 6,
+    "Uranus": 7,
+    "Neptune": 8,
+    "Pluto": 9,
 }
 
 PLANETS = list(PLANET_CODES.values())
