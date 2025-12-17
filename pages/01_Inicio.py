@@ -295,16 +295,12 @@ c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
-        f"<h3 style='font-size:20px;font-weight:600'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
-        unsafe_allow_html=True
+    f"<h3 style='font-size:20px;font-weight:600' "
+    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
+    unsafe_allow_html=True
     )
-    # help_text exibido com st.help
-    st.help(CICLO_MENOR_ASTROLOGICO_DESC)
-
-    st.markdown(
-        f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>",
-        unsafe_allow_html=True
-    )
+    st.caption(CICLO_MENOR_ASTROLOGICO_DESC)
+    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
     
     st.write(interp_ast["short"])
     with st.expander("Ver interpretação completa"):
