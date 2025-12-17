@@ -298,7 +298,7 @@ with c1:
     col_title, col_help = st.columns([0.70, 0.05])
     with col_title:
         st.markdown(
-            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
+            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Astrológico</h3>",
             unsafe_allow_html=True
         )
 
@@ -310,7 +310,7 @@ with c1:
             st.session_state[flag_key] = True
 
     if st.session_state.get(flag_key, False):
-        with st.expander("Saiba mais", expanded=True):
+        with st.expander("Saiba mais!", expanded=True):
             st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
             # botão para fechar o "popup"
             if st.button("Fechar", key=f"close_help_{planet_ast}"):
@@ -331,7 +331,7 @@ with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ciclo Anual Teosófico</h3>",
+    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ciclo Teosófico</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
@@ -344,7 +344,7 @@ with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
     st.markdown(
     f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior de 35 anos</h3>",
+    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior</h3>",
     unsafe_allow_html=True
     )
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
