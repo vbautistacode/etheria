@@ -292,38 +292,59 @@ st.markdown(
 interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
 
 c1, c2, c3 = st.columns(3)
+# título com botão de ajuda exatamente em frente
+help_key = f"help_btn_{planet_ast}"
+flag_key = f"show_help_{planet_ast}"
+
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
 
-    col_title, col_help = st.columns([0.70, 0.05])
+    # colunas: título (maior) + botão (estreita)
+    col_title, col_help = st.columns([0.88, 0.12])
+
+    # título com display:flex para garantir alinhamento vertical do conteúdo interno
     with col_title:
         st.markdown(
-            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Astrológico</h3>",
-            unsafe_allow_html=True
+            f"""
+            <div style="display:flex; align-items:center; gap:8px; margin:0;">
+                <div style="font-size:20px; font-weight:600; line-height:1;">
+                    {style.get('icon','')} Ciclo Anual Astrológico
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
 
-    help_key = f"help_btn_{planet_ast}"
-    flag_key = f"show_help_{planet_ast}"
-
+    # coluna do botão: centraliza vertical e horizontalmente
     with col_help:
-        if st.button("⚠️", key=help_key):
-            st.session_state[flag_key] = True
+        st.markdown(
+            """
+            <div style="display:flex; align-items:center; justify-content:center; height:100%;">
+            """,
+            unsafe_allow_html=True,
+        )
+        # botão que aciona o expander (use key único por bloco)
+        if st.button("❓", key=help_key):
+            st.session_state[flag_key] = not st.session_state.get(flag_key, False)
+        st.markdown("</div>", unsafe_allow_html=True)
 
+    # quando o flag estiver ativo, mostra o expander já expandido
     if st.session_state.get(flag_key, False):
-        with st.expander("Saiba mais!", expanded=True):
+        with st.expander("Saiba mais", expanded=True):
             st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
-            # botão para fechar o "popup"
             if st.button("Fechar", key=f"close_help_{planet_ast}"):
                 st.session_state[flag_key] = False
 
+    # restante do conteúdo
     st.markdown(
         f"<div style='font-size:20px;color:{style['color']};font-weight:600;margin-top:8px'>{planet_ast}</div>",
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
 
     st.write(interp_ast["short"])
     with st.expander("Ver interpretação completa"):
         st.markdown(interp_ast["long"])
+
 
 
 
