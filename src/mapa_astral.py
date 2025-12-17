@@ -684,25 +684,10 @@ def main():
 
         # símbolos e grupos
         planet_symbols = {
-            "Sol": "☉", "Sun": "☉",
-            "Lua": "☾", "Moon": "☾",
-            "Mercúrio": "☿", "Mercury": "☿", "Mercurio": "☿",
-            "Vênus": "♀", "Venus": "♀",
-            "Marte": "♂", "Mars": "♂",
-            "Júpiter": "♃", "Jupiter": "♃",
-            "Saturno": "♄", "Saturn": "♄",
-            "Urano": "♅", "Uranus": "♅",
-            "Netuno": "♆", "Neptune": "♆",
-            "Plutão": "♇", "Pluto": "♇",
-            "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC",
-            "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
+            "Sun": "☉", "Sol": "☉", "Moon": "☾", "Lua": "☾", "Mercury": "☿", "Mercúrio": "☿", "Venus": "♀", "Vênus": "♀", "Mars": "♂", "Marte": "♂", "Jupiter": "♃", "Júpiter": "♃", "Saturn": "♄", "Saturno": "♄", "Uranus": "♅", "Urano": "♅", "Neptune": "♆", "Netuno": "♆", "Pluto": "♇", "Plutão": "♇", "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC", "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
         }
 
-        groups = highlight_groups or {
-            "pessoais": ["Sol", "Lua", "Mercúrio", "Vênus", "Marte"],
-            "sociais": ["Júpiter", "Saturno"],
-            "geracionais": ["Urano", "Netuno", "Plutão"]
-        }
+        groups = highlight_groups or { "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"], "sociais": ["Jupiter", "Saturn"], "geracionais": ["Uranus", "Neptune", "Pluto"] }
 
         # ordenar por longitude crescente
         ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
