@@ -9,10 +9,10 @@ st.title("Etheria — Apresentação")
 youtube_url = "https://www.youtube.com/watch?v=SEU_VIDEO_ID"
 
 # Alternativa local (fallback) — use apenas se o arquivo for pequeno
-local_demo = Path("assets/demo_screen.mp4")
+local_demo = Path("static/institucional.mp4")
 if youtube_url:
     st.video(youtube_url)
 elif local_demo.exists():
-    st.video(str(local_demo))
+    st.video("static/institucional.mp4")
 else:
     st.info("Vídeo de demonstração não encontrado. Coloque assets/demo_screen.mp4 ou defina youtube_url.")
