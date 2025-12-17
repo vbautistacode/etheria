@@ -52,9 +52,8 @@ def compute_chart_positions(lat: float, lon: float, local_dt: datetime, house_sy
     Se local_dt for None (hora desconhecida), calcula posições por signo apenas (sem casas).
     """
     positions = {}
-    # se hora desconhecida, calc com 00:00 UTC como fallback sem casas
+    # se hora desconhecida, calc com 12:00 UTC como fallback para signos aproximados
     if local_dt is None:
-        # fallback: use date at noon UTC to get approximate signs
         dt = Datetime(datetime.utcnow().strftime("%Y/%m/%d"), "12:00", "UTC")
         chart = Chart(dt, GeoPos(lat, lon))
     else:
@@ -62,36 +61,40 @@ def compute_chart_positions(lat: float, lon: float, local_dt: datetime, house_sy
         hhmm = local_dt.strftime("%H:%M")
         tzname = local_dt.tzinfo.zone
         dt = Datetime(iso, hhmm, tzname)
-        chart = Chart(dt, GeoPos(lat, lon), hsys=house_system[0].upper())  # flatlib expects single letter sometimes
+        chart = Chart(dt, GeoPos(lat, lon), hsys=house_system[0].upper())
 
-    # planetas de interesse
+    # bodies em inglês (nomes canônicos)
     bodies = [
-        "SOL", "LUA", "MERCÚRIO", "VÊNUS", "MARTE",
-        "JÚPITER", "SATURNO", "URANO", "NETUNO", "PLUTÃO"
+        "Sun", "Moon", "Mercury", "Venus", "Mars",
+        "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
     ]
 
     for b in bodies:
-        obj = chart.get(b)
-        # flatlib fornece e.g. '12Ta34' — formatamos para algo legível
-        pos = f"{obj.sign}{obj.lon:.2f}°"
-        # se houver casa disponível
         try:
-            house = chart.getHouse(obj.lon)
-            positions[b.capitalize()] = f"{pos}, House {house.number}"
+            obj = chart.get(b)
+            # flatlib fornece atributos como sign e lon; formatamos para legível
+            pos = f"{obj.sign}{obj.lon:.2f}°"
+            # se houver casa disponível (quando hora conhecida)
+            try:
+                house = chart.getHouse(obj.lon)
+                positions[b] = f"{pos}, House {house.number}"
+            except Exception:
+                positions[b] = pos
         except Exception:
-            positions[b.capitalize()] = pos
+            # se flatlib não retornar o corpo, pula ou registra None
+            positions[b] = None
 
-    # Ascendente e Part of Fortune
+    # Ascendant e Part of Fortune (mantemos chaves em inglês)
     try:
         asc = chart.get('ASC')
         positions['ASC'] = f"{asc.sign}{asc.lon:.2f}°"
     except Exception:
-        pass
+        positions['ASC'] = None
 
     try:
         fortune = chart.get('PART_OF_FORTUNE')
-        positions['Part of Fortune'] = f"{fortune.sign}{fortune.lon:.2f}°"
+        positions['PartOfFortune'] = f"{fortune.sign}{fortune.lon:.2f}°"
     except Exception:
-        pass
+        positions['PartOfFortune'] = None
 
     return positions
