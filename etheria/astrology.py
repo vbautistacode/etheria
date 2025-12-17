@@ -58,10 +58,7 @@ HOUSE_DESCRIPTIONS: Dict[int, Tuple[str, str]] = {
     12: ("Inconsciente", "Isolamento, Espiritualidade, Sacrifício e Assuntos Ocultos"),
 }
 
-PLANET_ORDER = [
-    "Sun", "Moon", "Mercury", "Venus", "Mars",
-    "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
-]
+PLANET_ORDER = ["Sol", "Lua", "Mercúrio", "Vênus", "Marte", "Júpiter", "Saturno", "Urano", "Netuno", "Plutão"]
 
 def lon_to_sign_degree(lon: float) -> Tuple[str, float, int]:
     """
