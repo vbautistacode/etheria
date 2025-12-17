@@ -298,7 +298,7 @@ with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
 
     # colunas: título (maior) + botão (estreita)
-    col_help, col_title = st.columns([0.10, 0.90])
+    col_help, col_title = st.columns([0.15, 0.85])
 
     # título com display:flex para garantir alinhamento vertical do conteúdo interno
     with col_title:
