@@ -580,357 +580,204 @@ def main():
         return naive
 
     # render_wheel_plotly: manter sua implementação robusta (trecho completo)
-    def render_wheel_plotly(
-        planets: dict,
-        cusps: list,
-        *,
-        highlight_groups: dict = None,
-        house_label_position: str = "inner",  # "inner", "mid", "outer"
-        marker_scale: float = 1.4,
-        text_scale: float = 1.2,
-        cusp_colors_by_quadrant: list = None,
-        export_png: bool = False,
-        export_size: tuple = (2400, 2400)
-    ):
-        """
-        Renderiza uma roda astrológica com Plotly.
+    def render_wheel_plotly_debug(
+    planets: dict,
+    cusps: list,
+    *,
+    highlight_groups: dict = None,
+    house_label_position: str = "inner",
+    marker_scale: float = 1.4,
+    text_scale: float = 1.2,
+    cusp_colors_by_quadrant: list = None,
+    export_png: bool = False,
+    export_size: tuple = (2400, 2400)
+):
+    import logging, math
+    logger = logging.getLogger("render_wheel_plotly_debug")
+    logger.setLevel(logging.DEBUG)
+    logger.debug("Entrando em render_wheel_plotly_debug")
 
-        Retorna:
-        - fig (plotly.graph_objects.Figure) ou
-        - (fig, img_bytes) se export_png=True e a exportação for bem-sucedida.
-        """
-        import logging
-        import math
-        from pathlib import Path
+    try:
+        import plotly.graph_objects as go
+    except Exception as e:
+        logger.exception("Plotly import failed: %s", e)
+        raise
 
-        logger = logging.getLogger("render_wheel_plotly")
-        logger.debug("Entrando em render_wheel_plotly")
+    if cusp_colors_by_quadrant is None:
+        cusp_colors_by_quadrant = ["#6E6E6E52"]*4
 
-        # verificar disponibilidade do plotly
-        try:
-            import plotly.graph_objects as go
-        except Exception as e:
-            logger.exception("Plotly import failed: %s", e)
+    def extract_lon(pdata):
+        if pdata is None:
             return None
-
-        # defaults
-        if cusp_colors_by_quadrant is None:
-            cusp_colors_by_quadrant = ["#6E6E6E52", "#6E6E6E52", "#6E6E6E52", "#6E6E6E52"]
-
-        # helpers
-        def extract_lon(pdata):
-            if pdata is None:
-                return None
-            if isinstance(pdata, (int, float)):
+        if isinstance(pdata, (int, float)):
+            return float(pdata)
+        if isinstance(pdata, str):
+            try:
                 return float(pdata)
-            if isinstance(pdata, str):
-                try:
-                    return float(pdata)
-                except Exception:
-                    return None
-            if isinstance(pdata, dict):
-                for key in ("lon", "longitude", "long", "ecl_lon", "ecliptic_longitude"):
-                    if key in pdata and pdata[key] is not None:
-                        try:
-                            return float(pdata[key])
-                        except Exception:
-                            return None
-            return None
+            except Exception:
+                return None
+        if isinstance(pdata, dict):
+            for key in ("lon","longitude","long","ecl_lon","ecliptic_longitude"):
+                if key in pdata and pdata[key] is not None:
+                    try:
+                        return float(pdata[key])
+                    except Exception:
+                        return None
+        return None
 
-        def extract_meta(pdata):
-            if not isinstance(pdata, dict):
-                return {}
-            return {
-                "sign": pdata.get("sign") or pdata.get("zodiac") or pdata.get("sign_name"),
-                "house": pdata.get("house") or pdata.get("casa") or pdata.get("house_number")
-            }
-
-        # validar planetas
-        valid_planets = {}
-        planet_meta = {}
-        invalid_planets = []
-        for name, pdata in (planets or {}).items():
+    # parse planets
+    valid_planets = {}
+    planet_meta = {}
+    invalid_planets = []
+    for name, pdata in (planets or {}).items():
+        try:
             lon = extract_lon(pdata)
             if lon is None:
                 invalid_planets.append((name, pdata))
             else:
-                valid_planets[name] = float(lon)
-                planet_meta[name] = extract_meta(pdata) if isinstance(pdata, dict) else {}
+                valid_planets[name] = float(lon) % 360.0
+                planet_meta[name] = pdata if isinstance(pdata, dict) else {}
+        except Exception:
+            logger.exception("Erro ao processar planeta %s: %s", name, pdata)
+            invalid_planets.append((name, pdata))
 
-        # validar cusps
-        valid_cusps = []
-        invalid_cusps = []
-        if cusps:
-            for i, c in enumerate(cusps):
-                try:
-                    if c is None:
-                        raise ValueError("None cusp")
-                    valid_cusps.append(float(c))
-                except Exception:
-                    invalid_cusps.append((i, c))
+    logger.debug("valid_planets keys: %s", list(valid_planets.keys()))
+    if invalid_planets:
+        logger.warning("Planetas inválidos: %s", invalid_planets)
 
-        if invalid_planets:
-            logger.warning("Planetas inválidos (sem longitude): %s", invalid_planets)
-        if invalid_cusps:
-            logger.warning("Cusps inválidos: %s", invalid_cusps)
-
-        if len(valid_planets) == 0:
-            logger.error("Nenhum planeta válido para desenhar. valid_planets=%s", valid_planets)
-            return None
-
-        def lon_to_theta(lon_deg: float) -> float:
-            # converte longitude eclíptica (0..360) para ângulo polar em graus para Plotly (clockwise, 0 no topo)
-            return (360.0 - float(lon_deg)) % 360.0
-
-        # símbolos e grupos
-        planet_symbols = {
-            "Sun": "☉", "Sol": "☉",
-            "Moon": "☾", "Lua": "☾",
-            "Mercury": "☿", "Mercúrio": "☿",
-            "Venus": "♀", "Vênus": "♀",
-            "Mars": "♂", "Marte": "♂",
-            "Jupiter": "♃", "Júpiter": "♃",
-            "Saturn": "♄", "Saturno": "♄",
-            "Uranus": "♅", "Urano": "♅",
-            "Neptune": "♆", "Netuno": "♆",
-            "Pluto": "♇", "Plutão": "♇",
-            "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC",
-            "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
-        }
-
-        groups = highlight_groups or {
-            "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"],
-            "sociais": ["Jupiter", "Saturn"],
-            "geracionais": ["Uranus", "Neptune", "Pluto"]
-        }
-        group_colors = {
-            "pessoais": "#ffcfa4",
-            "sociais": "#83a1b6",
-            "geracionais": "#886eb3"
-        }
-
-        # ordenar por longitude crescente
-        ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
-
-        names = []
-        thetas = []
-        hover_texts = []
-        symbol_texts = []
-        lon_values = []
-        marker_sizes = []
-        text_sizes = []
-        marker_colors = []
-
-        for name, lon in ordered:
+    # parse cusps
+    valid_cusps = []
+    invalid_cusps = []
+    if cusps:
+        for i, c in enumerate(cusps):
             try:
-                theta = lon_to_theta(lon)
+                if c is None:
+                    raise ValueError("None cusp")
+                valid_cusps.append(float(c) % 360.0)
             except Exception:
-                logger.warning("Falha ao converter longitude para theta: %s -> %s", name, lon)
-                continue
+                invalid_cusps.append((i, c))
+    logger.debug("valid_cusps: %s", valid_cusps)
+    if invalid_cusps:
+        logger.warning("Cusps inválidos: %s", invalid_cusps)
 
-            lname = str(name).lower()
-            is_asc = lname in ("asc", "ascendant", "ascendente")
-            is_mc = lname in ("mc", "medium coeli", "meio do ceu", "meio do céu")
+    if not valid_planets:
+        logger.error("Nenhum planeta válido")
+        return None
 
-            sign_index = int(float(lon) // 30) % 12
-            degree_in_sign = float(lon) % 30
+    def lon_to_theta(lon_deg):
+        return (360.0 - float(lon_deg)) % 360.0
 
-            meta = planet_meta.get(name, {}) or {}
-            meta_sign = meta.get("sign")
-            meta_house = meta.get("house")
+    # prepare arrays
+    ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
+    names=[]; thetas=[]; lon_values=[]
+    hover_texts=[]; symbol_texts=[]; marker_sizes=[]; marker_colors=[]
 
-            sign_names_short = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
-            hover_parts = [f"<b>{name}</b>", f"{lon:.2f}° eclíptico", f"{degree_in_sign:.1f}° no signo", f"Signo (calc): {sign_names_short[sign_index]}"]
-            if meta_sign:
-                hover_parts.append(f"Signo (meta): {meta_sign}")
-            if meta_house:
-                hover_parts.append(f"Casa (meta): {meta_house}")
-            hover_text = "<br>".join(hover_parts)
-
-            symbol = planet_symbols.get(name, planet_symbols.get(name.capitalize(), name))
-
-            base_marker = 26 * marker_scale
-            base_text = 16 * text_scale
-            size = base_marker * (1.6 if is_asc or is_mc else 1.0)
-            text_size = base_text * (1.4 if is_asc or is_mc else 1.0)
-
-            color = "#888"
-            for gname, members in groups.items():
-                if name in members:
-                    color = group_colors.get(gname, "#ff7f0e")
-                    break
-            if is_asc:
-                color = "#d62728"
-            if is_mc:
-                color = "#9467bd"
-
+    try:
+        for name, lon in ordered:
+            theta = lon_to_theta(lon)
             names.append(name)
             thetas.append(theta)
             lon_values.append(float(lon))
-            hover_texts.append(hover_text)
-            symbol_texts.append(symbol)
-            marker_sizes.append(size)
-            text_sizes.append(text_size)
-            marker_colors.append(color)
+            hover_texts.append(f"{name} {lon:.2f}")
+            symbol_texts.append(name[:2])
+            marker_sizes.append(20*marker_scale)
+            marker_colors.append("#888")
+    except Exception:
+        logger.exception("Erro ao construir arrays de planetas")
+        raise
 
-        # construir figura
-        fig = go.Figure()
-
-        # marcadores (planetas)
+    fig = go.Figure()
+    try:
         fig.add_trace(go.Scatterpolar(
-            r=[1.0] * len(thetas),
+            r=[1.0]*len(thetas),
             theta=thetas,
             mode="markers+text",
-            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#222", width=1.5)),
+            marker=dict(size=marker_sizes, color=marker_colors),
             text=symbol_texts,
-            textfont=dict(size=int(14 * text_scale), family="DejaVu Sans, Arial"),
             hovertext=hover_texts,
-            hovertemplate="%{hovertext}<extra></extra>",
-            customdata=names,
-            name="Planetas"
+            hovertemplate="%{hovertext}<extra></extra>"
         ))
+    except Exception:
+        logger.exception("Erro ao adicionar trace de planetas")
+        raise
 
-        # nomes dos planetas (externos)
-        fig.add_trace(go.Scatterpolar(
-            r=[1.18] * len(thetas),
-            theta=thetas,
-            mode="text",
-            text=names,
-            textfont=dict(size=int(12 * text_scale), color="#111"),
-            hoverinfo="none",
-            showlegend=False
-        ))
-
-        # desenhar cúspides se houver
+    # cúspides
+    try:
         if valid_cusps:
-            cusps12 = valid_cusps if len(valid_cusps) >= 12 else [i * 30.0 for i in range(12)]
-            for i, cusp in enumerate(cusps12, start=1):
+            for i, cusp in enumerate(valid_cusps):
                 theta_cusp = lon_to_theta(cusp)
-                quadrant = ((i - 1) // 3) % 4
-                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#6E6E6E52"
                 fig.add_trace(go.Scatterpolar(
-                    r=[0.12, 1.0],
+                    r=[0.12,1.0],
                     theta=[theta_cusp, theta_cusp],
                     mode="lines",
-                    line=dict(color=color, width=2.0),
-                    hoverinfo="none",
+                    line=dict(color=cusp_colors_by_quadrant[i//3 % 4], width=2),
                     showlegend=False
                 ))
+    except Exception:
+        logger.exception("Erro ao desenhar cúspides")
 
-            # numerar casas
-            if len(cusps12) >= 12:
-                for i in range(12):
-                    c1 = cusps12[i]
-                    c2 = cusps12[(i + 1) % 12]
-                    # calcular meio angular corretamente considerando wrap-around
-                    diff = (c2 - c1) % 360.0
-                    mid = (c1 + diff / 2.0) % 360.0
-                    theta_mid = lon_to_theta(mid)
-                    if house_label_position == "inner":
-                        r_label = 0.6
-                    elif house_label_position == "mid":
-                        r_label = 0.9
-                    else:
-                        r_label = 1.03
-                    fig.add_trace(go.Scatterpolar(
-                        r=[r_label],
-                        theta=[theta_mid],
-                        mode="text",
-                        text=[str(i + 1)],
-                        textfont=dict(size=int(12 * text_scale), color="#222"),
-                        hoverinfo="none",
-                        showlegend=False
-                    ))
-            else:
-                # fallback: posições padrão
-                for i in range(12):
-                    mid = (i * 30 + 15) % 360
-                    theta_mid = lon_to_theta(mid)
-                    r_label = 1.03 if house_label_position == "outer" else (0.9 if house_label_position == "mid" else 0.6)
-                    fig.add_trace(go.Scatterpolar(
-                        r=[r_label],
-                        theta=[theta_mid],
-                        mode="text",
-                        text=[str(i + 1)],
-                        textfont=dict(size=int(12 * text_scale), color="#222"),
-                        hoverinfo="none",
-                        showlegend=False
-                    ))
-
-        # aspectos
+    # aspectos (capturar erros sem quebrar)
+    try:
         if len(lon_values) >= 2:
-            ASPECTS = [
-                ("Conjunção", 0, 8, "#222222", 3.0),
-                ("Sextil", 60, 6, "#2ca02c", 2.0),
-                ("Quadratura", 90, 7, "#e05353", 2.4),
-                ("Trígono", 120, 7, "#1f77b4", 2.4),
-                ("Oposição", 180, 8, "#ff0000", 2.8),
-            ]
-            n = len(names)
+            ASPECTS = [("Conj",0,8,"#222",3),("Sext",60,6,"#2ca02c",2)]
+            n=len(names)
             for i in range(n):
-                for j in range(i + 1, n):
-                    lon_i = lon_values[i]
-                    lon_j = lon_values[j]
+                for j in range(i+1,n):
+                    lon_i=lon_values[i]; lon_j=lon_values[j]
                     diff = abs((lon_i - lon_j + 180) % 360 - 180)
                     for asp_name, asp_angle, asp_orb, asp_color, asp_width in ASPECTS:
                         if abs(diff - asp_angle) <= asp_orb:
                             theta_i = math.radians(lon_to_theta(lon_i))
                             theta_j = math.radians(lon_to_theta(lon_j))
-                            xi = math.cos(theta_i); yi = math.sin(theta_i)
-                            xj = math.cos(theta_j); yj = math.sin(theta_j)
-                            xm = (xi + xj) / 2 * 0.75
-                            ym = (yi + yj) / 2 * 0.75
-
-                            def cart_to_polar(x, y):
-                                ang = (360.0 - (math.degrees(math.atan2(y, x)) % 360.0)) % 360.0
-                                rad = math.hypot(x, y)
+                            xi, yi = math.cos(theta_i), math.sin(theta_i)
+                            xj, yj = math.cos(theta_j), math.sin(theta_j)
+                            xm, ym = (xi+xj)/2*0.75, (yi+yj)/2*0.75
+                            def cart_to_polar(x,y):
+                                ang = (360.0 - (math.degrees(math.atan2(y,x)) % 360.0)) % 360.0
+                                rad = math.hypot(x,y)
                                 return rad, ang
-
-                            r1, t1 = cart_to_polar(xi, yi)
-                            r2, t2 = cart_to_polar(xm, ym)
-                            r3, t3 = cart_to_polar(xj, yj)
+                            r1,t1 = cart_to_polar(xi, yi)
+                            r2,t2 = cart_to_polar(xm, ym)
+                            r3,t3 = cart_to_polar(xj, yj)
                             fig.add_trace(go.Scatterpolar(
-                                r=[r1, r2, r3],
-                                theta=[t1, t2, t3],
+                                r=[r1,r2,r3],
+                                theta=[t1,t2,t3],
                                 mode="lines",
                                 line=dict(color=asp_color, width=asp_width),
                                 opacity=0.65,
-                                hoverinfo="none",
                                 showlegend=False
                             ))
                             break
+    except Exception:
+        logger.exception("Erro ao desenhar aspectos")
 
-        # ticks e labels dos signos
+    # layout
+    try:
         sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
-        sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-        tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [f"{sign_symbols[i]} {sign_names[i]}" for i in range(12)]
-
+        tickvals = [(360.0 - (i*30 + 15)) % 360.0 for i in range(12)]
+        ticktext = [sign_names[i] for i in range(12)]
         fig.update_layout(
             polar=dict(
                 radialaxis=dict(visible=False),
-                angularaxis=dict(direction="clockwise", rotation=90,
-                                tickmode="array", tickvals=tickvals, ticktext=ticktext,
-                                tickfont=dict(size=int(12 * text_scale)), gridcolor="#eee")
+                angularaxis=dict(direction="clockwise", rotation=90, tickmode="array", tickvals=tickvals, ticktext=ticktext)
             ),
             showlegend=False,
-            margin=dict(l=10, r=10, t=30, b=10),
-            height=int(700 * (export_size[1] / 1200)) if export_png else 700,
-            width=export_size[0] if export_png else None
+            margin=dict(l=10,r=10,t=30,b=10),
+            height=700
         )
-        fig.update_traces(textfont=dict(size=int(14 * text_scale)))
+    except Exception:
+        logger.exception("Erro ao configurar layout")
 
-        # export opcional em alta resolução (requer kaleido)
-        if export_png:
-            try:
-                img_bytes = fig.to_image(format="png", width=export_size[0], height=export_size[1], scale=1)
-                return fig, img_bytes
-            except Exception as e:
-                logger.exception("Falha ao exportar PNG: %s", e)
-                # retornar figura mesmo que export falhe
-                return fig
+    # export opcional
+    if export_png:
+        try:
+            img_bytes = fig.to_image(format="png", width=export_size[0], height=export_size[1])
+            return fig, img_bytes
+        except Exception:
+            logger.exception("Falha ao exportar PNG")
 
-        return fig
+    return fig
+
 
     st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
     st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
