@@ -349,7 +349,7 @@ with c2:
     flag_key_teo = f"show_help_teo_{planet_teo}"
 
     # colunas: botão de ajuda (estreita) + título (maior)
-    col_help, col_title = st.columns([0.15, 0.85])
+    col_help_teo, col_title_teo = st.columns([0.15, 0.85])
 
     with col_title_teo:
         st.markdown(
@@ -397,7 +397,7 @@ with c3:
     flag_key_35 = f"show_help_35_{planet_35}"
 
     # colunas: botão de ajuda (estreita) + título (maior)
-    col_help, col_title = st.columns([0.15, 0.85])
+    col_help_35, col_title_35 = st.columns([0.15, 0.85])
 
     with col_title_35:
         st.markdown(
