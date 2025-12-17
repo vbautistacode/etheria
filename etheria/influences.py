@@ -19,7 +19,7 @@ from .utils import age_from_dob
 # Mapeamentos de nomes
 # -------------------------
 # canonical names (internos)
-CANONICAL_PLANETS = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
+CANONICAL_PLANETS = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
 
 # mapeamento PT <-> canonical
 PT_TO_CANONICAL: Dict[str, str] = {
