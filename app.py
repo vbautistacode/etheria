@@ -26,7 +26,7 @@ st.markdown(
     **Etheria** é uma jornada de autoconhecimento, onde céu e terra se encontram em diálogo constante, 
     e cada escolha se integra a uma narrativa maior.
 
-    *Desfrute da sua jornada com **Etheria**
+    Desfrute da sua jornada com **Etheria**
     """
 )
-st.caption("navegue pelo menu ao lado")
+st.caption("Navegue pelo menu ao lado")
