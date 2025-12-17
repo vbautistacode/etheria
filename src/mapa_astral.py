@@ -13,7 +13,7 @@ def main():
 
     from datetime import datetime, date, time as dtime
     from typing import Tuple, Optional, Dict, Any, List
-    from etheria.services.generator_service import generate_ai_text_from_chart
+    from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
     from pathlib import Path
 
     # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
