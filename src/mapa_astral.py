@@ -912,7 +912,7 @@ def main():
         #   min_px = 300
         #   max_px = 4000
 
-        base_px = 450
+        base_px = 400
         min_px = 300
         max_px = 4000
 
