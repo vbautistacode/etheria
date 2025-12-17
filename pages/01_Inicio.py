@@ -299,9 +299,6 @@ with c1:
     f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
     unsafe_allow_html=True
     )
-    with st.expander("Saiba!"):
-        st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
-
     st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
     
     st.write(interp_ast["short"])
