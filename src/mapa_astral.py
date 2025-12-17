@@ -15,6 +15,10 @@ def main():
     from typing import Tuple, Optional, Dict, Any, List
     from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
     from pathlib import Path
+    from etheria import influences
+
+    key = influences.to_canonical(gname) or gname
+    color = group_colors.get(key, group_colors.get("default"))
 
     # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -95,6 +99,22 @@ def main():
 
     # cache local
     _aspects_cache: Dict[str, dict] = {}
+
+    # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
+    group_colors = {
+        "Sun": "#FF8800",     
+        "Moon": "#3e54d4", 
+        "Mercury": "#e7d912", 
+        "Venus": "#2fbdf5",   
+        "Mars": "#d62728",     
+        "Jupiter": "#9467bd", 
+        "Saturn": "#53c232",   
+        "Uranus": "#ffd900",  
+        "Neptune": "#00a2ff", 
+        "Pluto": "#ff0000", 
+        # grupos/labels genéricos
+        "default": "#ff7f0e"
+    }
 
     # Inicialização segura de session_state
     _defaults = {
@@ -592,6 +612,31 @@ def main():
         export_png: bool = False,
         export_size: tuple = (2400, 2400)
     ):
+        global group_colors
+        if 'group_colors' not in globals() or not isinstance(group_colors, dict):
+            group_colors = {
+            "Sun": "#FF8800",     
+            "Moon": "#3e54d4", 
+            "Mercury": "#e7d912", 
+            "Venus": "#2fbdf5",   
+            "Mars": "#d62728",     
+            "Jupiter": "#9467bd", 
+            "Saturn": "#53c232",   
+            "Uranus": "#ffd900",  
+            "Neptune": "#00a2ff", 
+            "Pluto": "#ff0000", 
+            # grupos/labels genéricos
+            "default": "#ff7f0e"
+            }
+            
+        def _color_for_group(gname):
+            if not gname:
+                return group_colors.get("default")
+            # normalize simple accents/case if needed
+            key = str(gname).strip()
+            # se você usa canonical EN internamente, tente mapear PT->EN antes
+            # key = influences.to_canonical(key)  # se tiver influences importado
+            return group_colors.get(key, group_colors.get("default"))
         """
         Renderiza uma roda astrológica com Plotly.
 
@@ -687,7 +732,11 @@ def main():
             "Sun": "☉", "Sol": "☉", "Moon": "☾", "Lua": "☾", "Mercury": "☿", "Mercúrio": "☿", "Venus": "♀", "Vênus": "♀", "Mars": "♂", "Marte": "♂", "Jupiter": "♃", "Júpiter": "♃", "Saturn": "♄", "Saturno": "♄", "Uranus": "♅", "Urano": "♅", "Neptune": "♆", "Netuno": "♆", "Pluto": "♇", "Plutão": "♇", "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC", "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
         }
 
-        groups = highlight_groups or { "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"], "sociais": ["Jupiter", "Saturn"], "geracionais": ["Uranus", "Neptune", "Pluto"] }
+        groups = highlight_groups or { 
+            "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"], 
+            "sociais": ["Jupiter", "Saturn"], 
+            "geracionais": ["Uranus", "Neptune", "Pluto"] 
+        }
 
         # ordenar por longitude crescente
         ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
