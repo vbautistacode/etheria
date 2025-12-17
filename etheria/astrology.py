@@ -7,42 +7,82 @@ import math
 
 from typing import Dict, Tuple
 
-SIGNS = [
-    "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem",
-    "Libra", "Escorpião", "Sagitário", "Capricórnio", "Aquário", "Peixes"
+# -------------------------
+# Canônicos em inglês (internos)
+# -------------------------
+CANONICAL_PLANETS: List[str] = [
+    "Sun", "Moon", "Mercury", "Venus", "Mars",
+    "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
 ]
 
-# Planeta -> (Verbo, Significado central) — chaves em português
+CANONICAL_SIGNS: List[str] = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+]
+
+# -------------------------
+# Rótulos em português para UI (EN -> PT)
+# -------------------------
+CANONICAL_TO_PT_PLANET: Dict[str, str] = {
+    "Sun": "Sol",
+    "Moon": "Lua",
+    "Mercury": "Mercúrio",
+    "Venus": "Vênus",
+    "Mars": "Marte",
+    "Jupiter": "Júpiter",
+    "Saturn": "Saturno",
+    "Uranus": "Urano",
+    "Neptune": "Netuno",
+    "Pluto": "Plutão",
+}
+
+CANONICAL_TO_PT_SIGN: Dict[str, str] = {
+    "Aries": "Áries",
+    "Taurus": "Touro",
+    "Gemini": "Gêmeos",
+    "Cancer": "Câncer",
+    "Leo": "Leão",
+    "Virgo": "Virgem",
+    "Libra": "Libra",
+    "Scorpio": "Escorpião",
+    "Sagittarius": "Sagitário",
+    "Capricorn": "Capricórnio",
+    "Aquarius": "Aquário",
+    "Pisces": "Peixes",
+}
+
+# -------------------------
+# Conteúdos interpretativos usando chaves canônicas em inglês
+# Valores em português para exibição
+# -------------------------
 PLANET_CORE: Dict[str, Tuple[str, str]] = {
-    "Sol": ("Ser", "Identidade, Essência e Brilho"),
-    "Lua": ("Sentir", "Emoção, Nutrição e Hábito"),
-    "Mercúrio": ("Comunicar", "Pensamento e Conexão, Raciocínio"),
-    "Vênus": ("Relacionar", "Valor, Afeto e Atração"),
-    "Marte": ("Agir", "Impulso, Luta e Iniciativa"),
-    "Júpiter": ("Expandir", "Crescimento, Otimismo e Fé"),
-    "Saturno": ("Estruturar", "Limite, Disciplina e Responsabilidade"),
-    "Urano": ("Inovar", "Quebra, Mudança Súbita e Revolução"),
-    "Netuno": ("Idealizar", "Dissolver, Sonhar e Ilusão"),
-    "Plutão": ("Transformar", "Poder, Crise e Regeneração"),
+    "Sun": ("Ser", "Identidade, Essência e Brilho"),
+    "Moon": ("Sentir", "Emoção, Nutrição e Hábito"),
+    "Mercury": ("Comunicar", "Pensamento e Conexão, Raciocínio"),
+    "Venus": ("Relacionar", "Valor, Afeto e Atração"),
+    "Mars": ("Agir", "Impulso, Luta e Iniciativa"),
+    "Jupiter": ("Expandir", "Crescimento, Otimismo e Fé"),
+    "Saturn": ("Estruturar", "Limite, Disciplina e Responsabilidade"),
+    "Uranus": ("Inovar", "Quebra, Mudança Súbita e Revolução"),
+    "Neptune": ("Idealizar", "Dissolver, Sonhar e Ilusão"),
+    "Pluto": ("Transformar", "Poder, Crise e Regeneração"),
 }
 
-# Signo -> (Substantivo, Qualidade central) — chaves em português
 SIGN_DESCRIPTIONS: Dict[str, Tuple[str, str]] = {
-    "Áries": ("Início", "Impulso, Coragem e Ponto de Partida"),
-    "Touro": ("Valor", "Estabilidade, Materialidade e Posse"),
-    "Gêmeos": ("Conexão", "Curiosidade, Dualidade e Troca"),
-    "Câncer": ("Acolhimento", "Emoção, Raiz e Família"),
-    "Leão": ("Expressão", "Brilho, Centralidade e Liderança"),
-    "Virgem": ("Serviço", "Análise, Detalhe e Método"),
+    "Aries": ("Início", "Impulso, Coragem e Ponto de Partida"),
+    "Taurus": ("Valor", "Estabilidade, Materialidade e Posse"),
+    "Gemini": ("Conexão", "Curiosidade, Dualidade e Troca"),
+    "Cancer": ("Acolhimento", "Emoção, Raiz e Família"),
+    "Leo": ("Expressão", "Brilho, Centralidade e Liderança"),
+    "Virgo": ("Serviço", "Análise, Detalhe e Método"),
     "Libra": ("Equilíbrio", "Justiça, Parceria e Harmonia"),
-    "Escorpião": ("Profundidade", "Intensidade, Crise e Transformação"),
-    "Sagitário": ("Busca", "Expansão, Conhecimento e Aventura"),
-    "Capricórnio": ("Realização", "Estrutura, Ambição e Autoridade"),
-    "Aquário": ("Liberdade", "Humanidade, Inovação e Coletivo"),
-    "Peixes": ("União", "Sensibilidade, Empatia e Totalidade"),
+    "Scorpio": ("Profundidade", "Intensidade, Crise e Transformação"),
+    "Sagittarius": ("Busca", "Expansão, Conhecimento e Aventura"),
+    "Capricorn": ("Realização", "Estrutura, Ambição e Autoridade"),
+    "Aquarius": ("Liberdade", "Humanidade, Inovação e Coletivo"),
+    "Pisces": ("União", "Sensibilidade, Empatia e Totalidade"),
 }
 
-# Casas: número -> (Substantivo, Tema)
 HOUSE_DESCRIPTIONS: Dict[int, Tuple[str, str]] = {
     1: ("Eu", "Identidade, Aparência e Início de Tudo"),
     2: ("Recursos", "Finanças, Bens Materiais e Valor Pessoal"),
@@ -58,7 +98,80 @@ HOUSE_DESCRIPTIONS: Dict[int, Tuple[str, str]] = {
     12: ("Inconsciente", "Isolamento, Espiritualidade, Sacrifício e Assuntos Ocultos"),
 }
 
-PLANET_ORDER = ["Sol", "Lua", "Mercúrio", "Vênus", "Marte", "Júpiter", "Saturno", "Urano", "Netuno", "Plutão"]
+PLANET_ORDER: List[str] = [
+    "Sun", "Moon", "Mercury", "Venus", "Mars",
+    "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]
+
+# -------------------------
+# Mapeamentos PT -> canonical (normalizados)
+# -------------------------
+_raw_pt_planet = {
+    "Sol": "Sun", "sol": "Sun",
+    "Lua": "Moon", "lua": "Moon",
+    "Mercúrio": "Mercury", "Mercurio": "Mercury", "mercurio": "Mercury",
+    "Vênus": "Venus", "Venus": "Venus", "venus": "Venus",
+    "Marte": "Mars", "marte": "Mars",
+    "Júpiter": "Jupiter", "Jupiter": "Jupiter", "jupiter": "Jupiter",
+    "Saturno": "Saturn", "saturno": "Saturn",
+    "Urano": "Uranus", "urano": "Uranus",
+    "Netuno": "Neptune", "netuno": "Neptune",
+    "Plutão": "Pluto", "Plutao": "Pluto", "plutao": "Pluto",
+}
+
+_raw_pt_sign = {
+    "Áries": "Aries", "Aries": "Aries", "aries": "Aries",
+    "Touro": "Taurus", "touro": "Taurus",
+    "Gêmeos": "Gemini", "Gemeos": "Gemini", "gemeos": "Gemini",
+    "Câncer": "Cancer", "Cancer": "Cancer", "cancer": "Cancer",
+    "Leão": "Leo", "Leao": "Leo", "leo": "Leo",
+    "Virgem": "Virgo", "virgem": "Virgo",
+    "Libra": "Libra", "libra": "Libra",
+    "Escorpião": "Scorpio", "Escorpiao": "Scorpio", "escorpiao": "Scorpio",
+    "Sagitário": "Sagittarius", "Sagitario": "Sagittarius", "sagitario": "Sagittarius",
+    "Capricórnio": "Capricorn", "Capricornio": "Capricorn", "capricornio": "Capricorn",
+    "Aquário": "Aquarius", "Aquario": "Aquarius", "aquario": "Aquarius",
+    "Peixes": "Pisces", "peixes": "Pisces",
+}
+
+def _strip_accents(s: str) -> str:
+    nkfd = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in nkfd if not unicodedata.combining(ch))
+
+def _norm_key(s: str) -> str:
+    return _strip_accents(s).strip().lower()
+
+PT_TO_CANONICAL_PLANET: Dict[str, str] = {_norm_key(k): v for k, v in _raw_pt_planet.items()}
+PT_TO_CANONICAL_SIGN: Dict[str, str] = {_norm_key(k): v for k, v in _raw_pt_sign.items()}
+
+# -------------------------
+# Funções utilitárias de conversão
+# -------------------------
+def planet_to_canonical(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    s = str(name).strip()
+    # já canônico?
+    for can in CANONICAL_PLANETS:
+        if can.lower() == s.lower():
+            return can
+    key = _norm_key(s)
+    return PT_TO_CANONICAL_PLANET.get(key, s)
+
+def sign_to_canonical(name: Optional[str]) -> Optional[str]:
+    if not name:
+        return None
+    s = str(name).strip()
+    for can in CANONICAL_SIGNS:
+        if can.lower() == s.lower():
+            return can
+    key = _norm_key(s)
+    return PT_TO_CANONICAL_SIGN.get(key, s)
+
+def planet_label_pt(canonical: str) -> str:
+    return CANONICAL_TO_PT_PLANET.get(canonical, canonical)
+
+def sign_label_pt(canonical: str) -> str:
+    return CANONICAL_TO_PT_SIGN.get(canonical, canonical)
 
 def lon_to_sign_degree(lon: float) -> Tuple[str, float, int]:
     """
