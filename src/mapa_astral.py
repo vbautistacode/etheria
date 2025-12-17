@@ -581,202 +581,202 @@ def main():
 
     # render_wheel_plotly: manter sua implementação robusta (trecho completo)
     def render_wheel_plotly_debug(
-    planets: dict,
-    cusps: list,
-    *,
-    highlight_groups: dict = None,
-    house_label_position: str = "inner",
-    marker_scale: float = 1.4,
-    text_scale: float = 1.2,
-    cusp_colors_by_quadrant: list = None,
-    export_png: bool = False,
-    export_size: tuple = (2400, 2400)
-):
-    import logging, math
-    logger = logging.getLogger("render_wheel_plotly_debug")
-    logger.setLevel(logging.DEBUG)
-    logger.debug("Entrando em render_wheel_plotly_debug")
+        planets: dict,
+        cusps: list,
+        *,
+        highlight_groups: dict = None,
+        house_label_position: str = "inner",
+        marker_scale: float = 1.4,
+        text_scale: float = 1.2,
+        cusp_colors_by_quadrant: list = None,
+        export_png: bool = False,
+        export_size: tuple = (2400, 2400)
+    ):
+        import logging, math
+        logger = logging.getLogger("render_wheel_plotly_debug")
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Entrando em render_wheel_plotly_debug")
 
-    try:
-        import plotly.graph_objects as go
-    except Exception as e:
-        logger.exception("Plotly import failed: %s", e)
-        raise
+        try:
+            import plotly.graph_objects as go
+        except Exception as e:
+            logger.exception("Plotly import failed: %s", e)
+            raise
 
-    if cusp_colors_by_quadrant is None:
-        cusp_colors_by_quadrant = ["#6E6E6E52"]*4
+        if cusp_colors_by_quadrant is None:
+            cusp_colors_by_quadrant = ["#6E6E6E52"]*4
 
-    def extract_lon(pdata):
-        if pdata is None:
-            return None
-        if isinstance(pdata, (int, float)):
-            return float(pdata)
-        if isinstance(pdata, str):
-            try:
-                return float(pdata)
-            except Exception:
+        def extract_lon(pdata):
+            if pdata is None:
                 return None
-        if isinstance(pdata, dict):
-            for key in ("lon","longitude","long","ecl_lon","ecliptic_longitude"):
-                if key in pdata and pdata[key] is not None:
-                    try:
-                        return float(pdata[key])
-                    except Exception:
-                        return None
-        return None
+            if isinstance(pdata, (int, float)):
+                return float(pdata)
+            if isinstance(pdata, str):
+                try:
+                    return float(pdata)
+                except Exception:
+                    return None
+            if isinstance(pdata, dict):
+                for key in ("lon","longitude","long","ecl_lon","ecliptic_longitude"):
+                    if key in pdata and pdata[key] is not None:
+                        try:
+                            return float(pdata[key])
+                        except Exception:
+                            return None
+            return None
 
-    # parse planets
-    valid_planets = {}
-    planet_meta = {}
-    invalid_planets = []
-    for name, pdata in (planets or {}).items():
-        try:
-            lon = extract_lon(pdata)
-            if lon is None:
-                invalid_planets.append((name, pdata))
-            else:
-                valid_planets[name] = float(lon) % 360.0
-                planet_meta[name] = pdata if isinstance(pdata, dict) else {}
-        except Exception:
-            logger.exception("Erro ao processar planeta %s: %s", name, pdata)
-            invalid_planets.append((name, pdata))
-
-    logger.debug("valid_planets keys: %s", list(valid_planets.keys()))
-    if invalid_planets:
-        logger.warning("Planetas inválidos: %s", invalid_planets)
-
-    # parse cusps
-    valid_cusps = []
-    invalid_cusps = []
-    if cusps:
-        for i, c in enumerate(cusps):
+        # parse planets
+        valid_planets = {}
+        planet_meta = {}
+        invalid_planets = []
+        for name, pdata in (planets or {}).items():
             try:
-                if c is None:
-                    raise ValueError("None cusp")
-                valid_cusps.append(float(c) % 360.0)
+                lon = extract_lon(pdata)
+                if lon is None:
+                    invalid_planets.append((name, pdata))
+                else:
+                    valid_planets[name] = float(lon) % 360.0
+                    planet_meta[name] = pdata if isinstance(pdata, dict) else {}
             except Exception:
-                invalid_cusps.append((i, c))
-    logger.debug("valid_cusps: %s", valid_cusps)
-    if invalid_cusps:
-        logger.warning("Cusps inválidos: %s", invalid_cusps)
+                logger.exception("Erro ao processar planeta %s: %s", name, pdata)
+                invalid_planets.append((name, pdata))
 
-    if not valid_planets:
-        logger.error("Nenhum planeta válido")
-        return None
+        logger.debug("valid_planets keys: %s", list(valid_planets.keys()))
+        if invalid_planets:
+            logger.warning("Planetas inválidos: %s", invalid_planets)
 
-    def lon_to_theta(lon_deg):
-        return (360.0 - float(lon_deg)) % 360.0
+        # parse cusps
+        valid_cusps = []
+        invalid_cusps = []
+        if cusps:
+            for i, c in enumerate(cusps):
+                try:
+                    if c is None:
+                        raise ValueError("None cusp")
+                    valid_cusps.append(float(c) % 360.0)
+                except Exception:
+                    invalid_cusps.append((i, c))
+        logger.debug("valid_cusps: %s", valid_cusps)
+        if invalid_cusps:
+            logger.warning("Cusps inválidos: %s", invalid_cusps)
 
-    # prepare arrays
-    ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
-    names=[]; thetas=[]; lon_values=[]
-    hover_texts=[]; symbol_texts=[]; marker_sizes=[]; marker_colors=[]
+        if not valid_planets:
+            logger.error("Nenhum planeta válido")
+            return None
 
-    try:
-        for name, lon in ordered:
-            theta = lon_to_theta(lon)
-            names.append(name)
-            thetas.append(theta)
-            lon_values.append(float(lon))
-            hover_texts.append(f"{name} {lon:.2f}")
-            symbol_texts.append(name[:2])
-            marker_sizes.append(20*marker_scale)
-            marker_colors.append("#888")
-    except Exception:
-        logger.exception("Erro ao construir arrays de planetas")
-        raise
+        def lon_to_theta(lon_deg):
+            return (360.0 - float(lon_deg)) % 360.0
 
-    fig = go.Figure()
-    try:
-        fig.add_trace(go.Scatterpolar(
-            r=[1.0]*len(thetas),
-            theta=thetas,
-            mode="markers+text",
-            marker=dict(size=marker_sizes, color=marker_colors),
-            text=symbol_texts,
-            hovertext=hover_texts,
-            hovertemplate="%{hovertext}<extra></extra>"
-        ))
-    except Exception:
-        logger.exception("Erro ao adicionar trace de planetas")
-        raise
+        # prepare arrays
+        ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
+        names=[]; thetas=[]; lon_values=[]
+        hover_texts=[]; symbol_texts=[]; marker_sizes=[]; marker_colors=[]
 
-    # cúspides
-    try:
-        if valid_cusps:
-            for i, cusp in enumerate(valid_cusps):
-                theta_cusp = lon_to_theta(cusp)
-                fig.add_trace(go.Scatterpolar(
-                    r=[0.12,1.0],
-                    theta=[theta_cusp, theta_cusp],
-                    mode="lines",
-                    line=dict(color=cusp_colors_by_quadrant[i//3 % 4], width=2),
-                    showlegend=False
-                ))
-    except Exception:
-        logger.exception("Erro ao desenhar cúspides")
-
-    # aspectos (capturar erros sem quebrar)
-    try:
-        if len(lon_values) >= 2:
-            ASPECTS = [("Conj",0,8,"#222",3),("Sext",60,6,"#2ca02c",2)]
-            n=len(names)
-            for i in range(n):
-                for j in range(i+1,n):
-                    lon_i=lon_values[i]; lon_j=lon_values[j]
-                    diff = abs((lon_i - lon_j + 180) % 360 - 180)
-                    for asp_name, asp_angle, asp_orb, asp_color, asp_width in ASPECTS:
-                        if abs(diff - asp_angle) <= asp_orb:
-                            theta_i = math.radians(lon_to_theta(lon_i))
-                            theta_j = math.radians(lon_to_theta(lon_j))
-                            xi, yi = math.cos(theta_i), math.sin(theta_i)
-                            xj, yj = math.cos(theta_j), math.sin(theta_j)
-                            xm, ym = (xi+xj)/2*0.75, (yi+yj)/2*0.75
-                            def cart_to_polar(x,y):
-                                ang = (360.0 - (math.degrees(math.atan2(y,x)) % 360.0)) % 360.0
-                                rad = math.hypot(x,y)
-                                return rad, ang
-                            r1,t1 = cart_to_polar(xi, yi)
-                            r2,t2 = cart_to_polar(xm, ym)
-                            r3,t3 = cart_to_polar(xj, yj)
-                            fig.add_trace(go.Scatterpolar(
-                                r=[r1,r2,r3],
-                                theta=[t1,t2,t3],
-                                mode="lines",
-                                line=dict(color=asp_color, width=asp_width),
-                                opacity=0.65,
-                                showlegend=False
-                            ))
-                            break
-    except Exception:
-        logger.exception("Erro ao desenhar aspectos")
-
-    # layout
-    try:
-        sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
-        tickvals = [(360.0 - (i*30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [sign_names[i] for i in range(12)]
-        fig.update_layout(
-            polar=dict(
-                radialaxis=dict(visible=False),
-                angularaxis=dict(direction="clockwise", rotation=90, tickmode="array", tickvals=tickvals, ticktext=ticktext)
-            ),
-            showlegend=False,
-            margin=dict(l=10,r=10,t=30,b=10),
-            height=700
-        )
-    except Exception:
-        logger.exception("Erro ao configurar layout")
-
-    # export opcional
-    if export_png:
         try:
-            img_bytes = fig.to_image(format="png", width=export_size[0], height=export_size[1])
-            return fig, img_bytes
+            for name, lon in ordered:
+                theta = lon_to_theta(lon)
+                names.append(name)
+                thetas.append(theta)
+                lon_values.append(float(lon))
+                hover_texts.append(f"{name} {lon:.2f}")
+                symbol_texts.append(name[:2])
+                marker_sizes.append(20*marker_scale)
+                marker_colors.append("#888")
         except Exception:
-            logger.exception("Falha ao exportar PNG")
+            logger.exception("Erro ao construir arrays de planetas")
+            raise
 
-    return fig
+        fig = go.Figure()
+        try:
+            fig.add_trace(go.Scatterpolar(
+                r=[1.0]*len(thetas),
+                theta=thetas,
+                mode="markers+text",
+                marker=dict(size=marker_sizes, color=marker_colors),
+                text=symbol_texts,
+                hovertext=hover_texts,
+                hovertemplate="%{hovertext}<extra></extra>"
+            ))
+        except Exception:
+            logger.exception("Erro ao adicionar trace de planetas")
+            raise
+
+        # cúspides
+        try:
+            if valid_cusps:
+                for i, cusp in enumerate(valid_cusps):
+                    theta_cusp = lon_to_theta(cusp)
+                    fig.add_trace(go.Scatterpolar(
+                        r=[0.12,1.0],
+                        theta=[theta_cusp, theta_cusp],
+                        mode="lines",
+                        line=dict(color=cusp_colors_by_quadrant[i//3 % 4], width=2),
+                        showlegend=False
+                    ))
+        except Exception:
+            logger.exception("Erro ao desenhar cúspides")
+
+        # aspectos (capturar erros sem quebrar)
+        try:
+            if len(lon_values) >= 2:
+                ASPECTS = [("Conj",0,8,"#222",3),("Sext",60,6,"#2ca02c",2)]
+                n=len(names)
+                for i in range(n):
+                    for j in range(i+1,n):
+                        lon_i=lon_values[i]; lon_j=lon_values[j]
+                        diff = abs((lon_i - lon_j + 180) % 360 - 180)
+                        for asp_name, asp_angle, asp_orb, asp_color, asp_width in ASPECTS:
+                            if abs(diff - asp_angle) <= asp_orb:
+                                theta_i = math.radians(lon_to_theta(lon_i))
+                                theta_j = math.radians(lon_to_theta(lon_j))
+                                xi, yi = math.cos(theta_i), math.sin(theta_i)
+                                xj, yj = math.cos(theta_j), math.sin(theta_j)
+                                xm, ym = (xi+xj)/2*0.75, (yi+yj)/2*0.75
+                                def cart_to_polar(x,y):
+                                    ang = (360.0 - (math.degrees(math.atan2(y,x)) % 360.0)) % 360.0
+                                    rad = math.hypot(x,y)
+                                    return rad, ang
+                                r1,t1 = cart_to_polar(xi, yi)
+                                r2,t2 = cart_to_polar(xm, ym)
+                                r3,t3 = cart_to_polar(xj, yj)
+                                fig.add_trace(go.Scatterpolar(
+                                    r=[r1,r2,r3],
+                                    theta=[t1,t2,t3],
+                                    mode="lines",
+                                    line=dict(color=asp_color, width=asp_width),
+                                    opacity=0.65,
+                                    showlegend=False
+                                ))
+                                break
+        except Exception:
+            logger.exception("Erro ao desenhar aspectos")
+
+        # layout
+        try:
+            sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
+            tickvals = [(360.0 - (i*30 + 15)) % 360.0 for i in range(12)]
+            ticktext = [sign_names[i] for i in range(12)]
+            fig.update_layout(
+                polar=dict(
+                    radialaxis=dict(visible=False),
+                    angularaxis=dict(direction="clockwise", rotation=90, tickmode="array", tickvals=tickvals, ticktext=ticktext)
+                ),
+                showlegend=False,
+                margin=dict(l=10,r=10,t=30,b=10),
+                height=700
+            )
+        except Exception:
+            logger.exception("Erro ao configurar layout")
+
+        # export opcional
+        if export_png:
+            try:
+                img_bytes = fig.to_image(format="png", width=export_size[0], height=export_size[1])
+                return fig, img_bytes
+            except Exception:
+                logger.exception("Falha ao exportar PNG")
+
+        return fig
 
 
     st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
