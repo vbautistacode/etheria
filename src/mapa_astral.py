@@ -781,7 +781,7 @@ def main():
             r=[1.0] * len(thetas),
             theta=thetas,
             mode="markers+text",
-            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#222", width=1.5)),
+            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#040607", width=1.5)),
             text=symbol_texts,
             textfont=dict(size=int(14 * text_scale), family="DejaVu Sans, Arial"),
             hovertext=hover_texts,
@@ -796,9 +796,9 @@ def main():
             theta=thetas,
             mode="text",
             text=names,
-            textfont=dict(size=int(12 * text_scale), color="#111"),
+            textfont=dict(size=int(12 * text_scale), color="#040607"),
             hoverinfo="none",
-            showlegend=False
+            showlegend=True
         ))
 
         # desenhar cúspides se houver
