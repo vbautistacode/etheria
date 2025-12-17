@@ -3,7 +3,7 @@
 import streamlit as st
 from pathlib import Path
 
-st.set_page_config(page_title="Etheria — Apresentação", layout="wide")
+st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
 
 st.title("Etheria — Apresentação")
 
