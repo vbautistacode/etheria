@@ -615,7 +615,7 @@ def main():
 
         # defaults
         if cusp_colors_by_quadrant is None:
-            cusp_colors_by_quadrant = ["#AAAAAA", "#AAAAAA", "#AAAAAA", "#AAAAAA"]
+            cusp_colors_by_quadrant = ["#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"]
 
         # helpers
         def extract_lon(pdata):
