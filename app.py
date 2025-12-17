@@ -9,7 +9,6 @@ st.title("Etheria — Apresentação")
 
 # URL do vídeo no YouTube
 youtube_url = "https://www.youtube.com/watch?v=odibXYdEBPo"
-st.video(youtube_url)
 
 # Alternativa local (fallback) — use apenas se o arquivo for pequeno
 local_demo = Path("static/institucional.mp4")
