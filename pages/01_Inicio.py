@@ -306,7 +306,7 @@ with c1:
     with col_title:
         st.markdown(
             f"""
-            <div style="display:flex; align-items:center; gap:0.5px; margin:0;">
+            <div style="display:flex; align-items:center; gap:0px; margin:0;">
                 <div style="font-size:20px; font-weight:600; line-height:1;">
                     {style.get('icon','')} Ciclo Astrológico
                 </div>
