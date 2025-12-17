@@ -270,7 +270,24 @@ planet_teo = short_regent_label(reg_teo.get("regent"))
 planet_35  = short_regent_label(reg_35.get("regent"))
 
 st.header("Os Ciclos")
-st.markdown("Os ciclos anuais refletem as energias predominantes que influenciam o consulente ao longo do ano atual.")
+st.markdown(
+    """
+    Os ciclos anuais representam padrões de energia que se manifestam ao longo de cada ano.  
+    No campo **astrológico**, o retorno solar marca o início de um novo ciclo, indicando temas 
+    que tendem a se destacar em diferentes áreas da vida.  
+
+    No campo **teosófico**, o ciclo anual é definido pelo chamado **Relógio Cósmico**.  
+    Esse relógio segue a ordem dos planetas associada aos dias da semana — de sábado a domingo — em seu 
+    movimento inverso. Cada planeta, ao reger simbolicamente um dia, imprime sua qualidade sobre o período, 
+    revelando tendências de expansão, recolhimento, criatividade ou disciplina conforme o ritmo cósmico.  
+
+    Além dos ciclos anuais, existe o ciclo maior de **35 anos**, considerado um marco de integração 
+    e maturidade. Ele simboliza a consolidação de aprendizados acumulados e a abertura para novas 
+    etapas de desenvolvimento.  
+    Esse ciclo é entendido como parte de uma espiral evolutiva, na qual cada fase da existência 
+    contribui para o processo contínuo de autoconhecimento e realização.
+    """
+)
 
 interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
 
