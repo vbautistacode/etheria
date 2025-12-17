@@ -58,8 +58,6 @@ from etheria.cycles import (
     CICLO_MENOR_TEOSOFICO_DESC,
 )
 
-st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
-
 st.title("Ciclos Astrológicos e Relógio Tátvico ♾️")
 st.markdown(
     """  
