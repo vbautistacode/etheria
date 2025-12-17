@@ -896,7 +896,7 @@ def main():
                                 line=dict(color=asp_color, width=asp_width),
                                 opacity=0.65,
                                 hoverinfo="none",
-                                showlegend=False
+                                showlegend=True
                             ))
                             break
 
