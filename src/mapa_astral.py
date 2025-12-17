@@ -11,6 +11,22 @@ def main():
     import plotly.graph_objects as go
     import streamlit as st
 
+    # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
+    GROUP_COLORS = {
+        "Sun": "#FF8800",     
+        "Moon": "#3e54d4", 
+        "Mercury": "#e7d912", 
+        "Venus": "#2fbdf5",   
+        "Mars": "#d62728",     
+        "Jupiter": "#9467bd", 
+        "Saturn": "#53c232",   
+        "Uranus": "#ffd900",  
+        "Neptune": "#00a2ff", 
+        "Pluto": "#ff0000", 
+        # grupos/labels genéricos
+        "default": "#ff7f0e"
+    }
+
     from datetime import datetime, date, time as dtime
     from typing import Tuple, Optional, Dict, Any, List
     from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
@@ -145,22 +161,6 @@ def main():
 
     # cache local
     _aspects_cache: Dict[str, dict] = {}
-
-    # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
-    group_colors = {
-        "Sun": "#FF8800",     
-        "Moon": "#3e54d4", 
-        "Mercury": "#e7d912", 
-        "Venus": "#2fbdf5",   
-        "Mars": "#d62728",     
-        "Jupiter": "#9467bd", 
-        "Saturn": "#53c232",   
-        "Uranus": "#ffd900",  
-        "Neptune": "#00a2ff", 
-        "Pluto": "#ff0000", 
-        # grupos/labels genéricos
-        "default": "#ff7f0e"
-    }
 
     # Inicialização segura de session_state
     _defaults = {
@@ -659,8 +659,7 @@ def main():
         export_size: tuple = (2400, 2400)
     ):
         global group_colors
-        if 'group_colors' not in globals() or not isinstance(group_colors, dict):
-            group_colors = {
+        colors = globals().get("GROUP_COLORS") or {
             "Sun": "#FF8800",     
             "Moon": "#3e54d4", 
             "Mercury": "#e7d912", 
@@ -673,16 +672,17 @@ def main():
             "Pluto": "#ff0000", 
             # grupos/labels genéricos
             "default": "#ff7f0e"
-            }
+        }
             
         def _color_for_group(gname):
             if not gname:
-                return group_colors.get("default")
-            # normalize simple accents/case if needed
-            key = str(gname).strip()
-            # se você usa canonical EN internamente, tente mapear PT->EN antes
-            # key = influences.to_canonical(key)  # se tiver influences importado
-            return group_colors.get(key, group_colors.get("default"))
+                return colors.get("default")
+            # normalize to canonical English if possible
+            try:
+                key = influences.to_canonical(gname) or str(gname)
+            except Exception:
+                key = str(gname)
+            return colors.get(key, colors.get("default"))
         """
         Renderiza uma roda astrológica com Plotly.
 
