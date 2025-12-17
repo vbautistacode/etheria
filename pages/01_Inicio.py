@@ -324,7 +324,7 @@ with c1:
             unsafe_allow_html=True,
         )
         # botão que aciona o expander (use key único por bloco)
-        if st.button("⚠️", key=help_key):
+        if st.button("!", key=help_key):
             st.session_state[flag_key] = not st.session_state.get(flag_key, False)
         st.markdown("</div>", unsafe_allow_html=True)
 
