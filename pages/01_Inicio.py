@@ -60,13 +60,28 @@ from etheria.cycles import (
 
 st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
 
-st.title("Etheria | Painel Esotérico ♾️")
+st.title("Ciclos Astrológicos e Relógio Tátvico ♾️")
 st.markdown(
-    """
-    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
-    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada ciclo 
-    são chaves para compreender tanto os movimentos externos quanto os internos.  
-    Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
+    """  
+    Cada planeta percorre sua órbita como um ponteiro cósmico, marcando fases que se refletem 
+    nos ciclos internos da consciência.  
+
+    O **Relógio Tátvico** mostra como esses movimentos dialogam com os cinco elementos sutis — 
+    os *tátvvas*:  
+    - **Éter (Akasha)**: o espaço que acolhe todos os ritmos, a matriz silenciosa do ser.  
+    - **Ar (Vayu)**: o sopro das ideias e da comunicação, que acompanha Mercúrio e os ventos da mente.  
+    - **Fogo (Tejas)**: a chama da ação e da vontade, refletida nos ciclos solares e na energia de Marte.  
+    - **Água (Apas)**: o fluxo das emoções e da intuição, espelhado na Lua e em Vênus.  
+    - **Terra (Prithivi)**: a estabilidade e a forma, sustentada por Saturno e pelos ciclos de materialização.  
+
+    Assim, cada transição astrológica desperta um tátvva correspondente, convidando você a alinhar 
+    práticas externas com estados internos.  
+    Mais do que observar símbolos, aqui você é chamado a vivenciá-los: transformar arquétipos em 
+    experiências, experiências em consciência, e consciência em presença.  
+
+    Este espaço é uma jornada de autoconhecimento, onde o relógio celeste e o relógio tátvico 
+    se sincronizam, revelando que cada instante é uma oportunidade de integração entre corpo, mente 
+    e espírito.
     """
 )
 
@@ -254,7 +269,7 @@ planet_ast = short_regent_label(reg_ast.get("regent"))
 planet_teo = short_regent_label(reg_teo.get("regent"))
 planet_35  = short_regent_label(reg_35.get("regent"))
 
-st.header("Ciclos Astrológicos")
+st.header("Os Ciclos")
 st.markdown("Os ciclos anuais refletem as energias predominantes que influenciam o consulente ao longo do ano atual.")
 
 interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
@@ -306,7 +321,7 @@ with c3:
 left, = st.columns([4])
 
 with left:
-    st.header("Relógio Tátvico e suas Correlações")
+    st.header("Relógio Tátvico e Correlações")
     st.markdown("Sistema esotérico que mede o tempo de acordo com a vibração desses princípios (tattwas). Está relacionado a mudança de energéticas ao longo do dia e suas influências.")
 
     types = list(data["matrices"].keys())
