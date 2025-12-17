@@ -960,7 +960,7 @@ def main():
                     tickmode="array",
                     tickvals=tickvals,
                     ticktext=ticktext,
-                    tickfont=dict(size=int(12 * text_scale)),
+                    tickfont=dict(size=int(18 * text_scale)),
                     gridcolor="#eee"
                 )
             ),
