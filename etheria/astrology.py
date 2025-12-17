@@ -20,6 +20,8 @@ CANONICAL_SIGNS: List[str] = [
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
 
+SIGNS = CANONICAL_SIGNS
+
 # -------------------------
 # Rótulos em português para UI (EN -> PT)
 # -------------------------
