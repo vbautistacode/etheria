@@ -79,8 +79,6 @@ def main():
         # fallback seguro: usar gname cru
         key = gname
 
-    color = group_colors.get(key, group_colors.get("default"))
-
     # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
     if str(PROJECT_ROOT) not in sys.path:
