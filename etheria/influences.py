@@ -19,44 +19,71 @@ from .utils import age_from_dob
 # Mapeamentos de nomes
 # -------------------------
 # canonical names (internos)
-CANONICAL_PLANETS = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
+from typing import Dict, List, Optional
+import unicodedata
 
-# mapeamento PT <-> canonical
-PT_TO_CANONICAL: Dict[str, str] = {
+# canonical names in English (internal)
+CANONICAL_PLANETS: List[str] = [
+    "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
+]
+
+# raw PT variants (human-friendly) -> canonical (EN)
+_raw_pt_to_canonical = {
+    "Sol": "Sun",
     "Lua": "Moon",
     "Mercúrio": "Mercury",
     "Mercurio": "Mercury",
     "Vênus": "Venus",
     "Venus": "Venus",
-    "Sol": "Sun",
     "Marte": "Mars",
     "Júpiter": "Jupiter",
     "Jupiter": "Jupiter",
     "Saturno": "Saturn",
+    "Urano": "Uranus",
+    "Netuno": "Neptune",
+    "Plutão": "Pluto",
+    "Plutao": "Pluto",
 }
 
-CANONICAL_TO_PT: Dict[str, str] = {v: k for k, v in PT_TO_CANONICAL.items()}
+def _strip_accents(s: str) -> str:
+    nkfd = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in nkfd if not unicodedata.combining(ch))
 
-def _to_canonical(name: Optional[str]) -> Optional[str]:
+def _norm_key(s: str) -> str:
+    return _strip_accents(s).strip().lower()
+
+# normalized PT -> canonical mapping (keys are lower/no-accent)
+PT_TO_CANONICAL: Dict[str, str] = {_norm_key(k): v for k, v in _raw_pt_to_canonical.items()}
+
+# explicit canonical -> PT labels for UI
+CANONICAL_TO_PT: Dict[str, str] = {
+    "Sun": "Sol",
+    "Moon": "Lua",
+    "Mercury": "Mercúrio",
+    "Venus": "Vênus",
+    "Mars": "Marte",
+    "Jupiter": "Júpiter",
+    "Saturn": "Saturno",
+    "Uranus": "Urano",
+    "Neptune": "Netuno",
+    "Pluto": "Plutão",
+}
+
+def to_canonical(name: Optional[str]) -> Optional[str]:
+    """Return canonical English name. Accepts PT/EN, with/without accents, any case."""
     if not name:
         return None
-    name = str(name).strip()
-    # tentar match exato canonical
-    if name in CANONICAL_PLANETS:
-        return name
-    # tentar pt mapping (case sensitive keys exist); tentar capitalizar
-    if name in PT_TO_CANONICAL:
-        return PT_TO_CANONICAL[name]
-    # tentar variações simples (capitalize)
-    ncap = name.capitalize()
-    if ncap in PT_TO_CANONICAL:
-        return PT_TO_CANONICAL[ncap]
-    # fallback: tentar mapear por igualdade ignorando acentos/maiusculas
-    for pt, can in PT_TO_CANONICAL.items():
-        if pt.lower() == name.lower():
+    s = str(name).strip()
+    # if already canonical (case-insensitive)
+    for can in CANONICAL_PLANETS:
+        if can.lower() == s.lower():
             return can
-    # se não reconhecido, retornar original (pode ser um nome custom)
-    return name
+    # normalized lookup PT -> EN
+    key = _norm_key(s)
+    if key in PT_TO_CANONICAL:
+        return PT_TO_CANONICAL[key]
+    # fallback: return original string (or raise if you prefer strictness)
+    return s
 
 # -------------------------
 # Convenções de ciclo (usando nomes canônicos)
