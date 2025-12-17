@@ -272,8 +272,8 @@ planet_35  = short_regent_label(reg_35.get("regent"))
 st.header("Os Ciclos")
 st.markdown(
     """
-    Os ciclos anuais representam padrões de energia que se manifestam ao longo de cada ano.  
-    No campo **astrológico**, o retorno solar marca o início de um novo ciclo, indicando temas 
+    Os ciclos anuais representam padrões de energia que se manifestam ao longo de cada ano. 
+    No campo **astrológico**, o retorno solar marca o início de um novo ciclo,  indicando temas 
     que tendem a se destacar em diferentes áreas da vida.  
 
     No campo **teosófico**, o ciclo anual é definido pelo chamado **Relógio Cósmico**.  
