@@ -90,13 +90,13 @@ def to_canonical(name: Optional[str]) -> Optional[str]:
 # -------------------------
 PLANET_ORDER: List[str] = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
 PLANET_YEARS: Dict[str, int] = {
-    "Lua": 10,
-    "Mercúrio": 8,
-    "Vênus": 4,
-    "Sol": 3,
-    "Marte": 2,
-    "Júpiter": 7,
-    "Saturno": 6,
+    "Moon": 10,
+    "Mercury": 8,
+    "Venus": 4,
+    "Sun": 3,
+    "Mars": 2,
+    "Jupiter": 7,
+    "Saturn": 6,
 }
 
 DEFAULT_WEIGHTS: Dict[str, int] = {"year": 3, "hour": 2, "weekday": 1}
