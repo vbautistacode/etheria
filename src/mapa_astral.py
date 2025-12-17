@@ -1525,7 +1525,7 @@ def main():
                             r=[1.0],
                             theta=[theta_sel],
                             mode="markers+text",
-                            marker=dict(size=22, color="#1f77b4", line=dict(color="#000", width=1.5)),
+                            marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
                             text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name)],
                             textfont=dict(size=12, color="#000"),
                             hoverinfo="none",
