@@ -14,15 +14,16 @@ with col1:
 
 st.markdown(
     """
-    **Etheria** é o espaço simbólico onde os ciclos astrológicos e numerológicos se entrelaçam, 
-    conectando aos arquétipos e revelando padrões que atravessam o tempo e a experiência humana.  
-    Aqui você compreende as relações entre cada planeta, cada número e cada ciclo e descobre a sua conexão com eles.
-    São chaves que abrem portas para compreender tanto os movimentos externos do cosmos 
-    quanto os fluxos internos da consciência.
+    **Etheria** é um espaço simbólico onde ciclos astrológicos e numerológicos se entrelaçam, 
+    conectando-se aos arquétipos e revelando padrões que atravessam o tempo e a experiência humana.  
+    Neste ambiente, você pode compreender as relações entre planetas, números e ciclos, 
+    descobrindo sua própria conexão com eles.  
+    Cada elemento funciona como uma chave que abre portas para interpretar tanto os movimentos 
+    externos do cosmos quanto os fluxos internos da consciência.
 
-    Mais do que observar símbolos, aqui você é convidado a vivê-los: transformar arquétipos em 
-    práticas, práticas em consciência, e consciência em presença.  
-    Este espaço é uma jornada de autoconhecimento, onde o céu e a terra se encontram em diálogo 
-    constante, e onde cada escolha se torna parte de uma narrativa maior.
+    Mais do que observar símbolos, aqui você é convidado a vivenciá-los: transformar arquétipos em 
+    práticas, práticas em consciência e consciência em presença.  
+    Etheria é uma jornada de autoconhecimento, onde céu e terra se encontram em diálogo constante, 
+    e cada escolha se integra a uma narrativa maior.
     """
 )
