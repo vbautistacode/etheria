@@ -17,13 +17,45 @@ def main():
     from pathlib import Path
     from etheria import influences
 
-    key = influences.to_canonical(gname) or gname
+    # tenta extrair um nome de grupo/planeta de fontes prováveis no summary
+    gname = None
+    # 1) se houver um campo explícito
+    gname = summary.get("group") or summary.get("group_name") or gname
+    # 2) se houver planets (lista/dict), pegue o primeiro item plausível
+    if not gname:
+        planets = summary.get("planets") or []
+        if isinstance(planets, dict):
+            # se for dict de planetas, pegue a primeira entrada
+            first = next(iter(planets.values()), None)
+            if isinstance(first, dict):
+                gname = first.get("group") or first.get("planet") or first.get("name")
+        elif isinstance(planets, (list, tuple)) and planets:
+            first = planets[0]
+            if isinstance(first, dict):
+                gname = first.get("group") or first.get("planet") or first.get("name")
+    # 3) se houver tabela com colunas, tente extrair
+    if not gname and summary.get("table"):
+        row0 = summary["table"][0] if isinstance(summary["table"], (list, tuple)) and summary["table"] else None
+        if isinstance(row0, dict):
+            gname = row0.get("group") or row0.get("Planet") or row0.get("Planeta") or row0.get("planet")
+
+    # garantir string vazia em vez de None para evitar TypeError
+    gname = gname or ""
+
+    # converter para canonical quando possível (influences.to_canonical deve existir)
+    try:
+        key = influences.to_canonical(gname) or gname
+    except Exception:
+        # fallback seguro: usar gname cru
+        key = gname
+
     color = group_colors.get(key, group_colors.get("default"))
 
     # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
     PROJECT_ROOT = Path(__file__).resolve().parents[1]
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
+    
     from datetime import datetime, date, time as dt_time
     from typing import Optional, Tuple, Dict, Any
     # Imports do projeto (ajuste caminhos se necessário)
