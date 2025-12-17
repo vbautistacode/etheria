@@ -88,7 +88,7 @@ def to_canonical(name: Optional[str]) -> Optional[str]:
 # -------------------------
 # Convenções de ciclo (usando nomes canônicos)
 # -------------------------
-PLANET_ORDER: List[str] = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
+PLANET_ORDER: List[str] = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
 PLANET_YEARS: Dict[str, int] = {
     "Lua": 10,
     "Mercúrio": 8,
