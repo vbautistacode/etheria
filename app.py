@@ -6,7 +6,7 @@ st.set_page_config(page_title="Etheria — Apresentação", layout="wide")
 st.title("Etheria — Apresentação")
 
 # URL do vídeo no YouTube (substitua pela sua)
-youtube_url = "https://www.youtube.com/watch?v=SEU_VIDEO_ID"
+youtube_url = "https://youtube.com/shorts/odibXYdEBPo"
 
 # Alternativa local (fallback) — use apenas se o arquivo for pequeno
 local_demo = Path("static/institucional.mp4")
