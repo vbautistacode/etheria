@@ -294,16 +294,38 @@ interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, p
 c1, c2, c3 = st.columns(3)
 with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
+
+    # layout: título + botão de ajuda ao lado
+    col_title, col_help = st.columns([0.92, 0.08])
+    with col_title:
+        st.markdown(
+            f"<h3 style='font-size:20px;font-weight:600;margin:0'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
+            unsafe_allow_html=True
+        )
+    # botão de ajuda (funciona em desktop e mobile)
+    help_key = f"help_btn_{planet_ast}"
+    with col_help:
+        if st.button("❓", key=help_key):
+            st.session_state[f"show_help_{planet_ast}"] = True
+
+    # se o flag estiver ativo, abre um expander já expandido (simula um popup)
+    flag_key = f"show_help_{planet_ast}"
+    if st.session_state.get(flag_key, False):
+        with st.expander("Ajuda", expanded=True):
+            st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
+            # botão para fechar o "popup"
+            if st.button("Fechar", key=f"close_help_{planet_ast}"):
+                st.session_state[flag_key] = False
+
     st.markdown(
-    f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MENOR_ASTROLOGICO_DESC}'>{style.get('icon','')} Ciclo Anual Astrológico</h3>",
-    unsafe_allow_html=True
+        f"<div style='font-size:20px;color:{style['color']};font-weight:600;margin-top:8px'>{planet_ast}</div>",
+        unsafe_allow_html=True
     )
-    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_ast}</div>", unsafe_allow_html=True)
-    
+
     st.write(interp_ast["short"])
     with st.expander("Ver interpretação completa"):
         st.markdown(interp_ast["long"])
+
 
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
