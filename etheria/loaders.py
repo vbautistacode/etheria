@@ -449,24 +449,3 @@ def validation_report(df_long: pd.DataFrame, df_map: pd.DataFrame) -> Dict[str, 
         "types_detected": types,
         "coverage_per_type": coverage
     }
-
-# -------------------------
-# Execução rápida (para debug)
-# -------------------------
-if __name__ == "__main__":
-    # teste rápido de normalização
-    df = pd.DataFrame({
-        "Hora": [6, 7, "08:00", "09h00"],
-        "monday": [1, 2, 3, 4],
-        "tuesday": [5, 6, 7, 8]
-    })
-    print("Wide original:")
-    print(df)
-    long = wide_matrix_to_long(df, hour_col="Hora")
-    print("\nLong:")
-    print(long)
-    matrices = build_type_matrices(join_matrix_with_map(long, pd.DataFrame({"Arcano":[1,2,3,4],"Planeta":["Sol","Lua","Marte","Vênus"]})))
-    print("\nMatrizes geradas:")
-    for k,v in matrices.items():
-        print(k)
-        print(v.head())
