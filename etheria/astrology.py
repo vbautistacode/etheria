@@ -5,39 +5,41 @@ from typing import Iterable
 import unicodedata
 import math
 
+from typing import Dict, Tuple
+
 SIGNS = [
-    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem",
+    "Libra", "Escorpião", "Sagitário", "Capricórnio", "Aquário", "Peixes"
 ]
 
-# Planeta -> (Verbo, Significado central)
+# Planeta -> (Verbo, Significado central) — chaves em português
 PLANET_CORE: Dict[str, Tuple[str, str]] = {
-    "Sun": ("Ser", "Identidade, Essência e Brilho"),
-    "Moon": ("Sentir", "Emoção, Nutrição e Hábito"),
-    "Mercury": ("Comunicar", "Pensamento e Conexão, Raciocínio"),
-    "Venus": ("Relacionar", "Valor, Afeto e Atração"),
-    "Mars": ("Agir", "Impulso, Luta e Iniciativa"),
-    "Jupiter": ("Expandir", "Crescimento, Otimismo e Fé"),
-    "Saturn": ("Estruturar", "Limite, Disciplina e Responsabilidade"),
-    "Uranus": ("Inovar", "Quebra, Mudança Súbita e Revolução"),
-    "Neptune": ("Idealizar", "Dissolver, Sonhar e Ilusão"),
-    "Pluto": ("Transformar", "Poder, Crise e Regeneração"),
+    "Sol": ("Ser", "Identidade, Essência e Brilho"),
+    "Lua": ("Sentir", "Emoção, Nutrição e Hábito"),
+    "Mercúrio": ("Comunicar", "Pensamento e Conexão, Raciocínio"),
+    "Vênus": ("Relacionar", "Valor, Afeto e Atração"),
+    "Marte": ("Agir", "Impulso, Luta e Iniciativa"),
+    "Júpiter": ("Expandir", "Crescimento, Otimismo e Fé"),
+    "Saturno": ("Estruturar", "Limite, Disciplina e Responsabilidade"),
+    "Urano": ("Inovar", "Quebra, Mudança Súbita e Revolução"),
+    "Netuno": ("Idealizar", "Dissolver, Sonhar e Ilusão"),
+    "Plutão": ("Transformar", "Poder, Crise e Regeneração"),
 }
 
-# Signo -> (Substantivo, Qualidade central)
+# Signo -> (Substantivo, Qualidade central) — chaves em português
 SIGN_DESCRIPTIONS: Dict[str, Tuple[str, str]] = {
-    "Aries": ("Início", "Impulso, Coragem e Ponto de Partida"),
-    "Taurus": ("Valor", "Estabilidade, Materialidade e Posse"),
-    "Gemini": ("Conexão", "Curiosidade, Dualidade e Troca"),
-    "Cancer": ("Acolhimento", "Emoção, Raiz e Família"),
-    "Leo": ("Expressão", "Brilho, Centralidade e Liderança"),
-    "Virgo": ("Serviço", "Análise, Detalhe e Método"),
+    "Áries": ("Início", "Impulso, Coragem e Ponto de Partida"),
+    "Touro": ("Valor", "Estabilidade, Materialidade e Posse"),
+    "Gêmeos": ("Conexão", "Curiosidade, Dualidade e Troca"),
+    "Câncer": ("Acolhimento", "Emoção, Raiz e Família"),
+    "Leão": ("Expressão", "Brilho, Centralidade e Liderança"),
+    "Virgem": ("Serviço", "Análise, Detalhe e Método"),
     "Libra": ("Equilíbrio", "Justiça, Parceria e Harmonia"),
-    "Scorpio": ("Profundidade", "Intensidade, Crise e Transformação"),
-    "Sagittarius": ("Busca", "Expansão, Conhecimento e Aventura"),
-    "Capricorn": ("Realização", "Estrutura, Ambição e Autoridade"),
-    "Aquarius": ("Liberdade", "Humanidade, Inovação e Coletivo"),
-    "Pisces": ("União", "Sensibilidade, Empatia e Totalidade"),
+    "Escorpião": ("Profundidade", "Intensidade, Crise e Transformação"),
+    "Sagitário": ("Busca", "Expansão, Conhecimento e Aventura"),
+    "Capricórnio": ("Realização", "Estrutura, Ambição e Autoridade"),
+    "Aquário": ("Liberdade", "Humanidade, Inovação e Coletivo"),
+    "Peixes": ("União", "Sensibilidade, Empatia e Totalidade"),
 }
 
 # Casas: número -> (Substantivo, Tema)
@@ -56,7 +58,10 @@ HOUSE_DESCRIPTIONS: Dict[int, Tuple[str, str]] = {
     12: ("Inconsciente", "Isolamento, Espiritualidade, Sacrifício e Assuntos Ocultos"),
 }
 
-PLANET_ORDER = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"]
+PLANET_ORDER = [
+    "Sol", "Lua", "Mercúrio", "Vênus", "Marte",
+    "Júpiter", "Saturno", "Urano", "Netuno", "Plutão"
+]
 
 def lon_to_sign_degree(lon: float) -> Tuple[str, float, int]:
     """
@@ -367,7 +372,7 @@ def _keywords_from_text(text: Optional[str], max_items: int = 4) -> List[str]:
 
 # templates por planeta: cada entrada tem 'technical' e 'poetic' strings ou lambdas
 _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
-    "Sun": {
+    "Sol": {
         "technical": {
             "short": "É tempo de: afirmar identidade e propósito.",
             "long": (
@@ -393,7 +398,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Moon": {
+    "Lua": {
         "technical": {
             "short": "É tempo de: cuidar das emoções e da rotina.",
             "long": (
@@ -419,7 +424,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Mercury": {
+    "Mercúrio": {
         "technical": {
             "short": "É tempo de: comunicar com clareza e foco.",
             "long": (
@@ -445,7 +450,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Venus": {
+    "Vênus": {
         "technical": {
             "short": "É tempo de: nutrir valores, vínculos e estética.",
             "long": (
@@ -471,7 +476,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Mars": {
+    "Marte": {
         "technical": {
             "short": "É tempo de: agir com energia e direção.",
             "long": (
@@ -496,7 +501,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Jupiter": {
+    "Júpiter": {
         "technical": {
             "short": "É tempo de: expandir horizontes com prudência.",
             "long": (
@@ -521,7 +526,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Saturn": {
+    "Saturno": {
         "technical": {
             "short": "É tempo de: construir com disciplina e método.",
             "long": (
@@ -546,7 +551,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Uranus": {
+    "Urano": {
         "technical": {
             "short": "Inovação, ruptura e experimentação controlada.",
             "long": (
@@ -571,7 +576,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Neptune": {
+    "Netuno": {
         "technical": {
             "short": "Imaginação, intuição e sensibilidade.",
             "long": (
@@ -596,7 +601,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         }
     },
-    "Pluto": {
+    "Plutão": {
         "technical": {
             "short": "Transformação profunda e reestruturação.",
             "long": (

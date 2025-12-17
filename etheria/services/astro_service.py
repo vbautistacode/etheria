@@ -65,7 +65,11 @@ def compute_chart_positions(lat: float, lon: float, local_dt: datetime, house_sy
         chart = Chart(dt, GeoPos(lat, lon), hsys=house_system[0].upper())  # flatlib expects single letter sometimes
 
     # planetas de interesse
-    bodies = ['SUN','MOON','MERCURY','VENUS','MARS','JUPITER','SATURN','URANUS','NEPTUNE','PLUTO']
+    bodies = [
+        "SOL", "LUA", "MERCÚRIO", "VÊNUS", "MARTE",
+        "JÚPITER", "SATURNO", "URANO", "NETUNO", "PLUTÃO"
+    ]
+
     for b in bodies:
         obj = chart.get(b)
         # flatlib fornece e.g. '12Ta34' — formatamos para algo legível

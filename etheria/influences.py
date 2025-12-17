@@ -19,20 +19,20 @@ from .utils import age_from_dob
 # Mapeamentos de nomes
 # -------------------------
 # canonical names (internos)
-CANONICAL_PLANETS = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
+CANONICAL_PLANETS = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
 
 # mapeamento PT <-> canonical
 PT_TO_CANONICAL: Dict[str, str] = {
-    "Lua": "Moon",
-    "Mercúrio": "Mercury",
-    "Mercurio": "Mercury",
-    "Vênus": "Venus",
-    "Venus": "Venus",
-    "Sol": "Sun",
-    "Marte": "Mars",
-    "Júpiter": "Jupiter",
-    "Jupiter": "Jupiter",
-    "Saturno": "Saturn"
+    "Moon": "Lua",
+    "Mercury": "Mercúrio",
+    "Mercury": "Mercurio",
+    "Venus": "Vênus",
+    "Venus": "Venus", 
+    "Sun": "Sol",
+     "Mars": "Marte",
+    "Jupiter": "Júpiter", 
+    "Jupiter": "Jupiter", 
+    "Saturn": "Saturno"
 }
 CANONICAL_TO_PT: Dict[str, str] = {v: k for k, v in PT_TO_CANONICAL.items()}
 
@@ -60,15 +60,15 @@ def _to_canonical(name: Optional[str]) -> Optional[str]:
 # -------------------------
 # Convenções de ciclo (usando nomes canônicos)
 # -------------------------
-PLANET_ORDER: List[str] = ["Moon", "Mercury", "Venus", "Sun", "Mars", "Jupiter", "Saturn"]
+PLANET_ORDER: List[str] = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
 PLANET_YEARS: Dict[str, int] = {
-    "Moon": 10,
-    "Mercury": 8,
-    "Venus": 4,
-    "Sun": 3,
-    "Mars": 2,
-    "Jupiter": 7,
-    "Saturn": 6
+    "Lua": 10,
+    "Mercúrio": 8,
+    "Vênus": 4,
+    "Sol": 3,
+    "Marte": 2,
+    "Júpiter": 7,
+    "Saturno": 6,
 }
 
 DEFAULT_WEIGHTS: Dict[str, int] = {"year": 3, "hour": 2, "weekday": 1}
@@ -83,18 +83,18 @@ PHASES: List[Tuple[str, int, int]] = [
 # Textos interpretativos (chaves em canonical)
 # -------------------------
 PLANET_TO_TATWA: Dict[str, str] = {
-    "Moon": "Apas",
-    "Mercury": "Anupádaka",
-    "Venus": "Akasha",
-    "Sun": "Prithvi",
-    "Mars": "Tejas",
-    "Jupiter": "Adi",
-    "Saturn": "Vayu"
+    "Lua": "Apas",
+    "Mercúrio": "Anupádaka",
+    "Vênus": "Akasha",
+    "Sol": "Prithvi",
+    "Marte": "Tejas",
+    "Júpiter": "Adi",
+    "Saturno": "Vayu",
 }
 
 # manter textos originais, mas indexados por canonical
 PLANET_TEXTS: Dict[str, Dict[str, str]] = {
-    "Moon": {
+    "Lua": {
         "title": "Lua — Apas",
         "summary": "Emoção, sensibilidade, intuição; assuntos passageiros, família.",
         "long": (
@@ -116,7 +116,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "cuidar da dieta e rotinas alimentares; favorecer atividades ligadas a líquidos e ao cuidado."
         )
     },
-    "Mercury": {
+    "Mercúrio": {
         "title": "Mercúrio — Anupádaka",
         "summary": "Atividade mental, memória, estudos, comunicação, comércio.",
         "long": (
@@ -133,7 +133,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Aproveitar horas de Mercúrio para estudo, escrita, comunicação e negociações; exercícios de concentração; atenção à clareza na fala e documentos."
         )
     },
-    "Venus": {
+    "Vênus": {
         "title": "Vênus — Akasha",
         "summary": "Beleza, artes, vida social, afeto, estética.",
         "long": (
@@ -148,7 +148,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Favorecer atividades artísticas e sociais; aproveitar para negociações relacionadas a estética, moda e bens de luxo; cuidar da garganta e rins."
         )
     },
-    "Sun": {
+    "Sol": {
         "title": "Sol — Prithvi",
         "summary": "Vitalidade, vontade, autoridade, criatividade.",
         "long": (
@@ -163,7 +163,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Usar horas solares para iniciativas que exijam autoridade, visibilidade e liderança; cuidar da vitalidade e postura; buscar apoio de figuras de autoridade."
         )
     },
-    "Mars": {
+    "Marte": {
         "title": "Marte — Tejas",
         "summary": "Ação, luta, energia, coragem, risco.",
         "long": (
@@ -180,7 +180,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Evitar decisões impulsivas em horas de Marte; usar para ações que exijam coragem e energia; precaução em atividades de risco; atenção à saúde muscular e sexual."
         )
     },
-    "Jupiter": {
+    "Júpiter": {
         "title": "Júpiter — Adi",
         "summary": "Sabedoria, expansão, ensino, estabilidade de longo prazo.",
         "long": (
@@ -194,7 +194,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Usar horas de Júpiter para iniciar projetos duradouros, estudos superiores e pedidos de proteção; cultivar práticas de longo prazo e ensino."
         )
     },
-    "Saturn": {
+    "Saturno": {
         "title": "Saturno — Vayu",
         "summary": "Perseverança, responsabilidade, estrutura, provas e limitações.",
         "long": (

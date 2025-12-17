@@ -24,25 +24,27 @@ except Exception as e:
     logger.warning("Falha ao chamar swe.set_ephe_path: %s. Definido SWEPH/SWE_DATA=%s como fallback.", e, EPHE_PATH)
 
 # IDs de planetas conforme convenção Swiss Ephemeris
+# Nomes de planetas em português (códigos inteiros)
 PLANET_CODES = {
-    "Sun": 0,
-    "Moon": 1,
-    "Mercury": 2,
-    "Venus": 3,
-    "Mars": 4,
-    "Jupiter": 5,
-    "Saturn": 6,
-    "Uranus": 7,
-    "Neptune": 8,
-    "Pluto": 9,
+    "Sol": 0,
+    "Lua": 1,
+    "Mercúrio": 2,
+    "Vênus": 3,
+    "Marte": 4,
+    "Júpiter": 5,
+    "Saturno": 6,
+    "Urano": 7,
+    "Netuno": 8,
+    "Plutão": 9,
 }
+
 PLANETS = list(PLANET_CODES.values())
 PLANET_NAMES = {code: name for name, code in PLANET_CODES.items()}
 
-# Signos e utilitários
+# Signos em português
 ZODIAC_SIGNS = [
-    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+    "Áries", "Touro", "Gêmeos", "Câncer", "Leão", "Virgem",
+    "Libra", "Escorpião", "Sagitário", "Capricórnio", "Aquário", "Peixes"
 ]
 
 def julian_day_utc(dt: datetime) -> float:
