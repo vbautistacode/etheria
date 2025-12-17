@@ -29,7 +29,7 @@ PT_TO_CANONICAL: Dict[str, str] = {
     "Venus": "Vênus",
     "Venus": "Venus", 
     "Sun": "Sol",
-     "Mars": "Marte",
+    "Mars": "Marte",
     "Jupiter": "Júpiter", 
     "Jupiter": "Jupiter", 
     "Saturn": "Saturno"
