@@ -361,7 +361,16 @@ left, = st.columns([4])
 
 with left:
     st.header("Relógio Tátvico e Correlações")
-    st.markdown("Sistema esotérico que mede o tempo de acordo com a vibração desses princípios (tattwas). Está relacionado a mudança de energéticas ao longo do dia e suas influências.")
+    st.markdown(
+        """
+        Sistema esotérico que mede o tempo segundo a vibração dos *tattwas* (princípios elementares).  
+        O Relógio Tátvico descreve como as qualidades sutis — éter, ar, fogo, água e terra — se alternam 
+        ao longo do dia, modulando ritmos energéticos e influenciando estados mentais, emocionais e físicos.  
+
+        Trata-se de uma matriz temporal que correlaciona fases do dia com princípios elementares, oferecendo 
+        um quadro para interpretar variações de disposição, atenção e ação em diferentes momentos.
+        """
+    )
 
     types = list(data["matrices"].keys())
     if not types:
