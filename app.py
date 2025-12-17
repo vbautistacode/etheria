@@ -5,7 +5,7 @@ from pathlib import Path
 
 st.set_page_config(page_title="Etheria", layout="wide", initial_sidebar_state="expanded")
 
-st.title("Etheria — Apresentação ☯️")
+st.title("Etheria — Retorno aos Princípios Celestes ☯️")
 
 # URL do vídeo no YouTube
 col1, col2 = st.columns([2.5,1])
