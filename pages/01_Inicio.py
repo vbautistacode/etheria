@@ -324,7 +324,7 @@ with c1:
             unsafe_allow_html=True,
         )
         # botão que aciona o expander (use key único por bloco)
-        if st.button("!", key=help_key):
+        if st.button("⚠️", key=help_key):
             st.session_state[flag_key] = not st.session_state.get(flag_key, False)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -332,8 +332,6 @@ with c1:
     if st.session_state.get(flag_key, False):
         with st.expander("*Saiba mais!*", expanded=True):
             st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
-            if st.button("", key=f"close_help_{planet_ast}"):
-                st.session_state[flag_key] = False
 
     # restante do conteúdo
     st.markdown(
