@@ -300,13 +300,13 @@ with c1:
     style = get_planet_style(planet_ast, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
 
     # colunas: título (maior) + botão (estreita)
-    col_title, col_help = st.columns([0.50, 0.50])
+    col_title, col_help = st.columns([0.25, 0.75])
 
     # título com display:flex para garantir alinhamento vertical do conteúdo interno
     with col_title:
         st.markdown(
             f"""
-            <div style="display:flex; align-items:center; gap:2px; margin:0;">
+            <div style="display:flex; align-items:center; gap:0.5px; margin:0;">
                 <div style="font-size:20px; font-weight:600; line-height:1;">
                     {style.get('icon','')} Ciclo Astrológico
                 </div>
@@ -330,7 +330,7 @@ with c1:
 
     # quando o flag estiver ativo, mostra o expander já expandido
     if st.session_state.get(flag_key, False):
-        with st.expander("Saiba mais!", expanded=True):
+        with st.expander("*Saiba mais!*", expanded=True):
             st.markdown(CICLO_MENOR_ASTROLOGICO_DESC)
             if st.button("Fechar", key=f"close_help_{planet_ast}"):
                 st.session_state[flag_key] = False
