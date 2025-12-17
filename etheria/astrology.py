@@ -175,14 +175,27 @@ def planet_label_pt(canonical: str) -> str:
 def sign_label_pt(canonical: str) -> str:
     return CANONICAL_TO_PT_SIGN.get(canonical, canonical)
 
-def lon_to_sign_degree(lon: float) -> Tuple[str, float, int]:
+def lon_to_sign_degree(lon: float):
     """
-    Converte longitude (0..360) e retorna (sign_name, degree_in_sign, sign_index 1..12).
+    Recebe longitude e retorna (sign_canonical, degree_in_sign, sign_index_1based).
+    Ex.: lon=45.5 -> ("Taurus", 15.5, 2)
     """
-    lon = float(lon) % 360.0
-    sign_index = int(lon // 30) % 12
-    degree = lon % 30
-    return SIGNS[sign_index], round(degree, 2), sign_index + 1
+    # normaliza longitude para 0..360
+    lon_norm = float(lon) % 360.0
+    # cada signo tem 30 graus
+    sign_index = int(lon_norm // 30)  # 0..11
+    degree = lon_norm % 30.0
+    # SIGNS deve existir (veja import/def acima)
+    try:
+        sign = SIGNS[sign_index]
+    except Exception:
+        # fallback seguro: use CANONICAL_SIGNS se disponível
+        try:
+            from path.to.cycles import CANONICAL_SIGNS  # ajuste caminho se necessário
+            sign = CANONICAL_SIGNS[sign_index]
+        except Exception:
+            raise RuntimeError("Sign list not available: define SIGNS or import CANONICAL_SIGNS")
+    return sign, round(degree, 2), sign_index + 1
 
 def compute_aspects(positions: Dict[str, Dict[str, float]], orb: float = 6.0) -> List[Dict[str, Any]]:
     """
