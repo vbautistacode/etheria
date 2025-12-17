@@ -906,19 +906,74 @@ def main():
         tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
         ticktext = [f"{sign_symbols[i]} {sign_names[i]}" for i in range(12)]
 
+        # --- cálculo defensivo de tamanho (substituir o trecho original) ---
+        # parâmetros opcionais que você pode expor na assinatura da função:
+        #   base_px = 700
+        #   min_px = 300
+        #   max_px = 4000
+
+        base_px = 550
+        min_px = 300
+        max_px = 4000
+
+        # garantir export_size válido quando export_png=True
+        if export_png and isinstance(export_size, (list, tuple)) and len(export_size) == 2:
+            try:
+                exp_w = int(export_size[0])
+                exp_h = int(export_size[1])
+                # normalizar limites
+                exp_w = max(min_px, min(max_px, exp_w))
+                exp_h = max(min_px, min(max_px, exp_h))
+            except Exception:
+                exp_w, exp_h = base_px, base_px
+        else:
+            exp_w, exp_h = None, None
+
+        # scale derivado do export_size ou um scale explícito
+        if exp_h:
+            # manter proporção relativa ao valor de referência 1200 usado antes
+            scale = exp_h / 1200.0
+            height_px = int(max(min_px, min(max_px, int(600 * scale))))
+            width_px = int(max(min_px, min(max_px, int(exp_w)))) if exp_w else height_px
+        else:
+            # quando não exportando, usar base fixo ou permitir override via marker/text scale
+            height_px = int(base_px)
+            width_px = None  # deixa Plotly decidir; se preferir forçar quadrado: width_px = height_px
+
+        # se width for None, force square to avoid layout estranho em alguns renderers
+        if width_px is None:
+            width_px = height_px
+
+        # opcional: ajustar marker/text scales proporcionalmente ao scale calculado
+        # (mantém aparência consistente em imagens maiores)
+        computed_scale = (height_px / base_px)
+        marker_scale = marker_scale * computed_scale
+        text_scale = text_scale * computed_scale
+
+        # agora aplicar layout com valores seguros
         fig.update_layout(
             polar=dict(
                 radialaxis=dict(visible=False),
-                angularaxis=dict(direction="clockwise", rotation=90,
-                                tickmode="array", tickvals=tickvals, ticktext=ticktext,
-                                tickfont=dict(size=int(12 * text_scale)), gridcolor="#eee")
+                angularaxis=dict(
+                    direction="clockwise",
+                    rotation=90,
+                    tickmode="array",
+                    tickvals=tickvals,
+                    ticktext=ticktext,
+                    tickfont=dict(size=int(12 * text_scale)),
+                    gridcolor="#eee"
+                )
             ),
             showlegend=False,
             margin=dict(l=10, r=10, t=30, b=10),
-            height=int(600 * (export_size[1] / 1200)) if export_png else 700,
-            width=export_size[0] if export_png else None
+            height=height_px,
+            width=width_px
         )
+
+        # atualizar traces com o text_scale final
         fig.update_traces(textfont=dict(size=int(14 * text_scale)))
+        # --- fim do bloco ---
+
 
         # export opcional em alta resolução (requer kaleido)
         if export_png:
