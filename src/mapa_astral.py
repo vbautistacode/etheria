@@ -586,8 +586,8 @@ def main():
         *,
         highlight_groups: dict = None,
         house_label_position: str = "inner",  # "inner", "mid", "outer"
-        marker_scale: float = 1.4,
-        text_scale: float = 1.2,
+        marker_scale: float = 1.0,
+        text_scale: float = 1.0,
         cusp_colors_by_quadrant: list = None,
         export_png: bool = False,
         export_size: tuple = (2400, 2400)
@@ -915,7 +915,7 @@ def main():
             ),
             showlegend=False,
             margin=dict(l=10, r=10, t=30, b=10),
-            height=int(700 * (export_size[1] / 1200)) if export_png else 700,
+            height=int(600 * (export_size[1] / 1200)) if export_png else 700,
             width=export_size[0] if export_png else None
         )
         fig.update_traces(textfont=dict(size=int(14 * text_scale)))
