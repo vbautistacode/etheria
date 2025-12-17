@@ -17,15 +17,22 @@ def main():
     from pathlib import Path
     from etheria import influences
 
-    # tenta extrair um nome de grupo/planeta de fontes prováveis no summary
+    try:
+        summary  # type: ignore
+    except NameError:
+        summary = {}
+
+    # Defensive extraction of gname from likely places in summary
     gname = None
-    # 1) se houver um campo explícito
-    gname = summary.get("group") or summary.get("group_name") or gname
-    # 2) se houver planets (lista/dict), pegue o primeiro item plausível
+
+    # 1) explicit fields
+    if isinstance(summary, dict):
+        gname = summary.get("group") or summary.get("group_name") or gname
+
+    # 2) planets structure (dict or list)
     if not gname:
-        planets = summary.get("planets") or []
+        planets = summary.get("planets") if isinstance(summary, dict) else None
         if isinstance(planets, dict):
-            # se for dict de planetas, pegue a primeira entrada
             first = next(iter(planets.values()), None)
             if isinstance(first, dict):
                 gname = first.get("group") or first.get("planet") or first.get("name")
@@ -33,14 +40,21 @@ def main():
             first = planets[0]
             if isinstance(first, dict):
                 gname = first.get("group") or first.get("planet") or first.get("name")
-    # 3) se houver tabela com colunas, tente extrair
-    if not gname and summary.get("table"):
-        row0 = summary["table"][0] if isinstance(summary["table"], (list, tuple)) and summary["table"] else None
-        if isinstance(row0, dict):
-            gname = row0.get("group") or row0.get("Planet") or row0.get("Planeta") or row0.get("planet")
 
-    # garantir string vazia em vez de None para evitar TypeError
+    # 3) table rows
+    if not gname and isinstance(summary, dict) and summary.get("table"):
+        table0 = summary["table"][0] if isinstance(summary["table"], (list, tuple)) and summary["table"] else None
+        if isinstance(table0, dict):
+            gname = table0.get("group") or table0.get("Planet") or table0.get("Planeta") or table0.get("planet")
+
+    # final fallback to empty string to avoid NameError/TypeError
     gname = gname or ""
+
+    # canonicalize defensively (influences.to_canonical must exist)
+    try:
+        key = influences.to_canonical(gname) or gname
+    except Exception:
+        key = gname
 
     # converter para canonical quando possível (influences.to_canonical deve existir)
     try:
