@@ -16,8 +16,8 @@ st.markdown(
     """
     **Etheria** é o espaço simbólico onde os ciclos astrológicos e numerológicos se entrelaçam, 
     conectando aos arquétipos e revelando padrões que atravessam o tempo e a experiência humana.  
-    O **Mapa de Saberes** funciona como um painel interativo: cada planeta, cada número e cada 
-    ciclo são chaves que abrem portas para compreender tanto os movimentos externos do cosmos 
+    Aqui você compreende as relações entre cada planeta, cada número e cada ciclo e descobre a sua conexão com eles.
+    São chaves que abrem portas para compreender tanto os movimentos externos do cosmos 
     quanto os fluxos internos da consciência.
 
     Mais do que observar símbolos, aqui você é convidado a vivê-los: transformar arquétipos em 
