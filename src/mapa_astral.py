@@ -704,9 +704,9 @@ def main():
             "geracionais": ["Uranus", "Neptune", "Pluto"]
         }
         group_colors = {
-            "pessoais": "#ffcfa4",
-            "sociais": "#83a1b6",
-            "geracionais": "#886eb3"
+            "pessoais": "#a87e59",
+            "sociais": "#588cb1",
+            "geracionais": "#9a6fdf"
         }
 
         # ordenar por longitude crescente
@@ -807,7 +807,7 @@ def main():
             for i, cusp in enumerate(cusps12, start=1):
                 theta_cusp = lon_to_theta(cusp)
                 quadrant = ((i - 1) // 3) % 4
-                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#6E6E6E52"
+                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#AAAAAA"
                 fig.add_trace(go.Scatterpolar(
                     r=[0.12, 1.0],
                     theta=[theta_cusp, theta_cusp],
@@ -828,7 +828,7 @@ def main():
                     theta_mid = lon_to_theta(mid)
                     if house_label_position == "inner":
                         r_label = 0.6
-                    elif house_label_position == "mid":
+                    elif house_label_position == "outer":
                         r_label = 0.9
                     else:
                         r_label = 1.03
@@ -860,7 +860,7 @@ def main():
         # aspectos
         if len(lon_values) >= 2:
             ASPECTS = [
-                ("Conjunção", 0, 8, "#222222", 3.0),
+                ("Conjunção", 0, 8, "#000000", 3.0),
                 ("Sextil", 60, 6, "#2ca02c", 2.0),
                 ("Quadratura", 90, 7, "#e05353", 2.4),
                 ("Trígono", 120, 7, "#1f77b4", 2.4),
