@@ -308,7 +308,7 @@ with c1:
             f"""
             <div style="display:flex; align-items:left; gap:0px; margin:0;">
                 <div style="font-size:20px; font-weight:600; line-height:3;">
-                    {style.get('icon','')} Ciclo Astrológico
+                    {style.get('icon','')} Ciclo Astrológico Atual
                 </div>
             </div>
             """,
@@ -343,34 +343,102 @@ with c1:
     with st.expander("Ver interpretação completa"):
         st.markdown(interp_ast["long"])
 
-
-
-
+# bloco c2 (Ciclo Teosófico)
 with c2:
     style = get_planet_style(planet_teo, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
+
+    help_key_teo = f"help_btn_teo_{planet_teo}"
+    flag_key_teo = f"show_help_teo_{planet_teo}"
+
+    # colunas: botão de ajuda (estreita) + título (maior)
+    col_help_teo, col_title_teo = st.columns([0.10, 0.90])
+
+    with col_title_teo:
+        st.markdown(
+            f"""
+            <div style="display:flex; align-items:left; gap:0px; margin:0;">
+                <div style="font-size:20px; font-weight:600; line-height:3;">
+                    {style.get('icon','')} Ciclo Teosófico Atual
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_help_teo:
+        st.markdown(
+            """
+            <div style="display:flex; align-items:center; justify-content:center; gap:1px; margin:0; height:100%;">
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("ℹ️", key=help_key_teo):
+            st.session_state[flag_key_teo] = not st.session_state.get(flag_key_teo, False)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # expander acionado pelo botão (toggle)
+    if st.session_state.get(flag_key_teo, False):
+        with st.expander("*Saiba mais!*", expanded=True):
+            st.markdown(CICLO_MENOR_TEOSOFICO_DESC)
+
+    # restante do conteúdo
     st.markdown(
-    f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MENOR_TEOSOFICO_DESC}'>{style.get('icon','')} Ciclo Teosófico</h3>",
-    unsafe_allow_html=True
+        f"<div style='font-size:20px;color:{style['color']};font-weight:600;margin-top:8px'>{planet_teo}</div>",
+        unsafe_allow_html=True,
     )
-    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_teo}</div>", unsafe_allow_html=True)
 
     st.write(interp_teo["short"])
     with st.expander("Ver interpretação completa"):
         st.markdown(interp_teo["long"])
 
+# bloco c3 (Ciclo Maior)
 with c3:
     style = get_planet_style(planet_35, lang="pt") if use_colors else {"color": "#000000", "icon": ""}
+
+    help_key_35 = f"help_btn_35_{planet_35}"
+    flag_key_35 = f"show_help_35_{planet_35}"
+
+    # colunas: botão de ajuda (estreita) + título (maior)
+    col_help_35, col_title_35 = st.columns([0.10, 0.90])
+
+    with col_title_35:
+        st.markdown(
+            f"""
+            <div style="display:flex; align-items:left; gap:0px; margin:0;">
+                <div style="font-size:20px; font-weight:600; line-height:3;">
+                    {style.get('icon','')} Ciclo Maior Atual
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with col_help_35:
+        st.markdown(
+            """
+            <div style="display:flex; align-items:center; justify-content:center; gap:1px; margin:0; height:100%;">
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("ℹ️", key=help_key_35):
+            st.session_state[flag_key_35] = not st.session_state.get(flag_key_35, False)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # expander acionado pelo botão (toggle)
+    if st.session_state.get(flag_key_35, False):
+        with st.expander("*Saiba mais!*", expanded=True):
+            st.markdown(CICLO_MAIOR_DESC)
+
+    # restante do conteúdo
     st.markdown(
-    f"<h3 style='font-size:20px;font-weight:600' "
-    f"title='{CICLO_MAIOR_DESC}'>{style.get('icon','')} Ciclo Maior</h3>",
-    unsafe_allow_html=True
+        f"<div style='font-size:20px;color:{style['color']};font-weight:600;margin-top:8px'>{planet_35}</div>",
+        unsafe_allow_html=True,
     )
-    st.markdown(f"<div style='font-size:20px;color:{style['color']};font-weight:600'>{planet_35}</div>", unsafe_allow_html=True)
 
     st.write(interp_35["short"])
     with st.expander("Ver interpretação completa"):
         st.markdown(interp_35["long"])
+
 # --------------------------------------------------------------------
 
 # -------------------------
