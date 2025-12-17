@@ -2,7 +2,7 @@
 """
 Módulo de Influências Tattvicas (refatorado)
 
-Principais objetivos:
+Objetivos:
 - Usar nomes canônicos internamente (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn)
 - Aceitar entradas em português (Lua, Sol, Mercúrio, etc.) e mapear automaticamente
 - Retornar estruturas (dicts) em vez de strings quando útil (facilita i18n e testes)
@@ -11,16 +11,17 @@ Principais objetivos:
 
 from typing import List, Dict, Optional, Any, Tuple, Union
 from datetime import date
-import pandas as pd
+import unicodedata
 
-from .utils import age_from_dob
+# Import opcional de pandas (não obrigatório para todas as funções)
+try:
+    import pandas as pd  # type: ignore
+except Exception:
+    pd = None  # type: ignore
 
 # -------------------------
 # Mapeamentos de nomes
 # -------------------------
-# canonical names (internos)
-from typing import Dict, List, Optional
-import unicodedata
 
 # canonical names in English (internal)
 CANONICAL_PLANETS: List[str] = [
@@ -28,7 +29,7 @@ CANONICAL_PLANETS: List[str] = [
 ]
 
 # raw PT variants (human-friendly) -> canonical (EN)
-_raw_pt_to_canonical = {
+_raw_pt_to_canonical: Dict[str, str] = {
     "Sol": "Sun",
     "Lua": "Moon",
     "Mercúrio": "Mercury",
@@ -43,6 +44,7 @@ _raw_pt_to_canonical = {
     "Netuno": "Neptune",
     "Plutão": "Pluto",
     "Plutao": "Pluto",
+    # formas em minúsculas e sem acento serão normalizadas automaticamente
 }
 
 def _strip_accents(s: str) -> str:
@@ -70,11 +72,14 @@ CANONICAL_TO_PT: Dict[str, str] = {
 }
 
 def to_canonical(name: Optional[str]) -> Optional[str]:
-    """Return canonical English name. Accepts PT/EN, with/without accents, any case."""
+    """
+    Converte um nome (pt_BR ou EN, com/sem acento, qualquer caixa) para o nome canônico em inglês.
+    Retorna None se name for falsy.
+    """
     if not name:
         return None
     s = str(name).strip()
-    # if already canonical (case-insensitive)
+    # se já for canonical (case-insensitive)
     for can in CANONICAL_PLANETS:
         if can.lower() == s.lower():
             return can
@@ -82,8 +87,23 @@ def to_canonical(name: Optional[str]) -> Optional[str]:
     key = _norm_key(s)
     if key in PT_TO_CANONICAL:
         return PT_TO_CANONICAL[key]
-    # fallback: return original string (or raise if you prefer strictness)
+    # fallback: retorna string original (pode ser um nome custom)
     return s
+
+# alias para compatibilidade com código legado que chama _to_canonical
+_to_canonical = to_canonical
+
+def planet_label_pt(canonical: Optional[str]) -> Optional[str]:
+    """Retorna o rótulo em pt_BR para um nome canônico em inglês."""
+    if not canonical:
+        return None
+    return CANONICAL_TO_PT.get(canonical, canonical)
+
+def normalize_planet_list(planets: Optional[List[str]]) -> Optional[List[str]]:
+    """Converte uma lista de nomes (pt_BR ou EN) para a lista de nomes canônicos em inglês."""
+    if planets is None:
+        return None
+    return [to_canonical(p) for p in planets]
 
 # -------------------------
 # Convenções de ciclo (usando nomes canônicos)
@@ -119,6 +139,121 @@ PLANET_TO_TATWA: Dict[str, str] = {
     "Jupiter": "Adi",
     "Saturn": "Vayu",
 }
+
+# -------------------------
+# Utilitários que isolam pandas e retornam dicts
+# -------------------------
+def planet_from_matrix(matrix: Union["pd.DataFrame", Dict[str, Any], List[Dict[str, Any]]],
+                       key: Any,
+                       key_column_candidates: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
+    """
+    Procura um registro em 'matrix' (DataFrame ou dict/list of dicts) usando 'key'.
+    Retorna um dict padronizado com pelo menos as chaves:
+      - 'planet' (canonical EN)
+      - 'planet_label' (pt_BR)
+      - 'source_row' (a linha original como dict, se encontrada)
+    Se não encontrar, retorna None.
+
+    key_column_candidates: lista de nomes de colunas a tentar (ex.: ['Year','year','id','Planeta'])
+    """
+    # normalize candidates default
+    candidates = key_column_candidates or ["year", "Year", "id", "ID", "Planet", "planet", "Planeta", "planeta"]
+
+    # Se for DataFrame e pandas disponível
+    if pd is not None and isinstance(matrix, pd.DataFrame):
+        df = matrix
+        cols_lower = {c.lower(): c for c in df.columns}
+        # tenta colunas candidatas em ordem
+        for cand in candidates:
+            if cand.lower() in cols_lower:
+                col = cols_lower[cand.lower()]
+                match = df[df[col].astype(str) == str(key)]
+                if not match.empty:
+                    row = match.iloc[0].to_dict()
+                    raw_planet = row.get("Planet") or row.get("planet") or row.get("Planeta") or row.get("planeta")
+                    canonical = to_canonical(raw_planet) if raw_planet else None
+                    return {
+                        "planet": canonical,
+                        "planet_label": planet_label_pt(canonical),
+                        "source_row": row
+                    }
+        # fallback: procurar na primeira coluna
+        first = df.columns[0]
+        match = df[df[first].astype(str) == str(key)]
+        if not match.empty:
+            row = match.iloc[0].to_dict()
+            raw_planet = row.get("Planet") or row.get("planet") or row.get("Planeta") or row.get("planeta")
+            canonical = to_canonical(raw_planet) if raw_planet else None
+            return {
+                "planet": canonical,
+                "planet_label": planet_label_pt(canonical),
+                "source_row": row
+            }
+        return None
+
+    # Se for dict (mapa) ou lista de dicts
+    if isinstance(matrix, dict):
+        # assume formato {key: {...}} ou { "rows": [...] }
+        # tenta acesso direto
+        if str(key) in matrix:
+            row = matrix[str(key)]
+            if isinstance(row, dict):
+                raw_planet = row.get("Planet") or row.get("planet") or row.get("Planeta") or row.get("planeta")
+                canonical = to_canonical(raw_planet) if raw_planet else None
+                return {"planet": canonical, "planet_label": planet_label_pt(canonical), "source_row": row}
+        # tenta procurar em valores (lista de dicts)
+        for v in matrix.values():
+            if isinstance(v, dict):
+                # procura por qualquer campo que case com key
+                for val in v.values():
+                    if str(val) == str(key):
+                        raw_planet = v.get("Planet") or v.get("planet") or v.get("Planeta") or v.get("planeta")
+                        canonical = to_canonical(raw_planet) if raw_planet else None
+                        return {"planet": canonical, "planet_label": planet_label_pt(canonical), "source_row": v}
+        return None
+
+    if isinstance(matrix, list):
+        # lista de dicts
+        for row in matrix:
+            if not isinstance(row, dict):
+                continue
+            # procura em todas as colunas
+            if any(str(v) == str(key) for v in row.values()):
+                raw_planet = row.get("Planet") or row.get("planet") or row.get("Planeta") or row.get("planeta")
+                canonical = to_canonical(raw_planet) if raw_planet else None
+                return {"planet": canonical, "planet_label": planet_label_pt(canonical), "source_row": row}
+        return None
+
+    # tipo não suportado
+    return None
+
+# -------------------------
+# Funções utilitárias adicionais
+# -------------------------
+def canonical_sequence_labels(planets: List[str]) -> List[Dict[str, str]]:
+    """
+    Recebe lista de nomes (pt_BR ou EN) e retorna lista de dicts:
+      [{'planet': 'Sun', 'label': 'Sol'}, ...]
+    """
+    normalized = normalize_planet_list(planets) or []
+    return [{"planet": p, "label": planet_label_pt(p)} for p in normalized]
+
+def is_canonical(name: str) -> bool:
+    """Retorna True se 'name' for um nome canônico conhecido (case-insensitive)."""
+    if not name:
+        return False
+    s = str(name).strip()
+    return any(can.lower() == s.lower() for can in CANONICAL_PLANETS)
+
+# -------------------------
+# Exports (compatibilidade)
+# -------------------------
+__all__ = [
+    "CANONICAL_PLANETS", "to_canonical", "_to_canonical", "planet_label_pt",
+    "normalize_planet_list", "PLANET_ORDER", "PLANET_YEARS", "DEFAULT_WEIGHTS",
+    "PHASES", "PLANET_TO_TATWA", "planet_from_matrix", "canonical_sequence_labels",
+    "is_canonical", "CANONICAL_TO_PT", "PT_TO_CANONICAL"
+]
 
 # manter textos originais, mas indexados por canonical
 PLANET_TEXTS: Dict[str, Dict[str, str]] = {
