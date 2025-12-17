@@ -807,7 +807,7 @@ def main():
             for i, cusp in enumerate(cusps12, start=1):
                 theta_cusp = lon_to_theta(cusp)
                 quadrant = ((i - 1) // 3) % 4
-                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#AAAAAA"
+                color = cusp_colors_by_quadrant[quadrant] if cusp_colors_by_quadrant else "#6D6D6D"
                 fig.add_trace(go.Scatterpolar(
                     r=[0.12, 1.0],
                     theta=[theta_cusp, theta_cusp],
@@ -912,7 +912,7 @@ def main():
         #   min_px = 300
         #   max_px = 4000
 
-        base_px = 550
+        base_px = 475
         min_px = 300
         max_px = 4000
 
