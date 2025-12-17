@@ -658,7 +658,6 @@ def main():
         export_png: bool = False,
         export_size: tuple = (2400, 2400)
     ):
-        global group_colors
         colors = globals().get("GROUP_COLORS") or {
             "Sun": "#FF8800",     
             "Moon": "#3e54d4", 
@@ -677,12 +676,14 @@ def main():
         def _color_for_group(gname):
             if not gname:
                 return colors.get("default")
-            # normalize to canonical English if possible
             try:
+                # normalize to canonical English if you have influences module
+                from etheria import influences
                 key = influences.to_canonical(gname) or str(gname)
             except Exception:
                 key = str(gname)
             return colors.get(key, colors.get("default"))
+
         """
         Renderiza uma roda astrológica com Plotly.
 
