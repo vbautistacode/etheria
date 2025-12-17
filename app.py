@@ -14,8 +14,9 @@ with col1:
 
 st.markdown(
     """
-    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  O **Painel Esotérico** funciona como um mapa interativo: 
-    cada planeta, cada número e cada ciclo são chaves para compreender tanto os movimentos externos quanto os internos.  
+    *Etheria* é o espaço simbólico onde os ciclos astrológicos e numerológicos se encontram.  
+    O **Painel Esotérico** funciona como um mapa interativo: cada planeta, cada número e cada 
+    ciclo são chaves para compreender tanto os movimentos externos quanto os internos.  
     Aqui, você é convidado a transformar símbolos em práticas, e práticas em consciência.
     """
 )
