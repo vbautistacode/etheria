@@ -213,6 +213,4 @@ def render_svg_from_summary(summary: Mapping[str, Any], size: int = 650) -> str:
     return render_local_chart({"summary": summary}, size=size)
 
 if __name__ == "__main__":
-    # teste rápido
-    sample = {"positions": {"Sun": 10.0, "Moon": 120.0, "Mercury": 200.0}}
-    print(render_local_chart(sample)[:200])
+        main()
