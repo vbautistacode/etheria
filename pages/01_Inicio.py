@@ -276,8 +276,8 @@ st.markdown(
     No campo **astrológico**, o retorno solar marca o início de um novo ciclo,  indicando temas 
     que tendem a se destacar em diferentes áreas da vida.  
 
-    No campo **teosófico**, o ciclo anual é definido pelo chamado **Relógio Cósmico**.  
-    Esse relógio segue a ordem dos planetas associada aos dias da semana — de sábado a domingo — em seu 
+    No campo **teosófico**, o ciclo anual é definido pelo chamado **Relógio Cósmico**. Esse relógio segue a ordem dos planetas associada 
+      aos dias da semana — de sábado a domingo — em seu 
     movimento inverso. Cada planeta, ao reger simbolicamente um dia, imprime sua qualidade sobre o período, 
     revelando tendências de expansão, recolhimento, criatividade ou disciplina conforme o ritmo cósmico.  
 
