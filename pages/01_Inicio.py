@@ -307,7 +307,7 @@ with c1:
         st.markdown(
             f"""
             <div style="display:flex; align-items:left; gap:0px; margin:0;">
-                <div style="font-size:20px; font-weight:600; line-height:1;">
+                <div style="font-size:20px; font-weight:600; line-height:3;">
                     {style.get('icon','')} Ciclo Astrológico
                 </div>
             </div>
@@ -319,7 +319,7 @@ with c1:
     with col_help:
         st.markdown(
             """
-            <div style="display:flex; align-items:right; justify-content:center; gap:0px; margin:0; height:100%;">
+            <div style="display:flex; align-items:right; justify-content:center; gap:1px; margin:0; height:100%;">
             """,
             unsafe_allow_html=True,
         )
