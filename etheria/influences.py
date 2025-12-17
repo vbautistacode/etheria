@@ -18,58 +18,91 @@ from .utils import age_from_dob
 # -------------------------
 # Mapeamentos de nomes
 # -------------------------
-# canonical names (internos)
-CANONICAL_PLANETS = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
+# Canônicos em inglês (usar internamente)
+CANONICAL_PLANETS: List[str] = [
+    "Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"
+]
 
-# mapeamento PT <-> canonical
+# PT (variantes) -> canonical (EN). Use keys normalized (lower, sem acento)
 PT_TO_CANONICAL: Dict[str, str] = {
-    "Lua": "Moon",
-    "Mercúrio": "Mercury",
-    "Mercurio": "Mercury",
-    "Vênus": "Venus",
-    "Venus": "Venus",
-    "Sol": "Sun",
-    "Marte": "Mars",
-    "Júpiter": "Jupiter",
-    "Jupiter": "Jupiter",
-    "Saturno": "Saturn",
+    "sol": "Sun",
+    "sun": "Sun",
+    "lua": "Moon",
+    "moon": "Moon",
+    "mercurio": "Mercury",
+    "mercúrio": "Mercury",
+    "mercury": "Mercury",
+    "venus": "Venus",
+    "vênus": "Venus",
+    "mars": "Mars",
+    "marte": "Mars",
+    "jupiter": "Jupiter",
+    "júpiter": "Jupiter",
+    "saturno": "Saturn",
+    "uranus": "Uranus",
+    "urano": "Uranus",
+    "neptune": "Neptune",
+    "netuno": "Neptune",
+    "pluto": "Pluto",
+    "plutao": "Pluto",
+    "plutão": "Pluto",
+    # códigos/abreviações
+    "asc": "Asc", "ascendente": "Asc", "ascendant": "Asc",
+    "mc": "MC", "meiodoceu": "MC", "mediumcoeli": "MC"
 }
 
-CANONICAL_TO_PT: Dict[str, str] = {v: k for k, v in PT_TO_CANONICAL.items()}
+# Canonical -> PT (rótulos para UI) — defina explicitamente a forma PT que quer mostrar
+CANONICAL_TO_PT: Dict[str, str] = {
+    "Sun": "Sol",
+    "Moon": "Lua",
+    "Mercury": "Mercúrio",
+    "Venus": "Vênus",
+    "Mars": "Marte",
+    "Jupiter": "Júpiter",
+    "Saturn": "Saturno",
+    "Uranus": "Urano",
+    "Neptune": "Netuno",
+    "Pluto": "Plutão",
+    "Asc": "ASC",
+    "MC": "MC",
+}
 
-def _to_canonical(name: Optional[str]) -> Optional[str]:
+def _strip_accents(s: str) -> str:
+    nkfd = unicodedata.normalize("NFKD", s)
+    return "".join(ch for ch in nkfd if not unicodedata.combining(ch))
+
+def _normalize_key(s: str) -> str:
+    return _strip_accents(s).strip().lower()
+
+def to_canonical(name: Optional[str]) -> Optional[str]:
+    """Retorna o nome canônico em inglês para uso interno.
+       Se já for canônico, retorna como está. Se não reconhecido, retorna o original."""
     if not name:
         return None
-    name = str(name).strip()
-    # tentar match exato canonical
-    if name in CANONICAL_PLANETS:
-        return name
-    # tentar pt mapping (case sensitive keys exist); tentar capitalizar
-    if name in PT_TO_CANONICAL:
-        return PT_TO_CANONICAL[name]
-    # tentar variações simples (capitalize)
-    ncap = name.capitalize()
-    if ncap in PT_TO_CANONICAL:
-        return PT_TO_CANONICAL[ncap]
-    # fallback: tentar mapear por igualdade ignorando acentos/maiusculas
-    for pt, can in PT_TO_CANONICAL.items():
-        if pt.lower() == name.lower():
+    name_str = str(name).strip()
+    # se já for canônico (aceita exato e case-insensitive)
+    for can in CANONICAL_PLANETS:
+        if can.lower() == name_str.lower():
             return can
-    # se não reconhecido, retornar original (pode ser um nome custom)
-    return name
+    # normaliza e tenta mapear PT -> EN
+    key = _normalize_key(name_str)
+    if key in PT_TO_CANONICAL:
+        return PT_TO_CANONICAL[key]
+    # fallback: retorna original (ou raise se preferir falhar cedo)
+    return name_str
 
 # -------------------------
-# Convenções de ciclo (usando nomes canônicos)
+# Convenções de ciclo (usar chaves canônicas em inglês)
 # -------------------------
-PLANET_ORDER: List[str] = ["Lua", "Mercúrio", "Vênus", "Sol", "Marte", "Júpiter", "Saturno"]
+PLANET_ORDER: List[str] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"]
 PLANET_YEARS: Dict[str, int] = {
-    "Lua": 10,
-    "Mercúrio": 8,
-    "Vênus": 4,
-    "Sol": 3,
-    "Marte": 2,
-    "Júpiter": 7,
-    "Saturno": 6,
+    "Moon": 10,
+    "Mercury": 8,
+    "Venus": 4,
+    "Sun": 3,
+    "Mars": 2,
+    "Jupiter": 7,
+    "Saturn": 6,
 }
 
 DEFAULT_WEIGHTS: Dict[str, int] = {"year": 3, "hour": 2, "weekday": 1}
@@ -81,16 +114,16 @@ PHASES: List[Tuple[str, int, int]] = [
 ]
 
 # -------------------------
-# Textos interpretativos (chaves em canonical)
+# Textos interpretativos (chaves em canonical EN)
 # -------------------------
 PLANET_TO_TATWA: Dict[str, str] = {
-    "Lua": "Apas",
-    "Mercúrio": "Anupádaka",
-    "Vênus": "Akasha",
-    "Sol": "Prithvi",
-    "Marte": "Tejas",
-    "Júpiter": "Adi",
-    "Saturno": "Vayu",
+    "Moon": "Apas",
+    "Mercury": "Anupádaka",
+    "Venus": "Akasha",
+    "Sun": "Prithvi",
+    "Mars": "Tejas",
+    "Jupiter": "Adi",
+    "Saturn": "Vayu",
 }
 
 # manter textos originais, mas indexados por canonical
