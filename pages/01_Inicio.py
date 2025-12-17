@@ -317,7 +317,7 @@ with c1:
     with col_help:
         st.markdown(
             """
-            <div style="display:flex; align-items:right; justify-content:center; gap:1px; margin:0; height:100%;">
+            <div style="display:flex; align-items:right; justify-content:center; gap:2px; margin:0; height:100%;">
             """,
             unsafe_allow_html=True,
         )
