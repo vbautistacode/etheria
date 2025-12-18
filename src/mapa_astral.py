@@ -926,7 +926,7 @@ def main():
             theta=thetas,
             mode="text",
             text=symbol_texts,
-            #textfont=dict(size=[int(14 * text_scale * (ts / 16)) for ts in text_sizes], family="DejaVu Sans, Arial", color=text_colors),
+            textfont=dict(size=[int(14 * text_scale * (ts / 16)) for ts in text_sizes], family="DejaVu Sans, Arial", color=text_colors),
             hoverinfo="none",
             showlegend=False
         ))
@@ -937,7 +937,7 @@ def main():
             theta=thetas,
             mode="text",
             text=names,
-            textfont=dict(size=int(12 * text_scale), color="#4E585E"),
+            textfont=dict(size=int(12 * text_scale), color="#2D495A"),
             hoverinfo="none",
             showlegend=False
         ))
