@@ -549,7 +549,8 @@ with tab_influencias:
             df_table = df_table.drop(columns=["planet"])
         # renomear colunas para pt_BR e usar planet_label
         df_table = df_table.rename(columns={
-            "planet": "Planeta",
+            "planet": "Planet Raw",
+            "planet_label": "Planeta",
             "start_age": "Idade início",
             "end_age": "Idade fim",
             "start_year": "Ano início",
