@@ -491,7 +491,7 @@ with left:
 
         def highlight_selected(df: pd.DataFrame, sel_wd: str, sel_hr: str) -> pd.io.formats.style.Styler:
             def _style(row):
-                return [("background-color: #fffb0" if (col == sel_wd and row.name == sel_hr) else "") for col in df.columns]
+                return [("background-color: #00c853" if (col == sel_wd and row.name == sel_hr) else "") for col in df.columns]
             return df.style.apply(_style, axis=1)
 
         st.dataframe(highlight_selected(mat, weekday_choice, hour_choice), use_container_width=True, width=800)
