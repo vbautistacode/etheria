@@ -430,18 +430,46 @@ with tab_influencias:
         lambda r: (birth_age >= r["start_age"] and birth_age <= r["end_age"]) if (r["start_age"] >= 0 and r["end_age"] >= 0) else False,
         axis=1
     )
+    # --- criar coluna de exibição com rótulos em pt_BR (mantendo valor original para lógica) ---
+    def _planet_label_from_cell(x):
+        try:
+            if pd.isna(x) or not x:
+                return "—"
+            # tenta normalizar via influences (canonical -> label pt_BR)
+            if influences:
+                canonical = influences.to_canonical(x) or x
+                label = influences.planet_label_pt(canonical) or str(x)
+                return label
+            # fallback simples: retorna o valor original
+            return str(x)
+        except Exception:
+            return str(x)
+
+    # adicionar coluna planet_label para exibição
+    df_cycles_display["planet_label"] = df_cycles_display["planet"].apply(_planet_label_from_cell)
 
     # --- Leituras por ciclo: um expander por ciclo (ordem da tabela) ---
     st.markdown("### Influências dos Tattwas ao longo da vida")
     st.markdown("Esta seção apresenta as influências planetárias ao longo dos ciclos de vida, com interpretações específicas para cada período.")
     show_table = st.checkbox("Mostrar tabela resumida de ciclos ao final", value=False)
-    st.success(f"**Roadmap de ciclos (ordem de interpretação)**")
-    
+    st.success("**Roadmap de ciclos (ordem de interpretação)**")
+
     # garantir result como fallback
     result = locals().get('result') or {}
 
     for idx, row in df_cycles_display.reset_index(drop=True).iterrows():
-        planet_name = row["planet"] if pd.notna(row["planet"]) else "—"
+        # raw value (pode ser canônico ou label)
+        raw_planet = row["planet"] if pd.notna(row["planet"]) else None
+
+        # canonical para lógica/lookup
+        try:
+            canonical_planet = influences.to_canonical(raw_planet) if raw_planet and influences else (raw_planet or None)
+        except Exception:
+            canonical_planet = raw_planet or None
+
+        # label em pt_BR para exibição
+        planet_label = row.get("planet_label") or (influences.planet_label_pt(canonical_planet) if canonical_planet and influences else (raw_planet or "—"))
+
         start_age = int(row["start_age"]) if row["start_age"] >= 0 else None
         end_age = int(row["end_age"]) if row["end_age"] >= 0 else None
         start_year = int(row["start_year"]) if row["start_year"] >= 0 else None
@@ -450,26 +478,26 @@ with tab_influencias:
 
         age_range = f"{start_age}–{end_age} anos" if start_age is not None and end_age is not None else "faixa desconhecida"
         year_range = f"{start_year}–{end_year}" if start_year is not None and end_year is not None else "anos desconhecidos"
-        header = f"{idx+1}. {planet_name} — {age_range} ({year_range})"
+        header = f"{idx+1}. {planet_label} — {age_range} ({year_range})"
         if is_current:
             header = f"**➡ {header} (período atual)**"
 
-        # tentar obter interpretação específica do módulo influences (várias assinaturas)
+        # tentar obter interpretação específica do módulo influences (usar canonical_planet)
         interp_short = None
         interp_long = None
         try:
-            if hasattr(influences, "planet_interpretation"):
-                p = influences.planet_interpretation(planet_name, birth_year=birth_year, age=birth_age)
+            if canonical_planet and hasattr(influences, "planet_interpretation"):
+                p = influences.planet_interpretation(canonical_planet, birth_year=birth_year, age=birth_age)
                 if isinstance(p, dict):
                     interp_short = p.get("short")
                     interp_long = p.get("long")
-            elif hasattr(influences, "interpret_planet"):
-                p = influences.interpret_planet(planet_name, birth_year=birth_year, age=birth_age)
+            elif canonical_planet and hasattr(influences, "interpret_planet"):
+                p = influences.interpret_planet(canonical_planet, birth_year=birth_year, age=birth_age)
                 if isinstance(p, dict):
                     interp_short = p.get("short")
                     interp_long = p.get("long")
             elif hasattr(influences, "interpret_combined"):
-                try_sources = {"year": planet_name, "hour": planet_name, "weekday": planet_name}
+                try_sources = {"year": canonical_planet or raw_planet, "hour": canonical_planet or raw_planet, "weekday": canonical_planet or raw_planet}
                 p = influences.interpret_combined(try_sources, cycles=cycles_for_display, birth_year=birth_year, birth_age=start_age or birth_age)
                 if isinstance(p, dict) and p.get("interpretation"):
                     interp_short = p["interpretation"].get("short")
@@ -481,11 +509,17 @@ with tab_influencias:
         # fallback final: usar result (interpretação já calculada) ou texto genérico
         if not interp_short and not interp_long:
             try:
-                if isinstance(result, dict) and result.get("by_planet") and result["by_planet"].get(planet_name):
-                    p = result["by_planet"][planet_name]
-                    interp_short = p.get("short")
-                    interp_long = p.get("long")
-                else:
+                if isinstance(result, dict) and result.get("by_planet"):
+                    # tentar canonical primeiro, depois label (compatibilidade)
+                    p = None
+                    if canonical_planet:
+                        p = result["by_planet"].get(canonical_planet)
+                    if not p:
+                        p = result["by_planet"].get(planet_label)
+                    if p:
+                        interp_short = p.get("short")
+                        interp_long = p.get("long")
+                if not interp_short:
                     interp_short = result.get("interpretation", {}).get("short") or "Interpretação não disponível."
                     interp_long = result.get("interpretation", {}).get("long") or "Detalhes não disponíveis."
             except Exception:
@@ -503,17 +537,36 @@ with tab_influencias:
                     "<strong>Você está neste período agora.</strong></div>",
                     unsafe_allow_html=True
                 )
+
     # Exibir tabela resumida apenas se o usuário marcar a opção
     if show_table:
         st.markdown("---")
         st.markdown("**Tabela resumida de ciclos**")
+        # preparar cópia para exibição com colunas em pt_BR
+        df_table = df_cycles_display.copy()
+        # renomear colunas para pt_BR e usar planet_label
+        df_table = df_table.rename(columns={
+            "planet": "Planeta (raw)",
+            "planet_label": "Planeta",
+            "start_age": "Idade início",
+            "end_age": "Idade fim",
+            "start_year": "Ano início",
+            "end_year": "Ano fim",
+            "current": "Período atual"
+        })
+        # opcional: remover coluna raw se preferir
+        if "Planeta (raw)" in df_table.columns:
+            # se quiser esconder a coluna raw, comente a linha abaixo
+            pass
+
         st.dataframe(
-            df_cycles_display.style.apply(
-                lambda row: ['background-color: #fff3b0' if row['current'] else '' for _ in row],
+            df_table.style.apply(
+                lambda row: ['background-color: #fff3b0' if row['Período atual'] else '' for _ in row],
                 axis=1
             ),
             use_container_width=True
         )
+
 
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
