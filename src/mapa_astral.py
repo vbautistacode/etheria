@@ -1932,6 +1932,8 @@ def main():
                     else:
                         st.write(f"Arcano {arc}")
                 st.markdown("**Resumo**")
+                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+                
                 st.markdown("**Sugestões práticas**")
                 kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
                 if kw:
@@ -1939,7 +1941,7 @@ def main():
                         st.write(f"- {k}")
                 else:
                     st.write("Nenhuma sugestão prática disponível.")
-                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+
                 with st.expander("Interpretação completa"):
                     st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
                 
