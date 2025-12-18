@@ -1718,23 +1718,38 @@ def main():
                 # extrair signo bruto e grau (preserva compatibilidade com normalize_degree_sign)
                 raw_sign, degree = normalize_degree_sign(reading)
 
-                # normalizar para canonical (usado para lookups) e obter label PT para exibição
+                # importar influences defensivamente (já deve estar importado globalmente)
                 try:
-                    sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
+                    from etheria import influences
+                except Exception:
+                    influences = None
+
+                # --- normalizar sign para canonical (sempre tentar) ---
+                try:
+                    # raw_sign pode estar em PT ou EN; sign_to_canonical converte para canonical EN
+                    sign_canonical = influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign
                 except Exception:
                     sign_canonical = raw_sign
+
+                # --- obter rótulo PT para exibição ---
                 try:
-                    sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+                    sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
                 except Exception:
                     sign_label = sign_canonical or raw_sign or "—"
 
                 # resolver casa (mantendo a lógica existente)
                 house = resolve_house(reading, summary, canonical, sel_planet)
 
-                # usar nomes canônicos para buscar descrições internas (astrology.* usa chaves canônicas)
-                planet_key = canonical or sel_planet
-                sign_key = sign_canonical or raw_sign
+                # --- normalizar planet_key para canonical (para lookups internos) ---
+                try:
+                    planet_key = influences.to_canonical(canonical or sel_planet) if influences and hasattr(influences, "to_canonical") else (canonical or sel_planet)
+                except Exception:
+                    planet_key = canonical or sel_planet
 
+                # sign_key deve ser canonical (para usar SIGN_DESCRIPTIONS)
+                sign_key = sign_canonical or (influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign)
+
+                # --- lookups internos (usam chaves canônicas) ---
                 planet_verb, planet_core = astrology.PLANET_CORE.get(planet_key, ("", ""))
                 sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign_key, ("", ""))
                 house_noun, house_theme = astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", "")
@@ -1756,11 +1771,14 @@ def main():
                         seen.append(k)
                 keywords_line = ", ".join(seen[:8]) if seen else None
 
-                # label do planeta em pt_BR para exibição (fallback para label já calculado)
+                # label do planeta em pt_BR para exibição (usar planet_key canonical)
                 try:
-                    planet_label_pt = influences.planet_label_pt(planet_key) if hasattr(influences, "planet_label_pt") else (reading.get("planet") or label or planet_key)
+                    planet_label_pt = influences.planet_label_pt(planet_key) if influences and hasattr(influences, "planet_label_pt") else (reading.get("planet") or label or planet_key)
                 except Exception:
                     planet_label_pt = reading.get("planet") or label or planet_key
+
+                # DEBUG opcional: mostrar valores para checagem rápida (remova em produção)
+                # st.write({"planet_key": planet_key, "sign_key": sign_key, "sign_label": sign_label, "degree": degree, "house": house})
 
                 with st.expander('Interpretação', expanded=False):
                     st.markdown(f"**{planet_label_pt}**")
