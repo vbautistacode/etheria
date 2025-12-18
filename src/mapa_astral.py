@@ -1666,28 +1666,36 @@ def main():
                 except Exception:
                     planet_label_pt = reading.get("planet") or label or planet_key
 
-                st.markdown(f"**{planet_label_pt}**")
-                st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+                # título dinâmico do expander: "Sol — Touro 4.98°" (fallbacks seguros)
+                expander_title = f"{planet_label_pt}"
+                try:
+                    expander_title += f" — {sign_label or '—'} {degree or '—'}°"
+                except Exception:
+                    pass
 
-                if synthetic_line:
-                    st.write(synthetic_line)
+                with st.expander(expander_title, expanded=False):
+                    st.markdown(f"**{planet_label_pt}**")
+                    st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
 
-                interp_local = astrology.interpret_planet_position(
-                    planet=planet_key,
-                    sign=sign_key,
-                    degree=degree,
-                    house=house,
-                    aspects=summary.get("aspects"),
-                    context_name=reading.get("name") or summary.get("name")
-                ) or {"short": ""}
+                    if synthetic_line:
+                        st.write(synthetic_line)
 
-                short_local = interp_local.get("short") or ""
-                if short_local:
-                    st.write(short_local)
-                elif keywords_line:
-                    st.write(f"Palavras-chave: {keywords_line}")
-                else:
-                    st.write("—")
+                    interp_local = astrology.interpret_planet_position(
+                        planet=planet_key,
+                        sign=sign_key,
+                        degree=degree,
+                        house=house,
+                        aspects=summary.get("aspects"),
+                        context_name=reading.get("name") or summary.get("name")
+                    ) or {"short": ""}
+
+                    short_local = interp_local.get("short") or ""
+                    if short_local:
+                        st.write(short_local)
+                    elif keywords_line:
+                        st.write(f"Palavras-chave: {keywords_line}")
+                    else:
+                        st.write("—")
 
     # CENTER: mapa + IA + interpretação
     with center_col:
