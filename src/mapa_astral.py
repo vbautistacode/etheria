@@ -1506,7 +1506,7 @@ def main():
         return canonical, label_pt
 
     # CENTER / LEFT / RIGHT layout (após geração)
-    center_col, left_col,  right_col = st.columns([2.0, 0.7, 0.8])
+    left_col, center_col,  right_col = st.columns([0.7, 2.0, 0.8])
 
     # LEFT: controles e tabela (se houver summary)
     with left_col:
