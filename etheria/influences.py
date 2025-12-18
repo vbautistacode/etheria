@@ -69,18 +69,6 @@ CANONICAL_TO_PT: Dict[str, str] = {
     "Uranus": "Urano",
     "Neptune": "Netuno",
     "Pluto": "Plutão",
-    "Aries": "Áries",
-    "Taurus": "Touro",
-    "Gemini": "Gêmeos",
-    "Cancer": "Câncer",
-    "Leo": "Leão",
-    "Virgo": "Virgem",
-    "Libra": "Libra",
-    "Scorpio": "Escorpião",
-    "Sagittarius": "Sagitário",
-    "Capricorn": "Capricórnio",
-    "Aquarius": "Aquário",
-    "Pisces": "Peixes",
 }
 
 def to_canonical(name: Optional[str]) -> Optional[str]:
@@ -116,6 +104,54 @@ def normalize_planet_list(planets: Optional[List[str]]) -> Optional[List[str]]:
     if planets is None:
         return None
     return [to_canonical(p) for p in planets]
+
+# canonical names for signs (internal)
+CANONICAL_SIGNS: List[str] = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+]
+
+# raw PT -> canonical mapping (com acentos e variantes)
+_raw_pt_sign = {
+    "Áries": "Aries", "Aries": "Aries", "aries": "Aries",
+    "Touro": "Taurus", "touro": "Taurus",
+    "Gêmeos": "Gemini", "Gemeos": "Gemini", "gemeos": "Gemini",
+    "Câncer": "Cancer", "Cancer": "Cancer", "cancer": "Cancer",
+    "Leão": "Leo", "Leao": "Leo", "leo": "Leo",
+    "Virgem": "Virgo", "virgem": "Virgo",
+    "Libra": "Libra", "libra": "Libra",
+    "Escorpião": "Scorpio", "Escorpiao": "Scorpio", "escorpiao": "Scorpio",
+    "Sagitário": "Sagittarius", "Sagitario": "Sagittarius", "sagitario": "Sagittarius",
+    "Capricórnio": "Capricorn", "Capricornio": "Capricorn", "capricornio": "Capricorn",
+    "Aquário": "Aquarius", "Aquario": "Aquarius", "aquario": "Aquarius",
+    "Peixes": "Pisces", "peixes": "Pisces",
+}
+
+# normalized PT -> canonical mapping (keys are lower/no-accent)
+PT_TO_CANONICAL_SIGN: Dict[str, str] = {_norm_key(k): v for k, v in _raw_pt_sign.items()}
+
+# add sign labels to CANONICAL_TO_PT if not already present (you already have them)
+# CANONICAL_TO_PT already contains sign labels in your snippet.
+
+def sign_to_canonical(name: Optional[str]) -> Optional[str]:
+    """Converte um nome de signo (pt_BR ou EN) para o canonical em inglês."""
+    if not name:
+        return None
+    s = str(name).strip()
+    # se já for canonical (case-insensitive)
+    for can in CANONICAL_SIGNS:
+        if can.lower() == s.lower():
+            return can
+    key = _norm_key(s)
+    if key in PT_TO_CANONICAL_SIGN:
+        return PT_TO_CANONICAL_SIGN[key]
+    return s
+
+def sign_label_pt(canonical: Optional[str]) -> Optional[str]:
+    """Retorna o rótulo em pt_BR para um signo canônico em inglês."""
+    if not canonical:
+        return None
+    return CANONICAL_TO_PT.get(canonical, canonical)
 
 # -------------------------
 # Convenções de ciclo (usando nomes canônicos)
