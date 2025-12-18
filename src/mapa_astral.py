@@ -1564,9 +1564,9 @@ def main():
             # normalizar nomes de colunas internas para exibição consistente
             # Degree <- degree, House <- house
             if "degree" in df_to_show.columns and "Degree" not in df_to_show.columns:
-                df_to_show = df_to_show.rename(columns={"degree": "Degree"})
+                df_to_show = df_to_show.rename(columns={"degree": "Graus"})
             if "house" in df_to_show.columns and "House" not in df_to_show.columns:
-                df_to_show = df_to_show.rename(columns={"house": "House"})
+                df_to_show = df_to_show.rename(columns={"house": "Casa"})
 
             # selecionar apenas as colunas que queremos mostrar no expander, na ordem desejada
             cols_to_show = []
