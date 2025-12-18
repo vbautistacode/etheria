@@ -238,23 +238,26 @@ def positions_table(
     compute_house_if_missing: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    Converte posições em tabela legível: planeta, planet_label_pt, longitude, sign (pt), sign_canonical,
-    degree, sign_index, house.
-
-    - planets: mapa { "Sun": {"longitude": 123.4, "house": 10}, ... } ou { "Sun": 123.4, ... }
-    - cusps: lista de 12 longitudes (0..360) para cálculo de casas; se None, usa house já presente em planets
-    - compute_house_if_missing: se True, tenta calcular house a partir de cusps quando house ausente
+    Converte posições em tabela legível com rótulos para UI.
 
     Retorna lista de rows com chaves:
-      planet, planet_label_pt, longitude, sign (pt), sign_canonical, degree, sign_index, house
+      planet, planet_label_pt, longitude, sign, sign_label, sign_label_pt,
+      sign_canonical, degree, sign_index, house
+
+    Observações:
+    - 'sign' e 'sign_label' são pensados para exibição (pt_BR preferencial).
+    - 'sign_canonical' é o nome canônico em inglês usado para lookups internos.
     """
+    import logging
+    logger = logging.getLogger("etheria.astrology.positions_table")
+
     rows: List[Dict[str, Any]] = []
 
     # importar influences de forma defensiva para tradução de signos/planetas
     try:
-        from etheria import influences
+        from etheria import influences  # type: ignore
     except Exception:
-        influences = None
+        influences = None  # type: ignore
 
     # normalizar cusps (garantir floats 0..360) ou None
     norm_cusps: Optional[List[float]] = None
@@ -274,9 +277,8 @@ def positions_table(
     for name in keys_sorted:
         v = planets.get(name, {})
         # extrair longitude de forma robusta
-        lon = None
+        lon: Optional[float] = None
         if isinstance(v, dict):
-            # aceitar chaves comuns
             for key in ("longitude", "lon", "long", "deg", "degree"):
                 if key in v and v.get(key) not in (None, ""):
                     try:
@@ -285,7 +287,6 @@ def positions_table(
                     except Exception:
                         continue
         else:
-            # v pode ser número direto
             try:
                 lon = float(v)
             except Exception:
@@ -293,25 +294,37 @@ def positions_table(
 
         if lon is None:
             # sem longitude, pular
+            logger.debug("positions_table: skipping planet %r because longitude is missing", name)
             continue
 
-        # garantir 0..360
+        # normalizar 0..360
         lon = float(lon) % 360.0
 
-        # signo, grau e índice do signo (lon_to_sign_degree deve retornar canonical sign)
+        # signo, grau e índice do signo (lon_to_sign_degree idealmente retorna canonical)
+        sign_can: Optional[str] = None
+        degree: Optional[float] = None
+        sign_index: Optional[int] = None
         try:
             sign_can, degree, sign_index = lon_to_sign_degree(lon)
         except Exception:
-            # fallback: calcular de forma simples se lon_to_sign_degree não estiver disponível
-            sign_index = int(float(lon) // 30) % 12
-            degree = float(lon) % 30
-            # sign_can ficará como None ou string derivada
+            # fallback: calcular de forma simples
+            try:
+                sign_index = int(float(lon) // 30) % 12
+                degree = float(lon) % 30
+            except Exception:
+                sign_index = None
+                degree = None
             sign_can = None
 
+        # garantir sign_index 1..12 quando possível
+        if isinstance(sign_index, int):
+            # se lon_to_sign_degree retornou 0-based, ajustar; aqui assumimos 1-based
+            if sign_index == 0:
+                sign_index = 12
+
         # determinar house: priorizar valor já presente em v, senão calcular se cusps disponíveis
-        house = None
+        house: Optional[int] = None
         if isinstance(v, dict):
-            # aceitar house já presente (int/str/float)
             h_raw = v.get("house") or v.get("casa")
             if h_raw not in (None, "", "None"):
                 try:
@@ -319,7 +332,6 @@ def positions_table(
                 except Exception:
                     house = None
 
-        # se não houver house e for permitido, calcular a partir de cusps normalizados
         if house is None and compute_house_if_missing and norm_cusps:
             try:
                 calc = get_house_for_longitude(lon, norm_cusps)
@@ -327,17 +339,26 @@ def positions_table(
             except Exception:
                 house = None
 
-        # obter rótulos em pt_BR e rótulo do planeta em pt_BR (defensivo)
-        try:
-            # sign_can deve ser canonical (ex: "Taurus"); usar influences.sign_label_pt quando disponível
-            if influences and hasattr(influences, "sign_label_pt"):
-                sign_label_pt = influences.sign_label_pt(sign_can) if sign_can else None
-            else:
-                sign_label_pt = sign_can
-        except Exception:
-            sign_label_pt = sign_can
+        # garantir sign_can por fallback usando sign_index e CANONICAL_SIGNS
+        if not sign_can:
+            try:
+                if isinstance(sign_index, int) and 1 <= sign_index <= 12:
+                    sign_can = CANONICAL_SIGNS[sign_index - 1]
+                else:
+                    sign_can = None
+            except Exception:
+                sign_can = None
 
-        # planet label: normalizar nome do planeta para canonical antes de pedir label_pt
+        # obter rótulo PT do signo (defensivo)
+        try:
+            if influences and hasattr(influences, "sign_label_pt"):
+                sign_label_pt = influences.sign_label_pt(sign_can) if sign_can else ""
+            else:
+                sign_label_pt = sign_can or ""
+        except Exception:
+            sign_label_pt = sign_can or ""
+
+        # normalizar e obter rótulo PT do planeta
         try:
             if influences and hasattr(influences, "to_canonical") and hasattr(influences, "planet_label_pt"):
                 pname_can = influences.to_canonical(name)
@@ -349,19 +370,26 @@ def positions_table(
         except Exception:
             planet_label_pt = name
 
-        # debug: logar casos inesperados (opcional)
+        # logs de debug para casos inesperados
         if not sign_label_pt:
-            logger.debug("positions_table: sign_label_pt not resolved for sign_can=%r (planet=%r, lon=%s)", sign_can, name, lon)
+            logger.debug(
+                "positions_table: sign_label_pt unresolved for planet=%r lon=%s sign_can=%r sign_index=%r",
+                name, lon, sign_can, sign_index
+            )
         if not planet_label_pt:
-            logger.debug("positions_table: planet_label_pt not resolved for planet=%r", name)
+            logger.debug("positions_table: planet_label_pt unresolved for planet=%r", name)
 
-        # garantir valores coerentes para saída
-        row = {
+        # montar row com chaves consistentes para UI e lookups
+        row: Dict[str, Any] = {
             "planet": name,
             "planet_label_pt": planet_label_pt,
             "longitude": round(float(lon), 2),
+            # exibição: preferir label em pt_BR
             "sign": sign_label_pt or (sign_can or ""),
-            "sign_canonical": sign_can,
+            "sign_label": sign_label_pt or (sign_can or ""),
+            "sign_label_pt": sign_label_pt or (sign_can or ""),
+            # lookups internos
+            "sign_canonical": sign_can or "",
             "degree": round(float(degree), 2) if degree is not None else None,
             "sign_index": sign_index,
             "house": house
