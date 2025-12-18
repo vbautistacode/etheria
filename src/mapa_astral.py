@@ -28,96 +28,6 @@ def main():
         "Pluto": "#ff0000",
         "default": "#888888"
     }
-
-    # normaliza highlight_groups para o formato esperado e extrai planet_colors se houver
-    def _normalize_groups_and_colors(hg):
-        # default groups (membros apenas)
-        default_groups = {
-            "pessoais": {"members": ["Sun", "Moon", "Mercury", "Venus", "Mars"], "color": None},
-            "sociais": {"members": ["Jupiter", "Saturn"], "color": None},
-            "geracionais": {"members": ["Uranus", "Neptune", "Pluto"], "color": None}
-        }
-        out_groups = {}
-        planet_colors = {}
-
-        if not hg:
-            out_groups = default_groups
-            return out_groups, planet_colors
-
-        # se hg contém 'planet_colors' chave, extraia
-        if isinstance(hg, dict) and "planet_colors" in hg and isinstance(hg["planet_colors"], dict):
-            # copiar direto (chaves podem ser PT/EN; normalização depois)
-            planet_colors = dict(hg["planet_colors"])
-
-        # processar grupos (aceita formato antigo group->list ou group->{"members":..., "color":...})
-        for k, v in (hg.items() if isinstance(hg, dict) else []):
-            if k == "planet_colors":
-                continue
-            if isinstance(v, dict):
-                members = v.get("members") or v.get("list") or []
-                color = v.get("color")
-            else:
-                members = v or []
-                color = None
-            out_groups[k] = {"members": list(members), "color": color}
-
-        # mesclar defaults para chaves ausentes
-        for dk, dv in default_groups.items():
-            if dk not in out_groups:
-                out_groups[dk] = dv
-            else:
-                out_groups[dk].setdefault("members", dv["members"])
-                out_groups[dk].setdefault("color", dv["color"])
-
-        return out_groups, planet_colors
-
-    groups, planet_colors_raw = _normalize_groups_and_colors(highlight_groups)
-
-    # normalizar planet_colors: mapear chaves para canonical (se influences disponível)
-    try:
-        from etheria import influences as _inf
-    except Exception:
-        _inf = None
-
-    planet_colors = {}
-    for k, v in (planet_colors_raw.items() if isinstance(planet_colors_raw, dict) else []):
-        try:
-            key_can = _inf.to_canonical(k) if _inf and hasattr(_inf, "to_canonical") else k
-        except Exception:
-            key_can = k
-        if isinstance(v, str) and v:
-            planet_colors[key_can] = v
-
-    # função para obter cor final para um planeta (ordem de prioridade)
-    def _get_planet_color(planet_name: str):
-        # 1) planet_colors explicitamente fornecido
-        try:
-            name_can = _inf.to_canonical(planet_name) if _inf and hasattr(_inf, "to_canonical") else planet_name
-        except Exception:
-            name_can = planet_name
-
-        if name_can in planet_colors:
-            return planet_colors[name_can]
-
-        # 2) cor definida no grupo que contém o planeta (groups may have color)
-        for gkey, ginfo in groups.items():
-            members = ginfo.get("members") or []
-            # normalizar membros
-            members_can = []
-            for m in members:
-                try:
-                    members_can.append(_inf.to_canonical(m) if _inf and hasattr(_inf, "to_canonical") else m)
-                except Exception:
-                    members_can.append(m)
-            if name_can in members_can:
-                # se grupo tem cor explícita, use-a
-                if ginfo.get("color"):
-                    return ginfo.get("color")
-                # senão, tentar usar GROUP_COLORS por canonical do planeta
-                return GROUP_COLORS.get(name_can, GROUP_COLORS.get("default"))
-
-        # 3) GROUP_COLORS por planeta canonical
-        return GROUP_COLORS.get(name_can, GROUP_COLORS.get("default"))
     
     from datetime import datetime, date, time as dtime
     from typing import Tuple, Optional, Dict, Any, List
@@ -1043,7 +953,7 @@ def main():
                     r=[0.12, 1.0],
                     theta=[theta_cusp, theta_cusp],
                     mode="lines",
-                    line=dict(color=color, width=2.0),
+                    line=dict(color=color ,width=2.0),
                     hoverinfo="none",
                     showlegend=False
                 ))
@@ -1061,7 +971,7 @@ def main():
                         theta=[theta_mid],
                         mode="text",
                         text=[str(i + 1)],
-                        textfont=dict(size=int(12 * text_scale), color="#222"),
+                        textfont=dict(size=int(12 * text_scale), color="#000"),
                         hoverinfo="none",
                         showlegend=False
                     ))
