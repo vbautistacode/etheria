@@ -236,13 +236,23 @@ def positions_table(
     compute_house_if_missing: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    Converte posições em tabela legível: planeta, longitude, sign, degree, sign_index, house.
+    Converte posições em tabela legível: planeta, planet_label_pt, longitude, sign (pt), sign_canonical,
+    degree, sign_index, house.
+
     - planets: mapa { "Sun": {"longitude": 123.4, "house": 10}, ... } ou { "Sun": 123.4, ... }
     - cusps: lista de 12 longitudes (0..360) para cálculo de casas; se None, usa house já presente em planets
     - compute_house_if_missing: se True, tenta calcular house a partir de cusps quando house ausente
-    Retorna lista de rows com chaves: planet, longitude, sign, degree, sign_index, house
+
+    Retorna lista de rows com chaves:
+      planet, planet_label_pt, longitude, sign (pt), sign_canonical, degree, sign_index, house
     """
     rows: List[Dict[str, Any]] = []
+
+    # importar influences de forma defensiva para tradução de signos/planetas
+    try:
+        from etheria import influences
+    except Exception:
+        influences = None
 
     # normalizar cusps (garantir floats 0..360) ou None
     norm_cusps: Optional[List[float]] = None
@@ -286,14 +296,21 @@ def positions_table(
         # garantir 0..360
         lon = float(lon) % 360.0
 
-        # signo, grau e índice do signo
-        sign, degree, sign_index = lon_to_sign_degree(lon)
+        # signo, grau e índice do signo (lon_to_sign_degree deve retornar canonical sign)
+        try:
+            sign_can, degree, sign_index = lon_to_sign_degree(lon)
+        except Exception:
+            # fallback: calcular de forma simples se lon_to_sign_degree não estiver disponível
+            sign_index = int(float(lon) // 30) % 12
+            degree = float(lon) % 30
+            # sign_can ficará como None ou string derivada
+            sign_can = None
 
         # determinar house: priorizar valor já presente em v, senão calcular se cusps disponíveis
         house = None
         if isinstance(v, dict):
             # aceitar house já presente (int/str/float)
-            h_raw = v.get("house")
+            h_raw = v.get("house") or v.get("casa")
             if h_raw not in (None, "", "None"):
                 try:
                     house = int(float(h_raw))
@@ -308,14 +325,37 @@ def positions_table(
             except Exception:
                 house = None
 
-        rows.append({
+        # obter rótulos em pt_BR e rótulo do planeta em pt_BR (defensivo)
+        try:
+            if influences and hasattr(influences, "sign_label_pt"):
+                sign_label_pt = influences.sign_label_pt(sign_can) if sign_can else None
+            else:
+                # se sign_can já estiver em PT ou None, usar como fallback
+                sign_label_pt = sign_can
+        except Exception:
+            sign_label_pt = sign_can
+
+        try:
+            if influences and hasattr(influences, "planet_label_pt"):
+                planet_label_pt = influences.planet_label_pt(influences.to_canonical(name) if hasattr(influences, "to_canonical") else name)
+            else:
+                planet_label_pt = name
+        except Exception:
+            planet_label_pt = name
+
+        # garantir valores coerentes para saída
+        row = {
             "planet": name,
+            "planet_label_pt": planet_label_pt,
             "longitude": round(float(lon), 2),
-            "sign": sign,
-            "degree": round(degree, 2),
+            "sign": sign_label_pt or (sign_can or ""),
+            "sign_canonical": sign_can,
+            "degree": round(float(degree), 2) if degree is not None else None,
             "sign_index": sign_index,
             "house": house
-        })
+        }
+
+        rows.append(row)
 
     return rows
 
