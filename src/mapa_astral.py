@@ -985,7 +985,7 @@ def main():
                         theta=[theta_mid],
                         mode="text",
                         text=[str(i + 1)],
-                        textfont=dict(size=int(12 * text_scale), color="#222"),
+                        textfont=dict(size=int(12 * text_scale), color="#000"),
                         hoverinfo="none",
                         showlegend=False
                     ))
