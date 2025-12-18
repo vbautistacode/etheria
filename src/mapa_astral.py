@@ -1584,58 +1584,123 @@ def main():
             with st.expander("Tabela de posições", expanded=False):
                 st.dataframe(df_exp, use_container_width=True, height=300)
 
-            # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
+        # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
+        label_list = []
+        label_to_raw = {}
+
+        if not df_display.empty and "planet_label" in df_display.columns:
+            raw_planets = list(df_display["planet"].values)
+            planet_labels = list(df_display["planet_label"].values)
+
+            for raw, plab in zip(raw_planets, planet_labels):
+                lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
+                label_list.append(lab)
+                label_to_raw[lab] = raw
+        elif not df_display.empty and "planet" in df_display.columns:
+            # fallback: usar raw como label
+            label_list = list(df_display["planet"].values)
+            label_to_raw = {lab: lab for lab in label_list}
+        else:
             label_list = []
             label_to_raw = {}
 
-            if not df_display.empty and "planet_label" in df_display.columns:
-                raw_planets = list(df_display["planet"].values)
-                planet_labels = list(df_display["planet_label"].values)
+        # garantir inicialização consistente do estado do selectbox e do valor interno
+        if label_list:
+            # inicializar selected_planet com o primeiro raw se não existir
+            if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
+                st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
 
-                for raw, plab in zip(raw_planets, planet_labels):
-                    lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
-                    label_list.append(lab)
-                    label_to_raw[lab] = raw
-            elif not df_display.empty and "planet" in df_display.columns:
-                # fallback: usar raw como label
-                label_list = list(df_display["planet"].values)
-                label_to_raw = {lab: lab for lab in label_list}
+            # garantir que planet_selectbox mostre o label correspondente ao selected_planet
+            if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
+                current_internal = st.session_state.get("selected_planet")
+                current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
+                st.session_state["planet_selectbox"] = current_label or label_list[0]
+        else:
+            # limpar estados se não houver opções
+            st.session_state.setdefault("selected_planet", None)
+            st.session_state.setdefault("planet_selectbox", None)
+
+        # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
+        def _on_select_planet():
+            sel_label = st.session_state.get("planet_selectbox")
+            sel_raw = label_to_raw.get(sel_label, sel_label)
+            st.session_state["selected_planet"] = sel_raw
+            st.session_state["planet_selectbox"] = sel_label
+
+        # selectbox usando label_list (rótulos em PT)
+        st.selectbox(
+            "Selecionar planeta",
+            label_list,
+            index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
+            key="planet_selectbox",
+            on_change=_on_select_planet
+        )
+        
+    # CENTER: mapa + IA + interpretação
+    with center_col:
+        st.subheader("Mapa Astral")
+        if not map_ready or fig_saved is None:
+            st.info("Nenhum mapa gerado. Preencha os parâmetros e clique em 'Gerar Mapa'.")
+        else:
+            try:
+                fig_dict = fig_saved.to_dict()
+                fig = go.Figure(fig_dict)
+            except Exception:
+                fig = fig_saved
+
+            # destacar seleção no mapa
+            sel_name = st.session_state.get("selected_planet")
+            if sel_name and summary:
+                try:
+                    sel_lon = None
+                    canonical_sel = influences._to_canonical(sel_name)
+                    if summary.get("planets", {}).get(canonical_sel):
+                        sel_lon = summary["planets"][canonical_sel].get("longitude")
+                    elif summary.get("planets", {}).get(sel_name):
+                        sel_lon = summary["planets"][sel_name].get("longitude")
+                    if sel_lon is not None:
+                        theta_sel = (360.0 - float(sel_lon)) % 360.0
+                        fig.add_trace(go.Scatterpolar(
+                            r=[1.0],
+                            theta=[theta_sel],
+                            mode="markers+text",
+                            marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
+                            text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name)],
+                            textfont=dict(size=12, color="#000"),
+                            hoverinfo="none",
+                            showlegend=False
+                        ))
+                except Exception:
+                    pass
+
+            # plot e captura de clique
+            try:
+                from streamlit_plotly_events import plotly_events
+                plotly_events_available = True
+            except Exception:
+                plotly_events_available = False
+
+            clicked_planet = None
+            if plotly_events_available:
+                events = plotly_events(fig, click_event=True, hover_event=False, select_event=False, key="plotly_events")
+                if events:
+                    ev = events[0]
+                    cd = ev.get("customdata")
+                    if isinstance(cd, (list, tuple)) and len(cd) > 0:
+                        clicked_planet = cd[0]
+                    elif isinstance(cd, str):
+                        clicked_planet = cd
+                    if not clicked_planet:
+                        clicked_planet = ev.get("text") or ev.get("pointNumber")
             else:
-                label_list = []
-                label_to_raw = {}
+                st.plotly_chart(fig, use_container_width=True)
 
-            # garantir inicialização consistente do estado do selectbox e do valor interno
-            if label_list:
-                # inicializar selected_planet com o primeiro raw se não existir
-                if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
-                    st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
-
-                # garantir que planet_selectbox mostre o label correspondente ao selected_planet
-                if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
-                    current_internal = st.session_state.get("selected_planet")
-                    current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                    st.session_state["planet_selectbox"] = current_label or label_list[0]
-            else:
-                # limpar estados se não houver opções
-                st.session_state.setdefault("selected_planet", None)
-                st.session_state.setdefault("planet_selectbox", None)
-
-            # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
-            def _on_select_planet():
-                sel_label = st.session_state.get("planet_selectbox")
-                sel_raw = label_to_raw.get(sel_label, sel_label)
-                st.session_state["selected_planet"] = sel_raw
-                st.session_state["planet_selectbox"] = sel_label
-
-            # selectbox usando label_list (rótulos em PT)
-            st.selectbox(
-                "Selecionar planeta",
-                label_list,
-                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
-                key="planet_selectbox",
-                on_change=_on_select_planet
-            )
-
+            if clicked_planet:
+                clicked_planet = str(clicked_planet)
+                canonical_clicked = influences._to_canonical(clicked_planet)
+                if st.session_state.get("selected_planet") != canonical_clicked:
+                    st.session_state["selected_planet"] = canonical_clicked
+            
         # -------------------------
         # Leitura Sintética
         # -------------------------
@@ -1720,71 +1785,6 @@ def main():
                         st.write(f"Palavras-chave: {keywords_line}")
                     else:
                         st.write("—")
-
-    # CENTER: mapa + IA + interpretação
-    with center_col:
-        st.subheader("Mapa Astral")
-        if not map_ready or fig_saved is None:
-            st.info("Nenhum mapa gerado. Preencha os parâmetros e clique em 'Gerar Mapa'.")
-        else:
-            try:
-                fig_dict = fig_saved.to_dict()
-                fig = go.Figure(fig_dict)
-            except Exception:
-                fig = fig_saved
-
-            # destacar seleção no mapa
-            sel_name = st.session_state.get("selected_planet")
-            if sel_name and summary:
-                try:
-                    sel_lon = None
-                    canonical_sel = influences._to_canonical(sel_name)
-                    if summary.get("planets", {}).get(canonical_sel):
-                        sel_lon = summary["planets"][canonical_sel].get("longitude")
-                    elif summary.get("planets", {}).get(sel_name):
-                        sel_lon = summary["planets"][sel_name].get("longitude")
-                    if sel_lon is not None:
-                        theta_sel = (360.0 - float(sel_lon)) % 360.0
-                        fig.add_trace(go.Scatterpolar(
-                            r=[1.0],
-                            theta=[theta_sel],
-                            mode="markers+text",
-                            marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
-                            text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name)],
-                            textfont=dict(size=12, color="#000"),
-                            hoverinfo="none",
-                            showlegend=False
-                        ))
-                except Exception:
-                    pass
-
-            # plot e captura de clique
-            try:
-                from streamlit_plotly_events import plotly_events
-                plotly_events_available = True
-            except Exception:
-                plotly_events_available = False
-
-            clicked_planet = None
-            if plotly_events_available:
-                events = plotly_events(fig, click_event=True, hover_event=False, select_event=False, key="plotly_events")
-                if events:
-                    ev = events[0]
-                    cd = ev.get("customdata")
-                    if isinstance(cd, (list, tuple)) and len(cd) > 0:
-                        clicked_planet = cd[0]
-                    elif isinstance(cd, str):
-                        clicked_planet = cd
-                    if not clicked_planet:
-                        clicked_planet = ev.get("text") or ev.get("pointNumber")
-            else:
-                st.plotly_chart(fig, use_container_width=True)
-
-            if clicked_planet:
-                clicked_planet = str(clicked_planet)
-                canonical_clicked = influences._to_canonical(clicked_planet)
-                if st.session_state.get("selected_planet") != canonical_clicked:
-                    st.session_state["selected_planet"] = canonical_clicked
 
             # interpretação curta + expander para completa
             st.markdown("### Interpretação Astrológica")
