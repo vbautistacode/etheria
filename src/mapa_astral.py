@@ -1002,7 +1002,7 @@ def main():
             canonical_signs = None
 
         if not canonical_signs:
-            canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+            canonical_signs = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
 
         # sign labels em PT (usar influences.sign_label_pt quando disponível)
         sign_names = []
