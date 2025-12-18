@@ -131,13 +131,13 @@ PHASES: List[Tuple[str, int, int]] = [
 # Textos interpretativos (chaves em canonical)
 # -------------------------
 PLANET_TO_TATWA: Dict[str, str] = {
-    "Lua": "Apas",
-    "Mercúrio": "Anupádaka",
-    "Vênus": "Akasha",
-    "Sol": "Prithvi",
-    "Marte": "Tejas",
-    "Júpiter": "Adi",
-    "Saturno": "Vayu",
+    "Moon": "Apas",
+    "Mercury": "Anupádaka",
+    "Venus": "Akasha",
+    "Sun": "Prithvi",
+    "Mars": "Tejas",
+    "Jupiter": "Adi",
+    "Saturn": "Vayu",
 }
 
 # -------------------------
