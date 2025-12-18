@@ -1785,10 +1785,20 @@ def main():
         # -------------------------
         with tabs[0]:
             if reading:
-                st.markdown(
-                    f"#### {influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected)} "
-                    f"em {reading.get('sign')} {reading.get('degree')}°"
-                )
+                # obter canonical do planeta e label (já faz para planetas)
+                planet_label = influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected) if canonical_selected else (label_selected or "—")
+
+                # obter signo raw e normalizar para canonical e label pt
+                raw_sign = reading.get("sign")
+                try:
+                    sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
+                except Exception:
+                    sign_canonical = raw_sign
+                sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+
+                degree = reading.get("degree") or reading.get("deg") or "—"
+
+                st.markdown(f"#### {planet_label} em {sign_label} {degree}°")
                 st.markdown("**Arcano Correspondente**")
                 arc = reading.get("arcano_info") or reading.get("arcano")
                 if arc:
