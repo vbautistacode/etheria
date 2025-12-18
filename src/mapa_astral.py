@@ -1547,78 +1547,94 @@ def main():
             df = _pd.DataFrame([])
             df_display = df
 
-        if df_display.empty:
-            st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
-        else:
-            # montar df_to_show: esconder raw 'planet' e 'sign', mostrar labels PT
-            df_to_show = df_display.copy()
-            # preferir planet_label e sign_label para exibição
-            if "planet_label" in df_to_show.columns:
-                df_to_show = df_to_show.drop(columns=["planet"], errors="ignore")
-                df_to_show = df_to_show.rename(columns={"planet_label": "Planeta"})
-            if "sign_label" in df_to_show.columns:
-                df_to_show = df_to_show.drop(columns=["sign"], errors="ignore")
-                df_to_show = df_to_show.rename(columns={"sign_label": "Signo"})
-
-            # reordenar para mostrar Planeta primeiro, se existir
-            cols = list(df_to_show.columns)
-            if "Planeta" in cols:
-                cols = ["Planeta"] + [c for c in cols if c != "Planeta"]
-                df_to_show = df_to_show[cols]
-
-            st.dataframe(df_to_show, use_container_width=True, height=300)
-
-            # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
-            label_list = []
-            label_to_raw = {}
-
-            if not df_display.empty and "planet_label" in df_display.columns:
-                raw_planets = list(df_display["planet"].values)
-                planet_labels = list(df_display["planet_label"].values)
-
-                for raw, plab in zip(raw_planets, planet_labels):
-                    lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
-                    label_list.append(lab)
-                    label_to_raw[lab] = raw
-            elif not df_display.empty and "planet" in df_display.columns:
-                # fallback: usar raw como label
-                label_list = list(df_display["planet"].values)
-                label_to_raw = {lab: lab for lab in label_list}
+            if df_display.empty:
+                st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
             else:
+                # montar df_to_show: esconder raw 'planet' e 'sign', mostrar labels PT
+                df_to_show = df_display.copy()
+
+                # preferir planet_label e sign_label para exibição
+                if "planet_label" in df_to_show.columns:
+                    df_to_show = df_to_show.drop(columns=["planet"], errors="ignore")
+                    df_to_show = df_to_show.rename(columns={"planet_label": "Planeta"})
+                if "sign_label" in df_to_show.columns:
+                    df_to_show = df_to_show.drop(columns=["sign"], errors="ignore")
+                    df_to_show = df_to_show.rename(columns={"sign_label": "Signo"})
+
+                # normalizar nomes de colunas internas para exibição consistente
+                # Degree <- degree, House <- house
+                if "degree" in df_to_show.columns and "Degree" not in df_to_show.columns:
+                    df_to_show = df_to_show.rename(columns={"degree": "Degree"})
+                if "house" in df_to_show.columns and "House" not in df_to_show.columns:
+                    df_to_show = df_to_show.rename(columns={"house": "House"})
+
+                # selecionar apenas as colunas que queremos mostrar no expander, na ordem desejada
+                cols_to_show = []
+                for c in ["Planeta", "Signo", "House", "Degree"]:
+                    if c in df_to_show.columns:
+                        cols_to_show.append(c)
+
+                # se nenhuma das colunas esperadas existir, mostrar o dataframe completo como fallback
+                if not cols_to_show:
+                    df_exp = df_to_show.copy()
+                else:
+                    df_exp = df_to_show[cols_to_show].copy()
+
+                # colocar dentro de um expander para esconder/mostrar
+                with st.expander("Tabela de posições", expanded=False):
+                    st.dataframe(df_exp, use_container_width=True, height=300)
+
+                # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
                 label_list = []
                 label_to_raw = {}
 
-            # garantir inicialização consistente do estado do selectbox e do valor interno
-            if label_list:
-                # inicializar selected_planet com o primeiro raw se não existir
-                if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
-                    st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
+                if not df_display.empty and "planet_label" in df_display.columns:
+                    raw_planets = list(df_display["planet"].values)
+                    planet_labels = list(df_display["planet_label"].values)
 
-                # garantir que planet_selectbox mostre o label correspondente ao selected_planet
-                if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
-                    current_internal = st.session_state.get("selected_planet")
-                    current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                    st.session_state["planet_selectbox"] = current_label or label_list[0]
-            else:
-                # limpar estados se não houver opções
-                st.session_state.setdefault("selected_planet", None)
-                st.session_state.setdefault("planet_selectbox", None)
+                    for raw, plab in zip(raw_planets, planet_labels):
+                        lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
+                        label_list.append(lab)
+                        label_to_raw[lab] = raw
+                elif not df_display.empty and "planet" in df_display.columns:
+                    # fallback: usar raw como label
+                    label_list = list(df_display["planet"].values)
+                    label_to_raw = {lab: lab for lab in label_list}
+                else:
+                    label_list = []
+                    label_to_raw = {}
 
-            # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
-            def _on_select_planet():
-                sel_label = st.session_state.get("planet_selectbox")
-                sel_raw = label_to_raw.get(sel_label, sel_label)
-                st.session_state["selected_planet"] = sel_raw
-                st.session_state["planet_selectbox"] = sel_label
+                # garantir inicialização consistente do estado do selectbox e do valor interno
+                if label_list:
+                    # inicializar selected_planet com o primeiro raw se não existir
+                    if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
+                        st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
 
-            # selectbox usando label_list (rótulos em PT)
-            st.selectbox(
-                "Selecionar planeta",
-                label_list,
-                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
-                key="planet_selectbox",
-                on_change=_on_select_planet
-            )
+                    # garantir que planet_selectbox mostre o label correspondente ao selected_planet
+                    if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
+                        current_internal = st.session_state.get("selected_planet")
+                        current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
+                        st.session_state["planet_selectbox"] = current_label or label_list[0]
+                else:
+                    # limpar estados se não houver opções
+                    st.session_state.setdefault("selected_planet", None)
+                    st.session_state.setdefault("planet_selectbox", None)
+
+                # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
+                def _on_select_planet():
+                    sel_label = st.session_state.get("planet_selectbox")
+                    sel_raw = label_to_raw.get(sel_label, sel_label)
+                    st.session_state["selected_planet"] = sel_raw
+                    st.session_state["planet_selectbox"] = sel_label
+
+                # selectbox usando label_list (rótulos em PT)
+                st.selectbox(
+                    "Selecionar planeta",
+                    label_list,
+                    index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
+                    key="planet_selectbox",
+                    on_change=_on_select_planet
+                )
 
         # -------------------------
         # Leitura Sintética
