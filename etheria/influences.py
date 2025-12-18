@@ -257,7 +257,7 @@ __all__ = [
 
 # manter textos originais, mas indexados por canonical
 PLANET_TEXTS: Dict[str, Dict[str, str]] = {
-    "Moon": {
+    "Lua": {
         "title": "Lua — Apas",
         "summary": "Emoção, sensibilidade, intuição; assuntos passageiros, família.",
         "long": (
