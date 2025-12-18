@@ -448,7 +448,7 @@ def interpret_planet_position(
 ) -> Dict[str, str]:
     """
     Gera interpretação curta e longa para um planeta numa posição.
-    Exibe nomes em pt_BR na UI, mas usa nomes canônicos para lookups internos.
+    Usa nomes canônicos para lookups e rótulos em pt_BR para exibição.
     """
     # importar influences defensivamente
     try:
@@ -456,7 +456,7 @@ def interpret_planet_position(
     except Exception:
         influences = None
 
-    # normalizar para canônicos para lookups
+    # normalizar para canônicos para lookups internos
     try:
         planet_can = influences.to_canonical(planet) if influences and hasattr(influences, "to_canonical") else planet
     except Exception:
@@ -467,7 +467,7 @@ def interpret_planet_position(
     except Exception:
         sign_can = sign
 
-    # obter rótulos em pt_BR para exibição
+    # rótulos em pt_BR para exibição
     try:
         planet_label_pt = influences.planet_label_pt(planet_can) if influences and hasattr(influences, "planet_label_pt") else (planet or "")
     except Exception:
@@ -478,7 +478,7 @@ def interpret_planet_position(
     except Exception:
         sign_label_pt = sign or ""
 
-    # lookups internos continuam usando canônicos
+    # lookups internos com canônicos
     verb, pcore = _planet_core_text(planet_can)
     sign_noun, sign_quality = _sign_text(sign_can or "")
     house_noun, house_theme = _house_text(house)
@@ -486,7 +486,7 @@ def interpret_planet_position(
     deg_text = _format_degree(degree)
     who = f"{context_name}, " if context_name else ""
 
-    # Short: 1-2 frases (usar rótulos pt_BR)
+    # Short: 1-2 frases usando rótulos PT
     short = (
         f"{who}{planet_label_pt} em {sign_label_pt or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
         f"Resumo prático: {verb.lower()} no campo do(a) {house_noun.lower()}."
@@ -495,7 +495,7 @@ def interpret_planet_position(
     # Long: 3-5 parágrafos curtos
     long_parts = []
 
-    # Parágrafo 1: síntese funcional (exibição em pt_BR)
+    # Parágrafo 1: síntese funcional
     p1 = (
         f"{planet_label_pt} representa a(o) {pcore.lower()}. Em {sign_label_pt or '—'}, traz a ideia de {sign_quality.lower()}. "
         f"Essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
@@ -511,11 +511,10 @@ def interpret_planet_position(
     )
     long_parts.append(p2)
 
-    # Parágrafo 3: aspectos (se houver) — converter planetas dos aspectos para pt_BR
+    # Parágrafo 3: aspectos (se houver) — converter planetas dos aspectos para PT
     if aspects:
         rel = []
         for a in aspects:
-            # comparar com canônicos para robustez
             p1_name = a.get("p1")
             p2_name = a.get("p2")
             try:
@@ -529,9 +528,8 @@ def interpret_planet_position(
 
             if p1_can == planet_can or p2_can == planet_can:
                 other_can = p2_can if p1_can == planet_can else p1_can
-                # obter label pt do outro planeta
                 try:
-                    other_label = influences.planet_label_pt(other_can) if influences and hasattr(influences, "planet_label_pt") else (other_can or other_can)
+                    other_label = influences.planet_label_pt(other_can) if influences and hasattr(influences, "planet_label_pt") else (other_can or "")
                 except Exception:
                     other_label = other_can or ""
                 rel.append(f"{a.get('type','').lower()} com {other_label} (orb {a.get('orb')})")
