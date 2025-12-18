@@ -1347,6 +1347,13 @@ def main():
             # Sistema de casas fixo: Placidus (código P)
             st.session_state["house_system"] = "P"
 
+            st.markdown("### Controles")
+            use_ai = st.checkbox(
+                "Usar IA para interpretações astrológicas",
+                value=False,
+                help="Gera texto via IA Generativa proprietária."
+            )
+
             submitted = st.form_submit_button("Gerar Mapa")
 
     # -------------------------
@@ -1504,13 +1511,6 @@ def main():
 
     # LEFT: controles e tabela (se houver summary)
     with left_col:
-        st.markdown("### Controles")
-        use_ai = st.checkbox(
-            "Usar IA para interpretações astrológicas",
-            value=False,
-            help="Gera texto via IA Generativa proprietária."
-        )
-
         st.markdown("### Posições")
         import pandas as _pd
 
