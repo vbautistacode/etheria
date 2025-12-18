@@ -656,26 +656,25 @@ def main():
         export_png: bool = False,
         export_size: tuple = (2400, 2400)
     ):
+        # safe global palette (read-only). Prefer definir GROUP_COLORS no topo do módulo.
         colors = globals().get("GROUP_COLORS") or {
-            "Sun": "#FF8800",     
-            "Moon": "#3e54d4", 
-            "Mercury": "#e7d912", 
-            "Venus": "#2fbdf5",   
-            "Mars": "#d62728",     
-            "Jupiter": "#9467bd", 
-            "Saturn": "#53c232",   
-            "Uranus": "#ffd900",  
-            "Neptune": "#00a2ff", 
-            "Pluto": "#ff0000", 
-            # grupos/labels genéricos
+            "Sun": "#FF8800",
+            "Moon": "#3e54d4",
+            "Mercury": "#e7d912",
+            "Venus": "#2fbdf5",
+            "Mars": "#d62728",
+            "Jupiter": "#9467bd",
+            "Saturn": "#53c232",
+            "Uranus": "#ffd900",
+            "Neptune": "#00a2ff",
+            "Pluto": "#ff0000",
             "default": "#ff7f0e"
         }
-            
+
         def _color_for_group(gname):
             if not gname:
                 return colors.get("default")
             try:
-                # normalize to canonical English if you have influences module
                 from etheria import influences
                 key = influences.to_canonical(gname) or str(gname)
             except Exception:
@@ -774,13 +773,17 @@ def main():
 
         # símbolos e grupos
         planet_symbols = {
-            "Sun": "☉", "Sol": "☉", "Moon": "☾", "Lua": "☾", "Mercury": "☿", "Mercúrio": "☿", "Venus": "♀", "Vênus": "♀", "Mars": "♂", "Marte": "♂", "Jupiter": "♃", "Júpiter": "♃", "Saturn": "♄", "Saturno": "♄", "Uranus": "♅", "Urano": "♅", "Neptune": "♆", "Netuno": "♆", "Pluto": "♇", "Plutão": "♇", "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC", "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
+            "Sun": "☉", "Sol": "☉", "Moon": "☾", "Lua": "☾", "Mercury": "☿", "Mercúrio": "☿",
+            "Venus": "♀", "Vênus": "♀", "Mars": "♂", "Marte": "♂", "Jupiter": "♃", "Júpiter": "♃",
+            "Saturn": "♄", "Saturno": "♄", "Uranus": "♅", "Urano": "♅", "Neptune": "♆", "Netuno": "♆",
+            "Pluto": "♇", "Plutão": "♇", "Asc": "ASC", "ASCENDANT": "ASC", "ASCENDENTE": "ASC",
+            "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
         }
 
-        groups = highlight_groups or { 
-            "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"], 
-            "sociais": ["Jupiter", "Saturn"], 
-            "geracionais": ["Uranus", "Neptune", "Pluto"] 
+        groups = highlight_groups or {
+            "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"],
+            "sociais": ["Jupiter", "Saturn"],
+            "geracionais": ["Uranus", "Neptune", "Pluto"]
         }
 
         # ordenar por longitude crescente
@@ -828,11 +831,28 @@ def main():
             size = base_marker * (1.6 if is_asc or is_mc else 1.0)
             text_size = base_text * (1.4 if is_asc or is_mc else 1.0)
 
+            # default color
             color = "#888"
+            # procurar grupo ao qual o planeta pertence e obter cor via _color_for_group
             for gname, members in groups.items():
-                if name in members:
-                    color = group_colors.get(gname, "#ff7f0e")
-                    break
+                try:
+                    # membros podem estar em pt/en; normalizar comparação usando to_canonical quando possível
+                    if name in members:
+                        color = _color_for_group(gname)
+                        break
+                    # também tentar comparar canonical forms
+                    from etheria import influences as _inf  # import local para evitar ciclo no topo
+                    name_can = _inf.to_canonical(name) or name
+                    members_can = [(_inf.to_canonical(m) or m) for m in members]
+                    if name_can in members_can:
+                        color = _color_for_group(gname)
+                        break
+                except Exception:
+                    # fallback simples: membership check direto
+                    if name in members:
+                        color = _color_for_group(gname)
+                        break
+
             if is_asc:
                 color = "#d62728"
             if is_mc:
@@ -896,7 +916,6 @@ def main():
                 for i in range(12):
                     c1 = cusps12[i]
                     c2 = cusps12[(i + 1) % 12]
-                    # calcular meio angular corretamente considerando wrap-around
                     diff = (c2 - c1) % 360.0
                     mid = (c1 + diff / 2.0) % 360.0
                     theta_mid = lon_to_theta(mid)
@@ -916,7 +935,6 @@ def main():
                         showlegend=False
                     ))
             else:
-                # fallback: posições padrão
                 for i in range(12):
                     mid = (i * 30 + 15) % 360
                     theta_mid = lon_to_theta(mid)
@@ -981,21 +999,14 @@ def main():
         ticktext = [f"{sign_symbols[i]} {sign_names[i]}" for i in range(12)]
 
         # --- cálculo defensivo de tamanho (substituir o trecho original) ---
-        # parâmetros opcionais que você pode expor na assinatura da função:
-        #   base_px = 700
-        #   min_px = 300
-        #   max_px = 4000
-
         base_px = 400
         min_px = 300
         max_px = 4000
 
-        # garantir export_size válido quando export_png=True
         if export_png and isinstance(export_size, (list, tuple)) and len(export_size) == 2:
             try:
                 exp_w = int(export_size[0])
                 exp_h = int(export_size[1])
-                # normalizar limites
                 exp_w = max(min_px, min(max_px, exp_w))
                 exp_h = max(min_px, min(max_px, exp_h))
             except Exception:
@@ -1003,28 +1014,21 @@ def main():
         else:
             exp_w, exp_h = None, None
 
-        # scale derivado do export_size ou um scale explícito
         if exp_h:
-            # manter proporção relativa ao valor de referência 1200 usado antes
             scale = exp_h / 1200.0
             height_px = int(max(min_px, min(max_px, int(600 * scale))))
             width_px = int(max(min_px, min(max_px, int(exp_w)))) if exp_w else height_px
         else:
-            # quando não exportando, usar base fixo ou permitir override via marker/text scale
             height_px = int(base_px)
-            width_px = None  # deixa Plotly decidir; se preferir forçar quadrado: width_px = height_px
+            width_px = None
 
-        # se width for None, force square to avoid layout estranho em alguns renderers
         if width_px is None:
             width_px = height_px
 
-        # opcional: ajustar marker/text scales proporcionalmente ao scale calculado
-        # (mantém aparência consistente em imagens maiores)
         computed_scale = (height_px / base_px)
         marker_scale = marker_scale * computed_scale
         text_scale = text_scale * computed_scale
 
-        # agora aplicar layout com valores seguros
         fig.update_layout(
             polar=dict(
                 radialaxis=dict(visible=False),
@@ -1044,10 +1048,7 @@ def main():
             width=width_px
         )
 
-        # atualizar traces com o text_scale final
         fig.update_traces(textfont=dict(size=int(14 * text_scale)))
-        # --- fim do bloco ---
-
 
         # export opcional em alta resolução (requer kaleido)
         if export_png:
@@ -1056,10 +1057,10 @@ def main():
                 return fig, img_bytes
             except Exception as e:
                 logger.exception("Falha ao exportar PNG: %s", e)
-                # retornar figura mesmo que export falhe
                 return fig
 
         return fig
+
 
     st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
     st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
