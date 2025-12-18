@@ -13,6 +13,8 @@ from typing import List, Dict, Optional, Any, Tuple, Union
 from datetime import date
 import unicodedata
 
+from etheria.astrology import CANONICAL_SIGNS
+
 # Import opcional de pandas (não obrigatório para todas as funções)
 try:
     import pandas as pd  # type: ignore
@@ -105,11 +107,28 @@ def normalize_planet_list(planets: Optional[List[str]]) -> Optional[List[str]]:
         return None
     return [to_canonical(p) for p in planets]
 
-# canonical names for signs (internal)
-CANONICAL_SIGNS: List[str] = [
-    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-]
+# canonical -> PT labels for signs (explicit)
+SIGN_CANONICAL_TO_PT: Dict[str, str] = {
+    "Aries": "Áries",
+    "Taurus": "Touro",
+    "Gemini": "Gêmeos",
+    "Cancer": "Câncer",
+    "Leo": "Leão",
+    "Virgo": "Virgem",
+    "Libra": "Libra",
+    "Scorpio": "Escorpião",
+    "Sagittarius": "Sagitário",
+    "Capricorn": "Capricórnio",
+    "Aquarius": "Aquário",
+    "Pisces": "Peixes",
+}
+
+def sign_label_pt(canonical: Optional[str]) -> Optional[str]:
+    """Retorna o rótulo em pt_BR para um signo canônico em inglês."""
+    if not canonical:
+        return None
+    # usar o mapa específico de signos
+    return SIGN_CANONICAL_TO_PT.get(canonical, canonical)
 
 # raw PT -> canonical mapping (com acentos e variantes)
 _raw_pt_sign = {
@@ -300,7 +319,8 @@ __all__ = [
     "CANONICAL_PLANETS", "to_canonical", "_to_canonical", "planet_label_pt",
     "normalize_planet_list", "PLANET_ORDER", "PLANET_YEARS", "DEFAULT_WEIGHTS",
     "PHASES", "PLANET_TO_TATWA", "planet_from_matrix", "canonical_sequence_labels",
-    "is_canonical", "CANONICAL_TO_PT", "PT_TO_CANONICAL"
+    "is_canonical", "CANONICAL_TO_PT", "PT_TO_CANONICAL",
+    "CANONICAL_SIGNS", "sign_to_canonical", "sign_label_pt", "SIGN_CANONICAL_TO_PT"
 ]
 
 # manter textos originais, mas indexados por canonical
