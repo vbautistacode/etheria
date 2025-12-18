@@ -169,11 +169,11 @@ def sign_to_canonical(name: Optional[str]) -> Optional[str]:
     key = _norm_key(s)
     return PT_TO_CANONICAL_SIGN.get(key, s)
 
-def planet_label_pt(canonical: str) -> str:
-    return CANONICAL_TO_PT_PLANET.get(canonical, canonical)
+def planet_label_pt(canonical: Optional[str]) -> str:
+    return CANONICAL_TO_PT_PLANET.get(canonical, canonical or "—")
 
-def sign_label_pt(canonical: str) -> str:
-    return CANONICAL_TO_PT_SIGN.get(canonical, canonical)
+def sign_label_pt(canonical: Optional[str]) -> str:
+    return CANONICAL_TO_PT_SIGN.get(canonical, canonical or "—")
 
 def lon_to_sign_degree(lon: float):
     """
@@ -495,7 +495,7 @@ def _keywords_from_text(text: Optional[str], max_items: int = 4) -> List[str]:
             break
     return seen
 
-# templates por planeta: cada entrada tem 'technical' e 'poetic' strings ou lambdas
+# templates por planeta (ciclos astrologicos): cada entrada tem 'technical' e 'poetic' strings ou lambdas
 _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
     "Sol": {
         "technical": {
