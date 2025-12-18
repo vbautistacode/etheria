@@ -1347,7 +1347,7 @@ def main():
             # Sistema de casas fixo: Placidus (código P)
             st.session_state["house_system"] = "P"
 
-            st.markdown("### Controles")
+            st.caption("### Controles")
             use_ai = st.checkbox(
                 "Usar IA para interpretações?",
                 value=False,
