@@ -4,6 +4,8 @@ from typing import Dict, Any, List
 from typing import Iterable
 import unicodedata
 import math
+import logging
+logger = logging.getLogger("etheria.astrology")
 
 from typing import Dict, Tuple
 
@@ -327,21 +329,31 @@ def positions_table(
 
         # obter rótulos em pt_BR e rótulo do planeta em pt_BR (defensivo)
         try:
+            # sign_can deve ser canonical (ex: "Taurus"); usar influences.sign_label_pt quando disponível
             if influences and hasattr(influences, "sign_label_pt"):
                 sign_label_pt = influences.sign_label_pt(sign_can) if sign_can else None
             else:
-                # se sign_can já estiver em PT ou None, usar como fallback
                 sign_label_pt = sign_can
         except Exception:
             sign_label_pt = sign_can
 
+        # planet label: normalizar nome do planeta para canonical antes de pedir label_pt
         try:
-            if influences and hasattr(influences, "planet_label_pt"):
-                planet_label_pt = influences.planet_label_pt(influences.to_canonical(name) if hasattr(influences, "to_canonical") else name)
+            if influences and hasattr(influences, "to_canonical") and hasattr(influences, "planet_label_pt"):
+                pname_can = influences.to_canonical(name)
+                planet_label_pt = influences.planet_label_pt(pname_can)
+            elif influences and hasattr(influences, "planet_label_pt"):
+                planet_label_pt = influences.planet_label_pt(name)
             else:
                 planet_label_pt = name
         except Exception:
             planet_label_pt = name
+
+        # debug: logar casos inesperados (opcional)
+        if not sign_label_pt:
+            logger.debug("positions_table: sign_label_pt not resolved for sign_can=%r (planet=%r, lon=%s)", sign_can, name, lon)
+        if not planet_label_pt:
+            logger.debug("positions_table: planet_label_pt not resolved for planet=%r", name)
 
         # garantir valores coerentes para saída
         row = {
@@ -417,12 +429,6 @@ def _sign_text(sign: str) -> Tuple[str, str]:
     """Retorna substantivo e qualidade central do signo (fallback)."""
     return SIGN_DESCRIPTIONS.get(sign, (sign, "Qualidade específica do signo"))
 
-def _house_text(house: Optional[int]) -> Tuple[str, str]:
-    """Retorna descrição da casa; se None, retorna vazio."""
-    if not house:
-        return ("Casa desconhecida", "")
-    return HOUSE_DESCRIPTIONS.get(house, (f"Casa {house}", "Tema da casa"))
-
 def _house_text(house: Optional[Any]) -> Tuple[str, str]:
     """
     Retorna descrição da casa; aceita int ou string numérica.
@@ -456,7 +462,7 @@ def interpret_planet_position(
     except Exception:
         influences = None
 
-    # normalizar para canônicos para lookups internos
+        # normalizar para canônicos para lookups internos
     try:
         planet_can = influences.to_canonical(planet) if influences and hasattr(influences, "to_canonical") else planet
     except Exception:
@@ -467,16 +473,18 @@ def interpret_planet_position(
     except Exception:
         sign_can = sign
 
-    # rótulos em pt_BR para exibição
+    # rótulos em pt_BR para exibição (defensivo)
     try:
         planet_label_pt = influences.planet_label_pt(planet_can) if influences and hasattr(influences, "planet_label_pt") else (planet or "")
     except Exception:
         planet_label_pt = planet or ""
+        logger.debug("interpret_planet_position: planet_label_pt fallback for %r", planet_can)
 
     try:
         sign_label_pt = influences.sign_label_pt(sign_can) if influences and hasattr(influences, "sign_label_pt") else (sign or "")
     except Exception:
         sign_label_pt = sign or ""
+        logger.debug("interpret_planet_position: sign_label_pt fallback for %r", sign_can)
 
     # lookups internos com canônicos
     verb, pcore = _planet_core_text(planet_can)
