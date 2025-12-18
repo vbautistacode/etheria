@@ -1521,22 +1521,36 @@ def main():
         if not sel_planet or not summary:
             st.info("Selecione um planeta na tabela para ver a leitura sintética.")
         else:
+            # obter leitura e rótulos
             canonical, label, reading = get_reading(summary, sel_planet)
             if not reading:
                 st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
             else:
-                sign, degree = normalize_degree_sign(reading)
+                # normalizar signo/degree e casa (valores brutos vindos de reading)
+                raw_sign, degree = normalize_degree_sign(reading)
+                # sign pode vir em PT ou EN; converta para canonical para lookups
+                try:
+                    sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
+                except Exception:
+                    sign_canonical = raw_sign
+                # obter label em pt_BR para exibição
+                sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+
+                # resolver casa (mantendo a lógica existente)
                 house = resolve_house(reading, summary, canonical, sel_planet)
 
-                # construir leitura sintética curta
-                planet_verb, planet_core = astrology.PLANET_CORE.get(canonical or sel_planet, ("", ""))
-                sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign, ("", ""))
+                # usar nomes canônicos para buscar descrições internas (astrology.* usa chaves canônicas)
+                planet_key = canonical or sel_planet
+                sign_key = sign_canonical or raw_sign
+
+                planet_verb, planet_core = astrology.PLANET_CORE.get(planet_key, ("", ""))
+                sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign_key, ("", ""))
                 house_noun, house_theme = astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", "")
 
                 parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
                 synthetic_line = " — ".join(parts) if parts else ""
 
-                # palavras-chave curtas
+                # palavras-chave curtas (mantém lógica)
                 keywords = []
                 if planet_core:
                     keywords += [k.strip() for k in planet_core.split(",") if k.strip()]
@@ -1550,16 +1564,21 @@ def main():
                         seen.append(k)
                 keywords_line = ", ".join(seen[:8]) if seen else None
 
-                st.markdown(f"**{reading.get('planet') or label}**")
-                st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+                # label do planeta em pt_BR para exibição (fallback para label já calculado)
+                try:
+                    planet_label_pt = influences.planet_label_pt(planet_key) if hasattr(influences, "planet_label_pt") else (reading.get("planet") or label or planet_key)
+                except Exception:
+                    planet_label_pt = reading.get("planet") or label or planet_key
+
+                st.markdown(f"**{planet_label_pt}**")
+                st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
 
                 if synthetic_line:
-                    
                     st.write(synthetic_line)
 
                 interp_local = astrology.interpret_planet_position(
-                    planet=canonical or sel_planet,
-                    sign=sign,
+                    planet=planet_key,
+                    sign=sign_key,
                     degree=degree,
                     house=house,
                     aspects=summary.get("aspects"),
@@ -1573,6 +1592,7 @@ def main():
                     st.write(f"Palavras-chave: {keywords_line}")
                 else:
                     st.write("—")
+
 
     # CENTER: mapa + IA + interpretação
     with center_col:
