@@ -1,4 +1,7 @@
 # pages/mapa_astral.py
+from etheria.astrology import SIGNS
+
+
 def main():
 
     import os
@@ -995,25 +998,9 @@ def main():
         # ticks e labels dos signos
         sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
         sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-
-        # ticks e labels dos signos (defensivo)
-        try:
-            canonical_signs = influences.CANONICAL_SIGNS if hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
-        except Exception:
-            canonical_signs = None
-
-        # fallback local se canonical_signs não estiver disponível
-        if not canonical_signs:
-            canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
-
-        # tick positions (meio de cada signo)
+        # ticks
         tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-
-        # tick labels em pt_BR quando possível
-        if hasattr(influences, "sign_label_pt"):
-            ticktext = [influences.sign_label_pt(canonical_signs[i]) for i in range(12)]
-        else:
-            ticktext = [canonical_signs[i] for i in range(12)]
+        ticktext = [influences.sign_label_pt(SIGNS[i]) if hasattr(influences, "sign_label_pt") else SIGNS[i] for i in range(12)]
 
         # --- cálculo defensivo de tamanho (substituir o trecho original) ---
         base_px = 400
@@ -1548,27 +1535,25 @@ def main():
 
             st.dataframe(df_to_show, use_container_width=True, height=300)
 
-            # construir lista de opções (rótulos PT) e mapa label -> raw (valor interno)
+            # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
             label_list = []
             label_to_raw = {}
 
             if not df_display.empty and "planet_label" in df_display.columns:
-                # obter arrays paralelos (raw planet, planet_label, sign_label)
                 raw_planets = list(df_display["planet"].values)
                 planet_labels = list(df_display["planet_label"].values)
-                sign_labels = list(df_display["sign_label"].values) if "sign_label" in df_display.columns else [None] * len(raw_planets)
 
-                for raw, plab, slab in zip(raw_planets, planet_labels, sign_labels):
-                    if slab and slab != "—":
-                        lab = f"{plab} — {slab}"
-                    else:
-                        lab = f"{plab}"
+                for raw, plab in zip(raw_planets, planet_labels):
+                    lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
                     label_list.append(lab)
                     label_to_raw[lab] = raw
             elif not df_display.empty and "planet" in df_display.columns:
                 # fallback: usar raw como label
                 label_list = list(df_display["planet"].values)
                 label_to_raw = {lab: lab for lab in label_list}
+            else:
+                label_list = []
+                label_to_raw = {}
 
             # inicializar selected_planet (interno) se não existir
             if "selected_planet" not in st.session_state:
