@@ -545,8 +545,7 @@ with tab_influencias:
         # preparar cópia para exibição com colunas em pt_BR
         df_table = df_cycles_display.copy()
         # remover a coluna 'planet' da exibição (mantendo-a no DataFrame original para lógica)
-        if "planet" in df_table.columns:
-            df_table = df_table.drop(columns=["planet"])
+        
         # renomear colunas para pt_BR e usar planet_label
         df_table = df_table.rename(columns={
             "planet": "Planet Raw",
