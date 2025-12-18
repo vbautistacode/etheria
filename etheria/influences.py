@@ -279,7 +279,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "cuidar da dieta e rotinas alimentares; favorecer atividades ligadas a líquidos e ao cuidado."
         )
     },
-    "Mercúrio": {
+    "Mercury": {
         "title": "Mercúrio — Anupádaka",
         "summary": "Atividade mental, memória, estudos, comunicação, comércio.",
         "long": (
@@ -296,7 +296,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Aproveitar horas de Mercúrio para estudo, escrita, comunicação e negociações; exercícios de concentração; atenção à clareza na fala e documentos."
         )
     },
-    "Vênus": {
+    "Venus": {
         "title": "Vênus — Akasha",
         "summary": "Beleza, artes, vida social, afeto, estética.",
         "long": (
@@ -311,7 +311,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Favorecer atividades artísticas e sociais; aproveitar para negociações relacionadas a estética, moda e bens de luxo; cuidar da garganta e rins."
         )
     },
-    "Sol": {
+    "Sun": {
         "title": "Sol — Prithvi",
         "summary": "Vitalidade, vontade, autoridade, criatividade.",
         "long": (
@@ -326,7 +326,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Usar horas solares para iniciativas que exijam autoridade, visibilidade e liderança; cuidar da vitalidade e postura; buscar apoio de figuras de autoridade."
         )
     },
-    "Marte": {
+    "Mars": {
         "title": "Marte — Tejas",
         "summary": "Ação, luta, energia, coragem, risco.",
         "long": (
@@ -343,7 +343,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Evitar decisões impulsivas em horas de Marte; usar para ações que exijam coragem e energia; precaução em atividades de risco; atenção à saúde muscular e sexual."
         )
     },
-    "Júpiter": {
+    "Jupiter": {
         "title": "Júpiter — Adi",
         "summary": "Sabedoria, expansão, ensino, estabilidade de longo prazo.",
         "long": (
@@ -357,7 +357,7 @@ PLANET_TEXTS: Dict[str, Dict[str, str]] = {
             "Usar horas de Júpiter para iniciar projetos duradouros, estudos superiores e pedidos de proteção; cultivar práticas de longo prazo e ensino."
         )
     },
-    "Saturno": {
+    "Saturn": {
         "title": "Saturno — Vayu",
         "summary": "Perseverança, responsabilidade, estrutura, provas e limitações.",
         "long": (
