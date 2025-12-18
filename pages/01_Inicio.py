@@ -499,7 +499,7 @@ with left:
             val = mat.loc[hour_choice, weekday_choice]
         except Exception:
             val = None
-        # st.markdown(f"**{type_choice}** para **{weekday_choice} {hour_choice}**: **{val if val is not None else '-'}**")
+            st.markdown(f"**{type_choice}** para **{weekday_choice} {hour_choice}**: **{val if val is not None else '-'}**")
 
 # Garantir que a leitura esteja no session_state
 if "reading" not in st.session_state:
