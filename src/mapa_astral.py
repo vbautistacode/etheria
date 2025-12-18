@@ -995,14 +995,25 @@ def main():
         # ticks e labels dos signos
         sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
         sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-        # ticks
-        tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [influences.sign_label_pt(SIGNS[i]) if hasattr(influences, "sign_label_pt") else SIGNS[i] for i in range(12)]
 
-        # hover: quando calcular sign a partir da longitude, obtenha label_pt
-        sign_canonical, degree_in_sign, sign_index = lon_to_sign_degree(lon)  # ajuste para retornar canonical
-        sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else sign_canonical
-        hover_parts.append(f"Signo (calc): {sign_label}")
+        # ticks e labels dos signos (defensivo)
+        try:
+            canonical_signs = influences.CANONICAL_SIGNS if hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
+        except Exception:
+            canonical_signs = None
+
+        # fallback local se canonical_signs não estiver disponível
+        if not canonical_signs:
+            canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+
+        # tick positions (meio de cada signo)
+        tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
+
+        # tick labels em pt_BR quando possível
+        if hasattr(influences, "sign_label_pt"):
+            ticktext = [influences.sign_label_pt(canonical_signs[i]) for i in range(12)]
+        else:
+            ticktext = [canonical_signs[i] for i in range(12)]
 
         # --- cálculo defensivo de tamanho (substituir o trecho original) ---
         base_px = 400
