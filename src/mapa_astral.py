@@ -1667,13 +1667,13 @@ def main():
                     planet_label_pt = reading.get("planet") or label or planet_key
 
                 # título dinâmico do expander: "Sol — Touro 4.98°" (fallbacks seguros)
-                expander_title = f"{planet_label_pt}"
-                try:
-                    expander_title += f" — {sign_label or '—'} {degree or '—'}°"
-                except Exception:
-                    pass
+                #expander_title = f"{planet_label_pt}"
+                #try:
+                #    expander_title += f" — {sign_label or '—'} {degree or '—'}°"
+                #except Exception:
+                #    pass
 
-                with st.expander(expander_title, expanded=False):
+                with st.expander('Interpretação', expanded=False):
                     st.markdown(f"**{planet_label_pt}**")
                     st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
 
