@@ -973,7 +973,7 @@ def main():
                         text=[str(i + 1)],
                         textfont=dict(size=int(12 * text_scale), color="#000"),
                         hoverinfo="none",
-                        showlegend=False
+                        showlegend=True
                     ))
             else:
                 for i in range(12):
