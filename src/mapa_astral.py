@@ -913,7 +913,7 @@ def main():
             r=[1.0] * len(thetas),
             theta=thetas,
             mode="markers",
-            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#4E585E", width=0.5)),
+            marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#004B92", width=0.5)),
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>",
             customdata=names,
