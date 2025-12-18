@@ -554,11 +554,7 @@ with tab_influencias:
             "end_year": "Ano fim",
             "current": "Período atual"
         })
-        # opcional: remover coluna raw se preferir
-        if "Planeta (raw)" in df_table.columns:
-            # se quiser esconder a coluna raw, comente a linha abaixo
-            pass
-
+        
         st.dataframe(
             df_table.style.apply(
                 lambda row: ['background-color: #fff3b0' if row['Período atual'] else '' for _ in row],
