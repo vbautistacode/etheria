@@ -107,16 +107,16 @@ generate_btn = st.sidebar.button("Gerar Leitura")
 
 # aliases para mapear variantes (sem acento, pt/eng, abreviações)
 PLANET_ALIASES = {
-    "Sol": ["sol", "sun"],
-    "Lua": ["lua", "moon"],
-    "Marte": ["marte", "mars"],
-    "Mercúrio": ["mercurio", "mercúrio", "mercury"],
-    "Júpiter": ["jupiter", "júpiter"],
-    "Vênus": ["venus", "vênus"],
-    "Saturno": ["saturno", "saturn"],
-    "Urano": ["urano", "uranus"],
-    "Netuno": ["netuno", "neptune"],
-    "Plutão": ["plutao", "plutão", "pluto"],
+    "sol": "Sun", "sun": "Sun",
+    "lua": "Moon", "moon": "Moon",
+    "marte": "Mars", "mars": "Mars",
+    "mercurio": "Mercury", "mercurio": "Mercury", "mercury": "Mercury", "mercúrio": "Mercury",
+    "jupiter": "Jupiter", "júpiter": "Jupiter",
+    "venus": "Venus", "vênus": "Venus",
+    "saturno": "Saturn", "saturn": "Saturn",
+    "urano": "Uranus", "uranus": "Uranus",
+    "netuno": "Neptune", "neptune": "Neptune",
+    "plutao": "Pluto", "plutão": "Pluto", "pluto": "Pluto"
 }
 
 import unicodedata
