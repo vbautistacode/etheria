@@ -1349,9 +1349,9 @@ def main():
 
             st.markdown("### Controles")
             use_ai = st.checkbox(
-                "Usar IA para interpretações astrológicas",
+                "Usar IA para interpretações?",
                 value=False,
-                help="Gera texto via IA Generativa proprietária."
+                help="Gera interpretações astrológicas via IA generativa proprietária."
             )
 
             submitted = st.form_submit_button("Gerar Mapa")
