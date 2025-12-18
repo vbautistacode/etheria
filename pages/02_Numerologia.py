@@ -533,7 +533,7 @@ with tab_influencias:
             st.markdown(f"_Período: {age_range} — {year_range}_")
             if is_current:
                 st.markdown(
-                    "<div style='padding:6px;border-left:6px solid #006100;background:#C6EFCE'>"
+                    "<div style='padding:6px;border-left:6px solid #006100;background:#C6EFCE', gap:1px >"
                     "<strong>Você está neste período agora.</strong></div>",
                     unsafe_allow_html=True
                 )
