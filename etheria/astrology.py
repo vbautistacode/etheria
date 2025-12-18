@@ -237,29 +237,16 @@ def positions_table(
     cusps: Optional[List[float]] = None,
     compute_house_if_missing: bool = True
 ) -> List[Dict[str, Any]]:
-    """
-    Converte posições em tabela legível com rótulos para UI.
-
-    Retorna lista de rows com chaves:
-      planet, planet_label_pt, longitude, sign, sign_label, sign_label_pt,
-      sign_canonical, degree, sign_index, house
-
-    Observações:
-    - 'sign' e 'sign_label' são pensados para exibição (pt_BR preferencial).
-    - 'sign_canonical' é o nome canônico em inglês usado para lookups internos.
-    """
-    import logging
+    import logging, json, pathlib
     logger = logging.getLogger("etheria.astrology.positions_table")
-
     rows: List[Dict[str, Any]] = []
 
-    # importar influences de forma defensiva para tradução de signos/planetas
     try:
         from etheria import influences  # type: ignore
     except Exception:
         influences = None  # type: ignore
 
-    # normalizar cusps (garantir floats 0..360) ou None
+    # normalizar cusps
     norm_cusps: Optional[List[float]] = None
     if cusps and isinstance(cusps, (list, tuple)) and len(cusps) >= 12:
         try:
@@ -267,7 +254,7 @@ def positions_table(
         except Exception:
             norm_cusps = None
 
-    # ordenar por PLANET_ORDER se possível
+    # ordenar
     keys = list(planets.keys())
     try:
         keys_sorted = sorted(keys, key=lambda k: PLANET_ORDER.index(k) if k in PLANET_ORDER else 999)
@@ -276,7 +263,6 @@ def positions_table(
 
     for name in keys_sorted:
         v = planets.get(name, {})
-        # extrair longitude de forma robusta
         lon: Optional[float] = None
         if isinstance(v, dict):
             for key in ("longitude", "lon", "long", "deg", "degree"):
@@ -293,21 +279,18 @@ def positions_table(
                 lon = None
 
         if lon is None:
-            # sem longitude, pular
-            logger.debug("positions_table: skipping planet %r because longitude is missing", name)
+            logger.debug("skip %r: no longitude", name)
             continue
 
-        # normalizar 0..360
         lon = float(lon) % 360.0
 
-        # signo, grau e índice do signo (lon_to_sign_degree idealmente retorna canonical)
-        sign_can: Optional[str] = None
-        degree: Optional[float] = None
-        sign_index: Optional[int] = None
+        # obter signo/grau/índice
+        sign_can = None
+        degree = None
+        sign_index = None
         try:
             sign_can, degree, sign_index = lon_to_sign_degree(lon)
         except Exception:
-            # fallback: calcular de forma simples
             try:
                 sign_index = int(float(lon) // 30) % 12
                 degree = float(lon) % 30
@@ -316,14 +299,12 @@ def positions_table(
                 degree = None
             sign_can = None
 
-        # garantir sign_index 1..12 quando possível
-        if isinstance(sign_index, int):
-            # se lon_to_sign_degree retornou 0-based, ajustar; aqui assumimos 1-based
-            if sign_index == 0:
-                sign_index = 12
+        # ajustar sign_index 1..12
+        if isinstance(sign_index, int) and sign_index == 0:
+            sign_index = 12
 
-        # determinar house: priorizar valor já presente em v, senão calcular se cusps disponíveis
-        house: Optional[int] = None
+        # house
+        house = None
         if isinstance(v, dict):
             h_raw = v.get("house") or v.get("casa")
             if h_raw not in (None, "", "None"):
@@ -331,7 +312,6 @@ def positions_table(
                     house = int(float(h_raw))
                 except Exception:
                     house = None
-
         if house is None and compute_house_if_missing and norm_cusps:
             try:
                 calc = get_house_for_longitude(lon, norm_cusps)
@@ -339,26 +319,20 @@ def positions_table(
             except Exception:
                 house = None
 
-        # garantir sign_can por fallback usando sign_index e CANONICAL_SIGNS
+        # fallback sign_can pelo índice
         if not sign_can:
             try:
                 if isinstance(sign_index, int) and 1 <= sign_index <= 12:
                     sign_can = CANONICAL_SIGNS[sign_index - 1]
-                else:
-                    sign_can = None
             except Exception:
                 sign_can = None
 
-        # obter rótulo PT do signo (defensivo)
+        # obter rótulos PT
         try:
-            if influences and hasattr(influences, "sign_label_pt"):
-                sign_label_pt = influences.sign_label_pt(sign_can) if sign_can else ""
-            else:
-                sign_label_pt = sign_can or ""
+            sign_label_pt = influences.sign_label_pt(sign_can) if (influences and hasattr(influences, "sign_label_pt") and sign_can) else (sign_can or "")
         except Exception:
             sign_label_pt = sign_can or ""
 
-        # normalizar e obter rótulo PT do planeta
         try:
             if influences and hasattr(influences, "to_canonical") and hasattr(influences, "planet_label_pt"):
                 pname_can = influences.to_canonical(name)
@@ -370,25 +344,13 @@ def positions_table(
         except Exception:
             planet_label_pt = name
 
-        # logs de debug para casos inesperados
-        if not sign_label_pt:
-            logger.debug(
-                "positions_table: sign_label_pt unresolved for planet=%r lon=%s sign_can=%r sign_index=%r",
-                name, lon, sign_can, sign_index
-            )
-        if not planet_label_pt:
-            logger.debug("positions_table: planet_label_pt unresolved for planet=%r", name)
-
-        # montar row com chaves consistentes para UI e lookups
-        row: Dict[str, Any] = {
+        row = {
             "planet": name,
             "planet_label_pt": planet_label_pt,
             "longitude": round(float(lon), 2),
-            # exibição: preferir label em pt_BR
             "sign": sign_label_pt or (sign_can or ""),
             "sign_label": sign_label_pt or (sign_can or ""),
             "sign_label_pt": sign_label_pt or (sign_can or ""),
-            # lookups internos
             "sign_canonical": sign_can or "",
             "degree": round(float(degree), 2) if degree is not None else None,
             "sign_index": sign_index,
@@ -396,6 +358,14 @@ def positions_table(
         }
 
         rows.append(row)
+
+    # escrever debug file com primeiras linhas (ajuda a inspecionar fora do Streamlit)
+    try:
+        p = pathlib.Path("/tmp/positions_debug.json")
+        p.write_text(json.dumps(rows[:20], ensure_ascii=False, default=str))
+        logger.debug("wrote /tmp/positions_debug.json with %d rows", len(rows[:20]))
+    except Exception:
+        pass
 
     return rows
 
