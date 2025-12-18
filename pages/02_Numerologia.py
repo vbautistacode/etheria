@@ -108,7 +108,7 @@ generate_btn = st.sidebar.button("Gerar Leitura")
 # aliases para mapear variantes (sem acento, pt/eng, abreviações)
 PLANET_ALIASES = {
     "Sun": ["sol", "sun"],
-    "Moon": ["lua", "moon"],
+    "Lua": ["lua", "moon"],
     "Mars": ["marte", "mars"],
     "Mercury": ["mercurio", "mercúrio", "mercury"],
     "Jupiter": ["jupiter", "júpiter"],
