@@ -652,14 +652,26 @@ def main():
         cusps: list,
         *,
         highlight_groups: dict = None,
-        house_label_position: str = "inner",  # "inner", "mid", "outer"
+        house_label_position: str = "inner",
         marker_scale: float = 1.0,
         text_scale: float = 1.0,
         cusp_colors_by_quadrant: list = None,
         export_png: bool = False,
         export_size: tuple = (2400, 2400)
     ):
-        # safe global palette (read-only). Prefer definir GROUP_COLORS no topo do módulo.
+        import logging
+        import math
+
+        logger = logging.getLogger("render_wheel_plotly")
+        logger.debug("Entrando em render_wheel_plotly")
+
+        try:
+            import plotly.graph_objects as go
+        except Exception as e:
+            logger.exception("Plotly import failed: %s", e)
+            return None
+
+        # palette defensiva
         colors = globals().get("GROUP_COLORS") or {
             "Sun": "#FF8800",
             "Moon": "#3e54d4",
@@ -671,7 +683,7 @@ def main():
             "Uranus": "#ffd900",
             "Neptune": "#00a2ff",
             "Pluto": "#ff0000",
-            "default": "#ff7f0e"
+            "default": "#888888"
         }
 
         def _color_for_group(gname):
@@ -684,32 +696,7 @@ def main():
                 key = str(gname)
             return colors.get(key, colors.get("default"))
 
-        """
-        Renderiza uma roda astrológica com Plotly.
-
-        Retorna:
-        - fig (plotly.graph_objects.Figure) ou
-        - (fig, img_bytes) se export_png=True e a exportação for bem-sucedida.
-        """
-        import logging
-        import math
-        from pathlib import Path
-
-        logger = logging.getLogger("render_wheel_plotly")
-        logger.debug("Entrando em render_wheel_plotly")
-
-        # verificar disponibilidade do plotly
-        try:
-            import plotly.graph_objects as go
-        except Exception as e:
-            logger.exception("Plotly import failed: %s", e)
-            return None
-
-        # defaults
-        if cusp_colors_by_quadrant is None:
-            cusp_colors_by_quadrant = ["#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF"]
-
-        # helpers
+        # helpers para extrair longitude/meta
         def extract_lon(pdata):
             if pdata is None:
                 return None
@@ -737,7 +724,7 @@ def main():
                 "house": pdata.get("house") or pdata.get("casa") or pdata.get("house_number")
             }
 
-        # validar planetas
+        # validar planetas e cusps
         valid_planets = {}
         planet_meta = {}
         invalid_planets = []
@@ -749,7 +736,6 @@ def main():
                 valid_planets[name] = float(lon)
                 planet_meta[name] = extract_meta(pdata) if isinstance(pdata, dict) else {}
 
-        # validar cusps
         valid_cusps = []
         invalid_cusps = []
         if cusps:
@@ -771,10 +757,9 @@ def main():
             return None
 
         def lon_to_theta(lon_deg: float) -> float:
-            # converte longitude eclíptica (0..360) para ângulo polar em graus para Plotly (clockwise, 0 no topo)
             return (360.0 - float(lon_deg)) % 360.0
 
-        # símbolos e grupos
+        # símbolos e mapeamentos (inclui variantes PT)
         planet_symbols = {
             "Sun": "☉", "Sol": "☉", "Moon": "☾", "Lua": "☾", "Mercury": "☿", "Mercúrio": "☿",
             "Venus": "♀", "Vênus": "♀", "Mars": "♂", "Marte": "♂", "Jupiter": "♃", "Júpiter": "♃",
@@ -783,6 +768,7 @@ def main():
             "MC": "MC", "Medium Coeli": "MC", "Meio do Céu": "MC"
         }
 
+        # grupos padrão (pode ser sobrescrito por highlight_groups)
         groups = highlight_groups or {
             "pessoais": ["Sun", "Moon", "Mercury", "Venus", "Mars"],
             "sociais": ["Jupiter", "Saturn"],
@@ -800,7 +786,35 @@ def main():
         marker_sizes = []
         text_sizes = []
         marker_colors = []
+        text_colors = []
 
+        # obter canonical_signs defensivo e labels PT
+        try:
+            from etheria import influences
+        except Exception:
+            influences = None
+
+        try:
+            canonical_signs = influences.CANONICAL_SIGNS if influences and hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
+        except Exception:
+            canonical_signs = None
+
+        if not canonical_signs:
+            canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+
+        sign_names = []
+        for s in canonical_signs:
+            try:
+                if influences and hasattr(influences, "sign_label_pt"):
+                    sign_names.append(influences.sign_label_pt(s) or s)
+                else:
+                    sign_names.append(s)
+            except Exception:
+                sign_names.append(s)
+
+        sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+
+        # construir pontos
         for name, lon in ordered:
             try:
                 theta = lon_to_theta(lon)
@@ -819,49 +833,70 @@ def main():
             meta_sign = meta.get("sign")
             meta_house = meta.get("house")
 
-            sign_names_short = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
-            hover_parts = [f"<b>{name}</b>", f"{lon:.2f}° eclíptico", f"{degree_in_sign:.1f}° no signo", f"Signo (calc): {sign_names_short[sign_index]}"]
+            # label curto do signo (PT)
+            sign_short = sign_names[sign_index]
+
+            # hover: exibir nome do planeta em PT quando possível
+            try:
+                display_planet = influences.planet_label_pt(influences.to_canonical(name)) if influences and hasattr(influences, "planet_label_pt") else (name)
+            except Exception:
+                display_planet = name
+
+            hover_parts = [
+                f"<b>{display_planet}</b>",
+                f"{lon:.2f}° eclíptico",
+                f"{degree_in_sign:.1f}° no signo",
+                f"Signo (calc): {sign_short}"
+            ]
             if meta_sign:
-                hover_parts.append(f"Signo (meta): {meta_sign}")
+                # meta_sign pode vir em PT/EN; converter para label PT para exibição
+                try:
+                    meta_sign_can = influences.sign_to_canonical(meta_sign) if influences and hasattr(influences, "sign_to_canonical") else meta_sign
+                    meta_sign_label = influences.sign_label_pt(meta_sign_can) if influences and hasattr(influences, "sign_label_pt") else (meta_sign)
+                except Exception:
+                    meta_sign_label = meta_sign
+                hover_parts.append(f"Signo (meta): {meta_sign_label}")
             if meta_house:
                 hover_parts.append(f"Casa (meta): {meta_house}")
             hover_text = "<br>".join(hover_parts)
 
-            symbol = planet_symbols.get(name, planet_symbols.get(name.capitalize(), name))
+            # símbolo do planeta (respeita variantes PT/EN)
+            symbol = planet_symbols.get(name) or planet_symbols.get(name.capitalize()) or planet_symbols.get(influences.to_canonical(name) if influences else name, name)
 
+            # tamanho e escala
             base_marker = 26 * marker_scale
             base_text = 16 * text_scale
             size = base_marker * (1.6 if is_asc or is_mc else 1.0)
             text_size = base_text * (1.4 if is_asc or is_mc else 1.0)
 
-            # default color
-            color = "#888"
-            # procurar grupo ao qual o planeta pertence e obter cor via _color_for_group
-            for gname, members in groups.items():
-                try:
-                    # membros podem estar em pt/en; normalizar comparação usando to_canonical quando possível
-                    if name in members:
-                        color = _color_for_group(gname)
-                        break
-                    # também tentar comparar canonical forms
-                    from etheria import influences as _inf  # import local para evitar ciclo no topo
-                    name_can = _inf.to_canonical(name) or name
-                    members_can = [(_inf.to_canonical(m) or m) for m in members]
+            # determinar cor do marcador a partir do grupo ao qual o planeta pertence
+            color = colors.get("default")
+            try:
+                # normalizar name para canonical para comparação
+                name_can = influences.to_canonical(name) if influences and hasattr(influences, "to_canonical") else name
+                for gname, members in groups.items():
+                    # normalizar membros
+                    members_can = []
+                    for m in members:
+                        try:
+                            members_can.append(influences.to_canonical(m) if influences and hasattr(influences, "to_canonical") else m)
+                        except Exception:
+                            members_can.append(m)
                     if name_can in members_can:
+                        # cor do grupo (usar _color_for_group para consistência)
                         color = _color_for_group(gname)
                         break
-                except Exception:
-                    # fallback simples: membership check direto
+            except Exception:
+                # fallback: tentar membership direto
+                for gname, members in groups.items():
                     if name in members:
                         color = _color_for_group(gname)
                         break
 
-            if is_asc:
-                color = "#d62728"
-            if is_mc:
-                color = "#9467bd"
+            # cores para texto (símbolo) seguem a mesma cor do marcador
+            text_color = color
 
-            names.append(name)
+            names.append(display_planet)
             thetas.append(theta)
             lon_values.append(float(lon))
             hover_texts.append(hover_text)
@@ -869,25 +904,35 @@ def main():
             marker_sizes.append(size)
             text_sizes.append(text_size)
             marker_colors.append(color)
+            text_colors.append(text_color)
 
         # construir figura
         fig = go.Figure()
 
-        # marcadores (planetas)
+        # trace de marcadores (apenas marcadores visuais)
         fig.add_trace(go.Scatterpolar(
             r=[1.0] * len(thetas),
             theta=thetas,
-            mode="markers+text",
+            mode="markers",
             marker=dict(size=marker_sizes, color=marker_colors, line=dict(color="#4E585E", width=1.5)),
-            text=symbol_texts,
-            textfont=dict(size=int(14 * text_scale), family="DejaVu Sans, Arial"),
             hovertext=hover_texts,
             hovertemplate="%{hovertext}<extra></extra>",
             customdata=names,
             name="Planetas"
         ))
 
-        # nomes dos planetas (externos)
+        # trace de símbolos (texto) com cor por ponto
+        fig.add_trace(go.Scatterpolar(
+            r=[1.0] * len(thetas),
+            theta=thetas,
+            mode="text",
+            text=symbol_texts,
+            textfont=dict(size=[int(14 * text_scale * (ts / 16)) for ts in text_sizes], family="DejaVu Sans, Arial", color=text_colors),
+            hoverinfo="none",
+            showlegend=False
+        ))
+
+        # nomes dos planetas (externos) em PT
         fig.add_trace(go.Scatterpolar(
             r=[1.18] * len(thetas),
             theta=thetas,
@@ -895,10 +940,10 @@ def main():
             text=names,
             textfont=dict(size=int(12 * text_scale), color="#4E585E"),
             hoverinfo="none",
-            showlegend=True
+            showlegend=False
         ))
 
-        # desenhar cúspides se houver
+        # desenhar cúspides e numerar casas (mantém lógica original)
         if valid_cusps:
             cusps12 = valid_cusps if len(valid_cusps) >= 12 else [i * 30.0 for i in range(12)]
             for i, cusp in enumerate(cusps12, start=1):
@@ -914,7 +959,6 @@ def main():
                     showlegend=False
                 ))
 
-            # numerar casas
             if len(cusps12) >= 12:
                 for i in range(12):
                     c1 = cusps12[i]
@@ -922,12 +966,7 @@ def main():
                     diff = (c2 - c1) % 360.0
                     mid = (c1 + diff / 2.0) % 360.0
                     theta_mid = lon_to_theta(mid)
-                    if house_label_position == "inner":
-                        r_label = 0.6
-                    elif house_label_position == "outer":
-                        r_label = 0.9
-                    else:
-                        r_label = 1.03
+                    r_label = 0.6 if house_label_position == "inner" else (0.9 if house_label_position == "mid" else 1.03)
                     fig.add_trace(go.Scatterpolar(
                         r=[r_label],
                         theta=[theta_mid],
@@ -952,7 +991,7 @@ def main():
                         showlegend=False
                     ))
 
-        # aspectos
+        # aspectos (mantém lógica)
         if len(lon_values) >= 2:
             ASPECTS = [
                 ("Conjunção", 0, 8, "#000000", 3.0),
@@ -995,43 +1034,17 @@ def main():
                             ))
                             break
 
-        # canonical signs defensivo (tenta obter de influences, senão fallback)
-        try:
-            canonical_signs = influences.CANONICAL_SIGNS if hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
-        except Exception:
-            canonical_signs = None
-
-        if not canonical_signs:
-            canonical_signs = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
-
-        # sign labels em PT (usar influences.sign_label_pt quando disponível)
-        sign_names = []
-        for s in canonical_signs:
-            try:
-                if hasattr(influences, "sign_label_pt"):
-                    sign_names.append(influences.sign_label_pt(s) or s)
-                else:
-                    # se CANONICAL_TO_PT estiver disponível
-                    sign_names.append(influences.CANONICAL_TO_PT.get(s, s) if hasattr(influences, "CANONICAL_TO_PT") else s)
-            except Exception:
-                sign_names.append(s)
-
-        # símbolos unicode dos signos (fixos)
-        sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-
-        # ticks: posição e texto (usar sign_names para exibição)
+        # ticks e labels dos signos (usar sign_names em PT)
         tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [sign_names[i] for i in range(12)]
+        ticktext = [f"{sign_symbols[i]} {sign_names[i]}" for i in range(12)]
 
-        # --- cálculo defensivo de tamanho (substituir o trecho original) ---
+        # layout e escala
         base_px = 400
         min_px = 300
         max_px = 4000
-
         if export_png and isinstance(export_size, (list, tuple)) and len(export_size) == 2:
             try:
-                exp_w = int(export_size[0])
-                exp_h = int(export_size[1])
+                exp_w = int(export_size[0]); exp_h = int(export_size[1])
                 exp_w = max(min_px, min(max_px, exp_w))
                 exp_h = max(min_px, min(max_px, exp_h))
             except Exception:
@@ -1075,7 +1088,7 @@ def main():
 
         fig.update_traces(textfont=dict(size=int(14 * text_scale)))
 
-        # export opcional em alta resolução (requer kaleido)
+        # export opcional
         if export_png:
             try:
                 img_bytes = fig.to_image(format="png", width=export_size[0], height=export_size[1], scale=1)
@@ -1317,7 +1330,7 @@ def main():
         with st.form(key=form_key, border=False):
             name = st.text_input("Nome", value="")
             place = st.text_input(
-                "Cidade de nascimento (ex: São Paulo, Brasil)",
+                "Local de nascimento",
                 value="São Paulo, São Paulo, Brasil"
             )
             bdate = st.date_input(
@@ -1327,7 +1340,7 @@ def main():
                 max_value=date(2100, 12, 31)
             )
             btime_free = st.text_input(
-                "Hora de nascimento (hora local) (ex.: 14:30, 2:30 PM)",
+                "Hora de nascimento (ex.: 14:30)",
                 value=""
             )
             source = "swisseph"

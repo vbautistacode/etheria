@@ -191,7 +191,7 @@ PLANET_TO_TATWA: Dict[str, str] = {
 # -------------------------
 # Utilitários que isolam pandas e retornam dicts
 # -------------------------
-def planet_from_matrix(matrix: Union["pd.DataFrame", Dict[str, Any], List[Dict[str, Any]]],
+def planet_from_matrix(matrix: Union["pd.DataFrame", Dict[str, Any], List[Dict[str, Any]]], # type: ignore
                        key: Any,
                        key_column_candidates: Optional[List[str]] = None) -> Optional[Dict[str, Any]]:
     """
@@ -496,7 +496,7 @@ def _hour_bucket(hhmm: str) -> str:
         return str(hhmm)
 
 
-def planet_from_matrix(mat: Union[pd.DataFrame, Dict[str, Dict[str, str]]], weekday: str, hhmm: str) -> Optional[str]:
+def planet_from_matrix(mat: Union[pd.DataFrame, Dict[str, Dict[str, str]]], weekday: str, hhmm: str) -> Optional[str]: # type: ignore
     """
     mat: pd.DataFrame index=Hour 'HH:MM', columns=Weekday (em português) OR
          dict-of-dicts {hour_bucket: {weekday: planet_pt_or_canonical}}

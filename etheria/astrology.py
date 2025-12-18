@@ -191,7 +191,7 @@ def lon_to_sign_degree(lon: float):
     except Exception:
         # fallback seguro: use CANONICAL_SIGNS se disponível
         try:
-            from path.to.cycles import CANONICAL_SIGNS  # ajuste caminho se necessário
+            from path.to.cycles import CANONICAL_SIGNS  # type: ignore # ajuste caminho se necessário
             sign = CANONICAL_SIGNS[sign_index]
         except Exception:
             raise RuntimeError("Sign list not available: define SIGNS or import CANONICAL_SIGNS")
@@ -887,7 +887,7 @@ def _info_from_summary(pname: str, summary: Optional[Dict]) -> Tuple[Optional[st
     r = readings.get(pname) or readings.get(pname.capitalize()) or planets_map.get(pname) or planets_map.get(pname.capitalize())
     if not r:
         # tentar aliases
-        r = _find_in_mapping(readings, pname) or _find_in_mapping(planets_map, pname)
+        r = _find_in_mapping(readings, pname) or _find_in_mapping(planets_map, pname) # type: ignore
     if not r:
         return None, None, None, None
     sign = r.get("sign")
