@@ -546,7 +546,7 @@ with tab_influencias:
         df_table = df_cycles_display.copy()
         # renomear colunas para pt_BR e usar planet_label
         df_table = df_table.rename(columns={
-            "planet": "Planeta (raw)",
+            #"planet": "Planeta (raw)",
             "planet_label": "Planeta",
             "start_age": "Idade início",
             "end_age": "Idade fim",
