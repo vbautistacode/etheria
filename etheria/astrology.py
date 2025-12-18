@@ -448,34 +448,56 @@ def interpret_planet_position(
 ) -> Dict[str, str]:
     """
     Gera interpretação curta e longa para um planeta numa posição.
-    - planet: nome canonical (ex: 'Moon', 'Sun')
-    - sign: nome do signo (ex: 'Taurus')
-    - degree: grau dentro do signo
-    - house: número da casa (1..12) ou None
-    - aspects: lista de aspectos (opcional) para incluir observações
-    - context_name: nome do consulente para personalizar o texto (opcional)
-
-    Retorna dict: {"short": "...", "long": "..."}
+    Exibe nomes em pt_BR na UI, mas usa nomes canônicos para lookups internos.
     """
-    verb, pcore = _planet_core_text(planet)
-    sign_noun, sign_quality = _sign_text(sign or "")
+    # importar influences defensivamente
+    try:
+        from etheria import influences
+    except Exception:
+        influences = None
+
+    # normalizar para canônicos para lookups
+    try:
+        planet_can = influences.to_canonical(planet) if influences and hasattr(influences, "to_canonical") else planet
+    except Exception:
+        planet_can = planet
+
+    try:
+        sign_can = influences.sign_to_canonical(sign) if influences and hasattr(influences, "sign_to_canonical") else sign
+    except Exception:
+        sign_can = sign
+
+    # obter rótulos em pt_BR para exibição
+    try:
+        planet_label_pt = influences.planet_label_pt(planet_can) if influences and hasattr(influences, "planet_label_pt") else (planet or "")
+    except Exception:
+        planet_label_pt = planet or ""
+
+    try:
+        sign_label_pt = influences.sign_label_pt(sign_can) if influences and hasattr(influences, "sign_label_pt") else (sign or "")
+    except Exception:
+        sign_label_pt = sign or ""
+
+    # lookups internos continuam usando canônicos
+    verb, pcore = _planet_core_text(planet_can)
+    sign_noun, sign_quality = _sign_text(sign_can or "")
     house_noun, house_theme = _house_text(house)
 
     deg_text = _format_degree(degree)
     who = f"{context_name}, " if context_name else ""
 
-    # Short: 1-2 frases
+    # Short: 1-2 frases (usar rótulos pt_BR)
     short = (
-        f"{who}{planet} em {sign or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
+        f"{who}{planet_label_pt} em {sign_label_pt or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
         f"Resumo prático: {verb.lower()} no campo do(a) {house_noun.lower()}."
     )
 
     # Long: 3-5 parágrafos curtos
     long_parts = []
 
-    # Parágrafo 1: síntese funcional
+    # Parágrafo 1: síntese funcional (exibição em pt_BR)
     p1 = (
-        f"{planet} representa a(o)  {pcore.lower()}. Em {sign or '—'}, traz a ideia de {sign_quality.lower()}. "
+        f"{planet_label_pt} representa a(o) {pcore.lower()}. Em {sign_label_pt or '—'}, traz a ideia de {sign_quality.lower()}. "
         f"Essa energia tende a se expressar como {verb.lower()} orientado para {sign_noun.lower()}."
     )
     if deg_text:
@@ -489,13 +511,30 @@ def interpret_planet_position(
     )
     long_parts.append(p2)
 
-    # Parágrafo 3: aspectos (se houver)
+    # Parágrafo 3: aspectos (se houver) — converter planetas dos aspectos para pt_BR
     if aspects:
         rel = []
         for a in aspects:
-            if a.get("p1") == planet or a.get("p2") == planet:
-                other = a["p2"] if a["p1"] == planet else a["p1"]
-                rel.append(f"{a['type'].lower()} com {other} (orb {a.get('orb')})")
+            # comparar com canônicos para robustez
+            p1_name = a.get("p1")
+            p2_name = a.get("p2")
+            try:
+                p1_can = influences.to_canonical(p1_name) if influences and hasattr(influences, "to_canonical") else p1_name
+            except Exception:
+                p1_can = p1_name
+            try:
+                p2_can = influences.to_canonical(p2_name) if influences and hasattr(influences, "to_canonical") else p2_name
+            except Exception:
+                p2_can = p2_name
+
+            if p1_can == planet_can or p2_can == planet_can:
+                other_can = p2_can if p1_can == planet_can else p1_can
+                # obter label pt do outro planeta
+                try:
+                    other_label = influences.planet_label_pt(other_can) if influences and hasattr(influences, "planet_label_pt") else (other_can or other_can)
+                except Exception:
+                    other_label = other_can or ""
+                rel.append(f"{a.get('type','').lower()} com {other_label} (orb {a.get('orb')})")
         if rel:
             p3 = "Aspectos relevantes: " + "; ".join(rel) + "."
         else:
@@ -505,7 +544,6 @@ def interpret_planet_position(
     long_parts.append(p3)
 
     # Parágrafo 4: recomendações práticas
-    # proteger caso sign_quality seja vazio
     first_quality = (sign_quality.split(",")[0] if sign_quality else "equilíbrio")
     p4 = (
         f"Recomendações práticas: cultive {first_quality.lower()} e aplique de forma consciente "
@@ -516,6 +554,7 @@ def interpret_planet_position(
     long = "\n\n".join(long_parts)
 
     return {"short": short, "long": long}
+
 """
 Gera interpretação para os ciclos planetários em dois estilos: técnico e poético.
 - planet: nome do planeta (ex: 'Sun', 'Moon')
