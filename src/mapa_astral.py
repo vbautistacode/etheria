@@ -1588,31 +1588,34 @@ def main():
                 label_list = []
                 label_to_raw = {}
 
-            # inicializar selected_planet (interno) se não existir
-            if "selected_planet" not in st.session_state:
-                st.session_state["selected_planet"] = label_to_raw.get(label_list[0]) if label_list else None
+            # garantir inicialização consistente do estado do selectbox e do valor interno
+            if label_list:
+                # inicializar selected_planet com o primeiro raw se não existir
+                if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
+                    st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
 
-            # determinar índice padrão do selectbox com base no valor interno atual
-            default_index = 0
-            current_internal = st.session_state.get("selected_planet")
-            if current_internal is not None and label_list:
-                try:
+                # garantir que planet_selectbox mostre o label correspondente ao selected_planet
+                if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
+                    current_internal = st.session_state.get("selected_planet")
                     current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                    if current_label and current_label in label_list:
-                        default_index = label_list.index(current_label)
-                except Exception:
-                    default_index = 0
+                    st.session_state["planet_selectbox"] = current_label or label_list[0]
+            else:
+                # limpar estados se não houver opções
+                st.session_state.setdefault("selected_planet", None)
+                st.session_state.setdefault("planet_selectbox", None)
 
-            # callback: quando usuário escolhe um label, armazenar o raw/canonical no session_state
+            # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
             def _on_select_planet():
                 sel_label = st.session_state.get("planet_selectbox")
                 sel_raw = label_to_raw.get(sel_label, sel_label)
                 st.session_state["selected_planet"] = sel_raw
+                st.session_state["planet_selectbox"] = sel_label
 
+            # selectbox usando label_list (rótulos em PT)
             st.selectbox(
                 "Selecionar planeta",
                 label_list,
-                index=default_index,
+                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
                 key="planet_selectbox",
                 on_change=_on_select_planet
             )
