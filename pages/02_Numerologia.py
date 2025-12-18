@@ -542,11 +542,19 @@ with tab_influencias:
     if show_table:
         st.markdown("---")
         st.markdown("**Tabela resumida de ciclos**")
-        # preparar cópia para exibição com colunas em pt_BR
+        # preparar df_table (cópia para exibição)
         df_table = df_cycles_display.copy()
-        # renomear colunas para pt_BR e usar planet_label
+
+        # garantir que exista a coluna de rótulo em pt_BR
+        if "planet_label" not in df_table.columns:
+            df_table["planet_label"] = df_table["planet"].apply(_planet_label_from_cell)
+
+        # remover a coluna raw se não quiser mostrá-la
+        if "planet" in df_table.columns:
+            df_table = df_table.drop(columns=["planet"])
+
+        # renomear planet_label para 'Planeta' e outras colunas para pt_BR
         df_table = df_table.rename(columns={
-            #"planet": "Planeta (raw)",
             "planet_label": "Planeta",
             "start_age": "Idade início",
             "end_age": "Idade fim",
@@ -554,10 +562,16 @@ with tab_influencias:
             "end_year": "Ano fim",
             "current": "Período atual"
         })
-        
 
+        # definir a ordem/seleção de colunas que serão exibidas
+        cols_to_show = ["Planeta", "Idade início", "Idade fim", "Ano início", "Ano fim", "Período atual"]
+
+        # filtrar apenas as colunas existentes (evita KeyError se alguma coluna faltar)
+        cols_to_show = [c for c in cols_to_show if c in df_table.columns]
+
+        # exibir apenas as colunas selecionadas
         st.dataframe(
-            df_table.style.apply(
+            df_table[cols_to_show].style.apply(
                 lambda row: ['background-color: #fff3b0' if row['Período atual'] else '' for _ in row],
                 axis=1
             ),
