@@ -995,12 +995,33 @@ def main():
                             ))
                             break
 
-        # ticks e labels dos signos
-        sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
+        # canonical signs defensivo (tenta obter de influences, senão fallback)
+        try:
+            canonical_signs = influences.CANONICAL_SIGNS if hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
+        except Exception:
+            canonical_signs = None
+
+        if not canonical_signs:
+            canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+
+        # sign labels em PT (usar influences.sign_label_pt quando disponível)
+        sign_names = []
+        for s in canonical_signs:
+            try:
+                if hasattr(influences, "sign_label_pt"):
+                    sign_names.append(influences.sign_label_pt(s) or s)
+                else:
+                    # se CANONICAL_TO_PT estiver disponível
+                    sign_names.append(influences.CANONICAL_TO_PT.get(s, s) if hasattr(influences, "CANONICAL_TO_PT") else s)
+            except Exception:
+                sign_names.append(s)
+
+        # símbolos unicode dos signos (fixos)
         sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-        # ticks
+
+        # ticks: posição e texto (usar sign_names para exibição)
         tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [influences.sign_label_pt(SIGNS[i]) if hasattr(influences, "sign_label_pt") else SIGNS[i] for i in range(12)]
+        ticktext = [sign_names[i] for i in range(12)]
 
         # --- cálculo defensivo de tamanho (substituir o trecho original) ---
         base_px = 400
