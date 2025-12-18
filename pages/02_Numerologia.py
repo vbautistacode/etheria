@@ -555,6 +555,7 @@ with tab_influencias:
 
         # renomear planet_label para 'Planeta' e outras colunas para pt_BR
         df_table = df_table.rename(columns={
+            "planet": "Planeta (raw)",
             "planet_label": "Planeta",
             "start_age": "Idade início",
             "end_age": "Idade fim",
