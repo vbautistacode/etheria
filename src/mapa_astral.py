@@ -993,11 +993,11 @@ def main():
         # aspectos (mantém lógica)
         if len(lon_values) >= 2:
             ASPECTS = [
-                ("Conjunção", 0, 8, "#000000", 3.0),
-                ("Sextil", 60, 6, "#2ca02c", 2.0),
-                ("Quadratura", 90, 7, "#e05353", 2.4),
-                ("Trígono", 120, 7, "#1f77b4", 2.4),
-                ("Oposição", 180, 8, "#ff0000", 2.8),
+                ("Conjunção", 0, 8, "#000000", 2.5),
+                ("Sextil", 60, 6, "#2ca02c", 1.5),
+                ("Quadratura", 90, 7, "#4b0000", 1.9),
+                ("Trígono", 120, 7, "#1f77b4", 1.9),
+                ("Oposição", 180, 8, "#ff0000", 2.3),
             ]
             n = len(names)
             for i in range(n):
@@ -1079,7 +1079,7 @@ def main():
                     gridcolor="#a79f9f"
                 )
             ),
-            showlegend=True,
+            showlegend=False,
             margin=dict(l=10, r=10, t=30, b=10),
             height=height_px,
             width=width_px
