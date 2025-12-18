@@ -544,11 +544,9 @@ with tab_influencias:
         st.markdown("**Tabela resumida de ciclos**")
         # preparar cópia para exibição com colunas em pt_BR
         df_table = df_cycles_display.copy()
-        # remover a coluna 'planet' da exibição (mantendo-a no DataFrame original para lógica)
-        
         # renomear colunas para pt_BR e usar planet_label
         df_table = df_table.rename(columns={
-            "planet": "Planet Raw",
+            #"planet": "Planeta (raw)",
             "planet_label": "Planeta",
             "start_age": "Idade início",
             "end_age": "Idade fim",
@@ -556,9 +554,10 @@ with tab_influencias:
             "end_year": "Ano fim",
             "current": "Período atual"
         })
-        # reordenar colunas para exibir 'Planeta' primeiro (opcional)
-        cols_order = ["Planeta", "Idade início", "Idade fim", "Ano início", "Ano fim", "Período atual"]
-        df_table = df_table[[c for c in cols_order if c in df_table.columns]]
+        # opcional: remover coluna raw se preferir
+        if "Planeta (raw)" in df_table.columns:
+            # se quiser esconder a coluna raw, comente a linha abaixo
+            pass
 
         st.dataframe(
             df_table.style.apply(
@@ -567,6 +566,7 @@ with tab_influencias:
             ),
             use_container_width=True
         )
+
 
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
