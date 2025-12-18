@@ -1076,10 +1076,10 @@ def main():
                     tickvals=tickvals,
                     ticktext=ticktext,
                     tickfont=dict(size=int(14 * text_scale)),
-                    gridcolor="#eee"
+                    gridcolor="#a79f9f"
                 )
             ),
-            showlegend=False,
+            showlegend=True,
             margin=dict(l=10, r=10, t=30, b=10),
             height=height_px,
             width=width_px
