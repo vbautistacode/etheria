@@ -446,7 +446,7 @@ with tab_influencias:
             return str(x)
 
     # adicionar coluna planet_label para exibição
-    df_cycles_display["planet_label"] = df_cycles_display["planet"].apply(_planet_label_from_cell)
+    #df_cycles_display["planet_label"] = df_cycles_display["planet"].apply(_planet_label_from_cell)
 
     # --- Leituras por ciclo: um expander por ciclo (ordem da tabela) ---
     st.markdown("### Influências dos Tattwas ao longo da vida")
