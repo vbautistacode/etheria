@@ -69,6 +69,18 @@ CANONICAL_TO_PT: Dict[str, str] = {
     "Uranus": "Urano",
     "Neptune": "Netuno",
     "Pluto": "Plutão",
+    "Aries": "Áries",
+    "Taurus": "Touro",
+    "Gemini": "Gêmeos",
+    "Cancer": "Câncer",
+    "Leo": "Leão",
+    "Virgo": "Virgem",
+    "Libra": "Libra",
+    "Scorpio": "Escorpião",
+    "Sagittarius": "Sagitário",
+    "Capricorn": "Capricórnio",
+    "Aquarius": "Aquário",
+    "Pisces": "Peixes",
 }
 
 def to_canonical(name: Optional[str]) -> Optional[str]:
