@@ -554,10 +554,7 @@ with tab_influencias:
             "end_year": "Ano fim",
             "current": "Período atual"
         })
-        # opcional: remover coluna raw se preferir
-        if "Planeta (raw)" in df_table.columns:
-            # se quiser esconder a coluna raw, comente a linha abaixo
-            pass
+        
 
         st.dataframe(
             df_table.style.apply(
@@ -566,7 +563,6 @@ with tab_influencias:
             ),
             use_container_width=True
         )
-
 
 # --- Aba: Numerologia (Pitagórica) ---
 with tab_num:
