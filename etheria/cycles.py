@@ -95,7 +95,7 @@ PLANETS_MAJOR: List[str] = [
     "Saturn", "Venus", "Jupiter", "Sun", "Mercury", "Mars", "Moon"
 ]
 
-MAJOR_STEP = 36
+MAJOR_STEP = -36
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 252
 
 # Valores de alinhamento (ajuste conforme sua convenção)
