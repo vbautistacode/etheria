@@ -995,8 +995,14 @@ def main():
         # ticks e labels dos signos
         sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
         sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+        # ticks
         tickvals = [(360.0 - (i * 30 + 15)) % 360.0 for i in range(12)]
-        ticktext = [f"{sign_symbols[i]} {sign_names[i]}" for i in range(12)]
+        ticktext = [influences.sign_label_pt(SIGNS[i]) if hasattr(influences, "sign_label_pt") else SIGNS[i] for i in range(12)]
+
+        # hover: quando calcular sign a partir da longitude, obtenha label_pt
+        sign_canonical, degree_in_sign, sign_index = lon_to_sign_degree(lon)  # ajuste para retornar canonical
+        sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else sign_canonical
+        hover_parts.append(f"Signo (calc): {sign_label}")
 
         # --- cálculo defensivo de tamanho (substituir o trecho original) ---
         base_px = 400
@@ -1060,7 +1066,6 @@ def main():
                 return fig
 
         return fig
-
 
     st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
     st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
@@ -1482,15 +1487,31 @@ def main():
             df = _pd.DataFrame(summary.get("table", []))
             if not df.empty and "planet" in df.columns:
                 df_display = df.copy()
-                # transformar cada valor 'planet' para rótulo PT para exibição
-                df_display["planet_label"] = df_display["planet"].apply(
-                    lambda p: influences.CANONICAL_TO_PT.get(influences._to_canonical(p), p)
-                )
+
+                # planet_label (PT)
+                def _planet_label_for_display(p):
+                    try:
+                        return influences.planet_label_pt(influences._to_canonical(p)) if hasattr(influences, "planet_label_pt") else (influences._to_canonical(p) or p)
+                    except Exception:
+                        return p or "—"
+                df_display["planet_label"] = df_display["planet"].apply(_planet_label_for_display)
+
+                # sign_label (PT) se houver coluna 'sign'
+                if "sign" in df_display.columns:
+                    def _sign_label_for_display(s):
+                        try:
+                            can = influences.sign_to_canonical(s) if hasattr(influences, "sign_to_canonical") else s
+                            return influences.sign_label_pt(can) if hasattr(influences, "sign_label_pt") else (can or s or "—")
+                        except Exception:
+                            return s or "—"
+                    df_display["sign_label"] = df_display["sign"].apply(_sign_label_for_display)
             else:
                 df = _pd.DataFrame([]) if df is None else df
                 df_display = df.copy()
                 if "planet" in df_display.columns and "planet_label" not in df_display.columns:
                     df_display["planet_label"] = df_display["planet"]
+                if "sign" in df_display.columns and "sign_label" not in df_display.columns:
+                    df_display["sign_label"] = df_display["sign"]
         else:
             df = _pd.DataFrame([])
             df_display = df
@@ -1498,43 +1519,54 @@ def main():
         if df_display.empty:
             st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
         else:
-            # exibir tabela com rótulo PT (mostrar coluna planet_label)
-            # opcional: esconder a coluna raw 'planet' e mostrar apenas 'planet_label'
-            display_cols = [c for c in df_display.columns if c != "planet"]  # remove raw
-            # garantir que planet_label esteja primeiro
-            if "planet_label" in df_display.columns:
-                cols_order = ["planet_label"] + [c for c in display_cols if c != "planet_label"]
-                df_to_show = df_display[cols_order]
-                # renomear coluna para 'Planeta' na exibição
+            # montar df_to_show: esconder raw 'planet' e 'sign', mostrar labels PT
+            df_to_show = df_display.copy()
+            # preferir planet_label e sign_label para exibição
+            if "planet_label" in df_to_show.columns:
+                df_to_show = df_to_show.drop(columns=["planet"], errors="ignore")
                 df_to_show = df_to_show.rename(columns={"planet_label": "Planeta"})
-            else:
-                df_to_show = df_display
+            if "sign_label" in df_to_show.columns:
+                df_to_show = df_to_show.drop(columns=["sign"], errors="ignore")
+                df_to_show = df_to_show.rename(columns={"sign_label": "Signo"})
+
+            # reordenar para mostrar Planeta primeiro, se existir
+            cols = list(df_to_show.columns)
+            if "Planeta" in cols:
+                cols = ["Planeta"] + [c for c in cols if c != "Planeta"]
+                df_to_show = df_to_show[cols]
 
             st.dataframe(df_to_show, use_container_width=True, height=300)
 
             # construir lista de opções (rótulos PT) e mapa label -> raw (valor interno)
-            if "planet" in df_display.columns and "planet_label" in df_display.columns:
-                label_list = list(df_display["planet_label"].values)
-                raw_list = list(df_display["planet"].values)
-                label_to_raw = {lab: raw for lab, raw in zip(label_list, raw_list)}
-            elif "planet" in df_display.columns:
+            label_list = []
+            label_to_raw = {}
+
+            if not df_display.empty and "planet_label" in df_display.columns:
+                # obter arrays paralelos (raw planet, planet_label, sign_label)
+                raw_planets = list(df_display["planet"].values)
+                planet_labels = list(df_display["planet_label"].values)
+                sign_labels = list(df_display["sign_label"].values) if "sign_label" in df_display.columns else [None] * len(raw_planets)
+
+                for raw, plab, slab in zip(raw_planets, planet_labels, sign_labels):
+                    if slab and slab != "—":
+                        lab = f"{plab} — {slab}"
+                    else:
+                        lab = f"{plab}"
+                    label_list.append(lab)
+                    label_to_raw[lab] = raw
+            elif not df_display.empty and "planet" in df_display.columns:
                 # fallback: usar raw como label
                 label_list = list(df_display["planet"].values)
                 label_to_raw = {lab: lab for lab in label_list}
-            else:
-                label_list = []
-                label_to_raw = {}
 
             # inicializar selected_planet (interno) se não existir
             if "selected_planet" not in st.session_state:
-                # preferir primeiro raw disponível
                 st.session_state["selected_planet"] = label_to_raw.get(label_list[0]) if label_list else None
 
             # determinar índice padrão do selectbox com base no valor interno atual
             default_index = 0
             current_internal = st.session_state.get("selected_planet")
             if current_internal is not None and label_list:
-                # encontrar label correspondente ao valor interno
                 try:
                     current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
                     if current_label and current_label in label_list:
@@ -1555,27 +1587,33 @@ def main():
                 key="planet_selectbox",
                 on_change=_on_select_planet
             )
-        
+
+        # -------------------------
+        # Leitura Sintética
+        # -------------------------
         st.markdown("#### Leitura Sintética")
 
         sel_planet = st.session_state.get("selected_planet")
         if not sel_planet or not summary:
             st.info("Selecione um planeta na tabela para ver a leitura sintética.")
         else:
-            # obter leitura e rótulos
+            # obter leitura e rótulos (get_reading deve aceitar raw/canonical)
             canonical, label, reading = get_reading(summary, sel_planet)
             if not reading:
                 st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
             else:
-                # normalizar signo/degree e casa (valores brutos vindos de reading)
+                # extrair signo bruto e grau (preserva compatibilidade com normalize_degree_sign)
                 raw_sign, degree = normalize_degree_sign(reading)
-                # sign pode vir em PT ou EN; converta para canonical para lookups
+
+                # normalizar para canonical (usado para lookups) e obter label PT para exibição
                 try:
                     sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
                 except Exception:
                     sign_canonical = raw_sign
-                # obter label em pt_BR para exibição
-                sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+                try:
+                    sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+                except Exception:
+                    sign_label = sign_canonical or raw_sign or "—"
 
                 # resolver casa (mantendo a lógica existente)
                 house = resolve_house(reading, summary, canonical, sel_planet)
@@ -1633,7 +1671,6 @@ def main():
                     st.write(f"Palavras-chave: {keywords_line}")
                 else:
                     st.write("—")
-
 
     # CENTER: mapa + IA + interpretação
     with center_col:
