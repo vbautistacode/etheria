@@ -102,7 +102,8 @@ adaptive_rhythm = st.sidebar.checkbox("Variação adaptativa leve (±5%)", value
 # -------------------------
 def breathing_animation_html_with_voice(
     inhale: float, exhale: float, hold1: float, hold2: float, cycles: int,
-    color: str, label_prefix: str = "", speak_enabled: bool = True, voice_lang: str = "pt-BR", cue_pattern: str = "single"
+    color: str, label_prefix: str = "", speak_enabled: bool = True, voice_lang: str = "pt-BR", cue_pattern: str = "single",
+    use_bell: bool = True
 ) -> str:
     inh_ms = int(inhale * 1000)
     h1_ms = int(hold1 * 1000)
@@ -110,10 +111,12 @@ def breathing_animation_html_with_voice(
     h2_ms = int(hold2 * 1000)
     cycles_js = int(cycles)
     speak_flag = "true" if speak_enabled else "false"
+    bell_flag = "true" if use_bell else "false"
+
     html = f"""
 <style>
   .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
-  .circle {{ width:160px; height:160px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow: 0 12px 36px rgba(0,0,0,0.12); transform-origin:center; }}
+  .circle {{ width:160px; height:160px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow: 0 12px 36px rgba(0,0,0,0.08); transform-origin:center; }}
   .label {{ margin-top:12px; font-size:18px; font-weight:600; color:#222; }}
 </style>
 <div class="breath-wrap">
@@ -132,31 +135,57 @@ def breathing_animation_html_with_voice(
   const speakEnabled = {speak_flag};
   const voiceLang = "{voice_lang}";
   const cuePattern = "{cue_pattern}";
+  const useBell = {bell_flag};
 
   function setLabel(text){{ label.textContent = text; }}
 
+  // WebAudio bell (soft ping) com envelope
+  function playBell(freq=440, duration=0.12, volume=0.06) {{
+    try {{
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = 'sine';
+      o.frequency.value = freq;
+      g.gain.value = 0.0;
+      o.connect(g);
+      g.connect(ctx.destination);
+      const now = ctx.currentTime;
+      // envelope suave
+      g.gain.linearRampToValueAtTime(volume, now + 0.01);
+      g.gain.linearRampToValueAtTime(0.0, now + duration);
+      o.start(now);
+      o.stop(now + duration + 0.02);
+      // fechar contexto após curto delay para liberar recursos
+      setTimeout(()=>{{ try{{ ctx.close(); }}catch(e){{}} }}, (duration+0.1)*1000);
+    }} catch(e){{ /* falha silenciosa */ }}
+  }}
+
+  // Seleciona voz preferencial (prioriza pt-BR e vozes de qualidade)
   function pickVoice() {{
     const voices = window.speechSynthesis.getVoices() || [];
     if (voices.length === 0) return null;
-    // prefer voices that match locale and vendor names for better quality
     let candidates = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
     if (candidates.length === 0) candidates = voices;
-    // prefer Google / Microsoft / Amazon voices if present
-    let preferred = candidates.find(v => /google|microsoft|amazon|neural/i.test(v.name));
+    let preferred = candidates.find(v => /google|microsoft|amazon|neural|wave/i.test(v.name));
     if (!preferred) preferred = candidates[0];
     return preferred;
   }}
 
-  function speak(text, voice, opts) {{
-    if (!speakEnabled || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = voiceLang;
-    u.rate = opts.rate || 1.0;
-    u.pitch = opts.pitch || 1.0;
-    u.volume = opts.volume || 1.0;
-    if (voice) u.voice = voice;
-    window.speechSynthesis.cancel(); // evita sobreposição de falas antigas
-    window.speechSynthesis.speak(u);
+  // Fala assíncrona que resolve quando termina; não cancela fala anterior imediatamente
+  function speakAsync(text, voice, opts) {{
+    return new Promise(resolve => {{
+      if (!speakEnabled || !window.speechSynthesis) return resolve();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = voiceLang;
+      u.rate = opts.rate || 0.92;    // mais lento por padrão
+      u.pitch = opts.pitch || 0.92;  // pitch levemente reduzido
+      u.volume = opts.volume || 0.75; // volume moderado
+      if (voice) u.voice = voice;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      try {{ window.speechSynthesis.speak(u); }} catch(e){{ resolve(); }}
+    }});
   }}
 
   async function ensureVoicesLoaded() {{
@@ -164,7 +193,7 @@ def breathing_animation_html_with_voice(
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) return r();
       window.speechSynthesis.onvoiceschanged = function(){{ r(); }};
-      setTimeout(r, 700);
+      setTimeout(r, 800);
     }});
   }}
 
@@ -174,20 +203,23 @@ def breathing_animation_html_with_voice(
     }}
     const voice = pickVoice();
 
-    // breve preparação falada
+    // preparação curta e suave
     setLabel("Prepare-se");
-    if (speakEnabled) speak("Prepare-se", voice, {{rate:0.95, pitch:1.0, volume:0.9}});
-    await new Promise(r => setTimeout(r, 700));
+    if (useBell) playBell(520, 0.12, 0.04);
+    if (speakEnabled) await speakAsync("Prepare-se, com calma", voice, {{rate:0.92, pitch:0.95, volume:0.75}});
+    await new Promise(r => setTimeout(r, 400));
 
     for (let cycle = 0; cycle < cycles; cycle++) {{
       // INHALE
-      setLabel("Inspire profundamente");
+      setLabel("Inspire devagar e profundamente");
       circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
       circle.style.transform = "scale(1.35)";
+      if (useBell) playBell(520, 0.08, 0.04);
       if (speakEnabled) {{
-        if (cuePattern === "double") speak("Inspire profundamente", voice, {{rate:0.98, pitch:1.05, volume:1.0}});
-        else if (cuePattern === "soft") speak("Inspire profundamente", voice, {{rate:0.9, pitch:0.95, volume:0.9}});
-        else speak("Inspire profundamente", voice, {{rate:1.0, pitch:1.0, volume:1.0}});
+        // frases mais longas e suaves
+        if (cuePattern === "double") speakAsync("Inspire devagar e profundamente", voice, {{rate:0.96, pitch:0.98, volume:0.78}});
+        else if (cuePattern === "soft") speakAsync("Inspire devagar e profundamente", voice, {{rate:0.9, pitch:0.9, volume:0.7}});
+        else speakAsync("Inspire devagar e profundamente", voice, {{rate:0.92, pitch:0.92, volume:0.75}});
       }}
       await new Promise(r => setTimeout(r, inhale));
 
@@ -198,13 +230,14 @@ def breathing_animation_html_with_voice(
       }}
 
       // EXHALE
-      setLabel("Expire lentamente");
+      setLabel("Expire devagar e completamente");
       circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
       circle.style.transform = "scale(0.75)";
+      if (useBell) playBell(420, 0.08, 0.04); // tom ligeiramente mais grave
       if (speakEnabled) {{
-        if (cuePattern === "double") speak("Expire lentamente", voice, {{rate:0.95, pitch:0.95, volume:1.0}});
-        else if (cuePattern === "soft") speak("Expire lentamente", voice, {{rate:0.85, pitch:0.9, volume:0.9}});
-        else speak("Expire lentamente", voice, {{rate:0.95, pitch:0.95, volume:1.0}});
+        if (cuePattern === "double") speakAsync("Expire devagar e completamente", voice, {{rate:0.94, pitch:0.9, volume:0.78}});
+        else if (cuePattern === "soft") speakAsync("Expire devagar e completamente", voice, {{rate:0.88, pitch:0.88, volume:0.7}});
+        else speakAsync("Expire devagar e completamente", voice, {{rate:0.92, pitch:0.9, volume:0.75}});
       }}
       await new Promise(r => setTimeout(r, exhale));
 
