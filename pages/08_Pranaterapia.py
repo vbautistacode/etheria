@@ -249,13 +249,20 @@ if start:
         progress.progress(1.0)
 
 # -------------------------
-# Rodapé: instruções rápidas
+# Rodapé: instruções rápidas, segurança e saúde
 # -------------------------
 st.markdown("---")
 st.markdown(
     """
-**Instruções:** coloque os arquivos de sessão em `static/audio/sessions/` com nomes como `muladhara_session.wav`.  
-Para modo por fases, coloque `muladhara_inhale.wav` e `muladhara_exhale.wav` em `static/audio/phases/`.  
-O app carregará automaticamente e reproduzirá a sessão selecionada.
+**Aviso de segurança e saúde:**  
+- Este conteúdo é apenas para fins informativos e de bem‑estar geral; **não substitui orientação médica ou terapêutica profissional**.  
+- Se você tem condições médicas preexistentes (por exemplo, problemas cardíacos, hipertensão, asma, distúrbios respiratórios, epilepsia), está grávida, ou tem qualquer dúvida sobre praticar exercícios respiratórios, **consulte um profissional de saúde antes de usar**.  
+- Interrompa a prática imediatamente se sentir tontura, dor no peito, falta de ar intensa, náusea, desorientação ou qualquer desconforto significativo. Procure atendimento médico se os sintomas persistirem.  
+- Ajuste os tempos de respiração conforme seu conforto; não force retenções ou respirações além do que é confortável para você.  
+- Use fones de ouvido em volume moderado; evite ambientes com risco de queda ou onde seja necessário atenção constante enquanto pratica.  
+- Se estiver usando medicação que afete respiração, consciência ou pressão arterial, consulte seu médico antes de praticar.  
+- Para acessibilidade: disponibilize a transcrição do áudio (arquivo `.txt`) e ofereça modo visual apenas se preferir não ouvir o áudio.
+
+Pratique com atenção e cuide de si.
 """
 )
