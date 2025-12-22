@@ -189,6 +189,14 @@ session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
 inhale_path = PHASES_DIR / f"{chakra.lower()}_inhale.wav"
 exhale_path = PHASES_DIR / f"{chakra.lower()}_exhale.wav"
 
+preset = theme["preset"]
+
+inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
+exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
+hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
+cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
+
 start = st.button("▶️ Iniciar prática")
 if start:
     if mode == "Sessão única (arquivo)":
