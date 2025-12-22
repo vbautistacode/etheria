@@ -198,7 +198,13 @@ def generate_session_wav(
 # -------------------------
 # Animação HTML/CSS/JS
 # -------------------------
-def breathing_animation_html(inhale: int, exhale: int, hold1: int, hold2: int, cycles: int, color: str, label_prefix: str = "") -> str:
+def breathing_animation_html_with_voice(inhale: int, exhale: int, hold1: int, hold2: int, cycles: int, color: str, label_prefix: str = "", voice_lang: str = "pt-BR", speak_enabled: bool = True) -> str:
+    """
+    HTML que anima o círculo e usa Web Speech API para falar 'Inspire' e 'Expire' no momento exato.
+    - speak_enabled: se False, apenas animação visual.
+    - voice_lang: 'pt-BR' para voz em português (navegador escolhe voz disponível).
+    """
+    # Escapar chaves e inserir valores num f-string seguro
     html = f"""
 <style>
   .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
@@ -210,31 +216,89 @@ def breathing_animation_html(inhale: int, exhale: int, hold1: int, hold2: int, c
   <div id="label" class="label">{label_prefix}Preparar...</div>
 </div>
 <script>
-const circle = document.getElementById("circle");
-const label = document.getElementById("label");
-const inhale = {inhale} * 1000;
-const hold1 = {hold1} * 1000;
-const exhale = {exhale} * 1000;
-const hold2 = {hold2} * 1000;
-const cycles = {cycles};
-function setLabel(text){{ label.textContent = text; }}
-async function runCycle(){{
-  for(let cycle = 0; cycle < cycles; cycle++){{ 
-    setLabel("Inspire");
-    circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
-    circle.style.transform = "scale(1.35)";
-    await new Promise(function(r){{ setTimeout(r, inhale); }});
-    if (hold1 > 0){{ setLabel("Segure"); await new Promise(function(r){{ setTimeout(r, hold1); }}); }}
-    setLabel("Expire");
-    circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
-    circle.style.transform = "scale(0.75)";
-    await new Promise(function(r){{ setTimeout(r, exhale); }});
-    if (hold2 > 0){{ setLabel("Segure"); await new Promise(function(r){{ setTimeout(r, hold2); }}); }}
+(function(){{
+  const circle = document.getElementById("circle");
+  const label = document.getElementById("label");
+  const inhale = {inhale} * 1000;
+  const hold1 = {hold1} * 1000;
+  const exhale = {exhale} * 1000;
+  const hold2 = {hold2} * 1000;
+  const cycles = {cycles};
+  const speakEnabled = {str(speak_enabled).lower()};
+  const voiceLang = "{voice_lang}";
+
+  function setLabel(text){{ label.textContent = text; }}
+
+  // Escolher voz disponível que combine com voiceLang
+  function pickVoice() {{
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+    // preferir voz que contenha locale
+    let v = voices.find(x => x.lang && x.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
+    if (!v) v = voices[0];
+    return v;
   }}
-  setLabel("Concluído");
-  circle.style.transform = "scale(1)";
-}}
-runCycle();
+
+  function speak(text, voice, rate=1.0, pitch=1.0, volume=1.0) {{
+    if (!speakEnabled || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = voiceLang;
+    u.rate = rate;
+    u.pitch = pitch;
+    u.volume = volume;
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  }}
+
+  // Função que executa um ciclo com fala sincronizada
+  async function runCycle() {{
+    // garantir que as vozes estejam carregadas
+    if (speakEnabled && window.speechSynthesis && window.speechSynthesis.getVoices().length === 0) {{
+      // algumas implementações carregam vozes assincronamente
+      await new Promise(r => {{
+        window.speechSynthesis.onvoiceschanged = function(){{ r(); }};
+        // timeout de segurança
+        setTimeout(r, 500);
+      }});
+    }}
+    const voice = pickVoice();
+
+    for (let cycle = 0; cycle < cycles; cycle++) {{
+      // INHALE
+      setLabel("Inspire");
+      circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
+      circle.style.transform = "scale(1.35)";
+      // falar imediatamente no início da inspiração
+      if (speakEnabled) speak("Inspire", voice, 1.0, 1.0, 1.0);
+      await new Promise(r => setTimeout(r, inhale));
+
+      // HOLD1
+      if (hold1 > 0) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, hold1));
+      }}
+
+      // EXHALE
+      setLabel("Expire");
+      circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
+      circle.style.transform = "scale(0.75)";
+      // falar no início da expiração
+      if (speakEnabled) speak("Expire", voice, 1.0, 1.0, 1.0);
+      await new Promise(r => setTimeout(r, exhale));
+
+      // HOLD2
+      if (hold2 > 0) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, hold2));
+      }}
+    }}
+    setLabel("Concluído");
+    circle.style.transform = "scale(1)";
+  }}
+
+  // iniciar
+  runCycle();
+}})();
 </script>
 """
     return html
