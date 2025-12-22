@@ -88,7 +88,7 @@ def build_synced_html(wav_b64: str, color: str, label_prefix: str = "", autoplay
     }}
     const t = audio.currentTime;
     const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = `scale(${scale})`;
+    circle.style.transform = `scale(${scale})`; # type: ignore # pyright: ignore[reportUndefinedVariable]
     raf = requestAnimationFrame(animate);
   }}
 
