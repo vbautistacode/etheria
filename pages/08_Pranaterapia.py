@@ -5,33 +5,32 @@ import math
 import io
 import wave
 import struct
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, List
 
 # -------------------------
-# Página: Pranaterapia
+# Configuração da página
 # -------------------------
 st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """
-A pranaterapia trabalha com práticas guiadas de respiração e presença para harmonizar o **prana** (energia vital).
-Esta página oferece: práticas curtas por intenção, sessões longas, animação visual da respiração, áudio de apoio (sinais sonoros),
-áudio guiado simples (tons) e integração temática (práticas inspiradas por planetas).
+A pranaterapia integra respiração, som e visual para harmonizar o prana (energia vital).
+Use os controles abaixo para escolher um tema, aplicar presets, ativar drone harmônico, e executar práticas guiadas.
 """
 )
 
 # -------------------------
-# Temas planetários (integração)
+# Temas e presets
 # -------------------------
-PLANET_THEME: Dict[str, Dict[str, str]] = {
-    "Default": {"label": "Padrão", "color": "#6C8EBF", "tone_freq": 440},
-    "Sun": {"label": "Sol — Vitalidade", "color": "#F2C94C", "tone_freq": 523},
-    "Moon": {"label": "Lua — Calma", "color": "#7FB3D5", "tone_freq": 392},
-    "Mercury": {"label": "Mercúrio — Clareza", "color": "#9AD3BC", "tone_freq": 660},
-    "Venus": {"label": "Vênus — Afeição", "color": "#F7A8B8", "tone_freq": 587},
-    "Mars": {"label": "Marte — Energia", "color": "#E76F51", "tone_freq": 330},
-    "Jupiter": {"label": "Júpiter — Expansão", "color": "#B59F3B", "tone_freq": 294},
-    "Saturn": {"label": "Saturno — Estrutura", "color": "#8D99AE", "tone_freq": 220},
+PLANET_THEME: Dict[str, Dict[str, object]] = {
+    "Default": {"label": "Padrão", "color": "#6C8EBF", "tone_freq": 440, "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6}, "affirmation": "Presença e equilíbrio."},
+    "Sun": {"label": "Sol — Vitalidade", "color": "#F2C94C", "tone_freq": 523, "preset": {"inhale": 4, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6}, "affirmation": "Sinto minha vitalidade crescer."},
+    "Moon": {"label": "Lua — Calma", "color": "#7FB3D5", "tone_freq": 392, "preset": {"inhale": 4, "hold1": 0, "exhale": 8, "hold2": 0, "cycles": 8}, "affirmation": "Acalmo e integro."},
+    "Mercury": {"label": "Mercúrio — Clareza", "color": "#9AD3BC", "tone_freq": 660, "preset": {"inhale": 3, "hold1": 1, "exhale": 3, "hold2": 1, "cycles": 6}, "affirmation": "Minha mente clareia."},
+    "Venus": {"label": "Vênus — Afeição", "color": "#F7A8B8", "tone_freq": 587, "preset": {"inhale": 4, "hold1": 1, "exhale": 5, "hold2": 0, "cycles": 6}, "affirmation": "Cultivo afeto e beleza."},
+    "Mars": {"label": "Marte — Energia", "color": "#E76F51", "tone_freq": 330, "preset": {"inhale": 2, "hold1": 0, "exhale": 2, "hold2": 0, "cycles": 8}, "affirmation": "Ação com coragem."},
+    "Jupiter": {"label": "Júpiter — Expansão", "color": "#B59F3B", "tone_freq": 294, "preset": {"inhale": 5, "hold1": 2, "exhale": 7, "hold2": 0, "cycles": 5}, "affirmation": "Expando com confiança."},
+    "Saturn": {"label": "Saturno — Estrutura", "color": "#8D99AE", "tone_freq": 220, "preset": {"inhale": 4, "hold1": 3, "exhale": 6, "hold2": 0, "cycles": 5}, "affirmation": "Disciplina e presença."},
 }
 
 st.sidebar.header("Configurações da sessão")
@@ -42,106 +41,120 @@ planet_choice = st.sidebar.selectbox(
 )
 
 # -------------------------
-# Intenções e presets
+# Presets e controles
 # -------------------------
-PRACTICES = {
-    "Calma imediata": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6},
-    "Foco e clareza": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 2, "cycles": 5},
-    "Sono e desaceleração": {"inhale": 4, "hold1": 0, "exhale": 8, "hold2": 0, "cycles": 8},
-    "Energia suave": {"inhale": 3, "hold1": 1, "exhale": 3, "hold2": 1, "cycles": 6},
-    "Respiração completa": {"inhale": 5, "hold1": 2, "exhale": 7, "hold2": 0, "cycles": 5},
-    "Respiração quadrada": {"inhale": 4, "hold1": 4, "exhale": 4, "hold2": 4, "cycles": 5},
-    "Respiração alternada (Nadi Shodhana)": {"inhale": 4, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6},
-}
+st.subheader("Prática e presets")
+theme = PLANET_THEME.get(planet_choice, PLANET_THEME["Default"])
+st.markdown(f"**Tema:** {theme['label']}")
+st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px'></div>", unsafe_allow_html=True)
 
-st.subheader("Escolha sua prática")
-intent = st.selectbox("Prática", options=list(PRACTICES.keys()))
+# controles manuais (inicializados com preset do tema)
+preset = theme.get("preset", {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6})
+inhale = st.number_input("Inspire (s)", value=int(preset["inhale"]), min_value=1, max_value=30, step=1)
+hold1 = st.number_input("Segure após inspirar (s)", value=int(preset["hold1"]), min_value=0, max_value=30, step=1)
+exhale = st.number_input("Expire (s)", value=int(preset["exhale"]), min_value=1, max_value=60, step=1)
+hold2 = st.number_input("Segure após expirar (s)", value=int(preset["hold2"]), min_value=0, max_value=30, step=1)
+cycles = st.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=500, step=1)
+
+# aplicar preset do tema
+if st.button("Aplicar preset do tema"):
+    inhale = st.session_state.setdefault("inhale", int(preset["inhale"]))
+    hold1 = st.session_state.setdefault("hold1", int(preset["hold1"]))
+    exhale = st.session_state.setdefault("exhale", int(preset["exhale"]))
+    hold2 = st.session_state.setdefault("hold2", int(preset["hold2"]))
+    cycles = st.session_state.setdefault("cycles", int(preset["cycles"]))
+    # atualizar inputs (Streamlit não atualiza inputs automaticamente; informar usuário)
+    st.success("Preset do tema aplicado. Ajuste os valores se desejar e inicie a prática.")
 
 # -------------------------
-# Áudio: gerar tom simples (WAV bytes)
+# Acessibilidade e opções
 # -------------------------
-def generate_tone_wav(freq: float = 440.0, duration: float = 0.35, volume: float = 0.5, sr: int = 22050) -> bytes:
-    """
-    Gera um tom senoidal simples e retorna bytes WAV.
-    Usamos wave + struct para compatibilidade com st.audio.
-    """
+st.sidebar.subheader("Acessibilidade")
+no_audio = st.sidebar.checkbox("Sem áudio (visual apenas)", value=False)
+visual_only = st.sidebar.checkbox("Modo visual simplificado", value=False)
+adaptive_rhythm = st.sidebar.checkbox("Variação adaptativa do ritmo (±10%)", value=True)
+drone_enabled = st.sidebar.checkbox("Drone harmônico de fundo (sutil)", value=False)
+drone_volume = st.sidebar.slider("Volume do drone", min_value=0.0, max_value=1.0, value=0.12, step=0.01)
+
+# -------------------------
+# Funções de áudio (tons e drone)
+# -------------------------
+def generate_tone_wav(freq: float = 440.0, duration: float = 0.25, volume: float = 0.5, sr: int = 22050) -> bytes:
+    """Gera um tom senoidal simples e retorna bytes WAV."""
     n_samples = int(sr * duration)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wf:
         wf.setnchannels(1)
-        wf.setsampwidth(2)  # 16-bit
+        wf.setsampwidth(2)
         wf.setframerate(sr)
-        max_amp = 32767 * volume
+        max_amp = int(32767 * volume)
         for i in range(n_samples):
             t = i / sr
             sample = int(max_amp * math.sin(2 * math.pi * freq * t))
             wf.writeframes(struct.pack("<h", sample))
     return buf.getvalue()
 
-def combine_tones_sequence(freq: float, pattern: Tuple[float, ...], sr: int = 22050) -> bytes:
-    """
-    Gera sequência de tons (pattern = durations em segundos) concatenados.
-    Retorna bytes WAV.
-    """
-    parts = []
-    for d in pattern:
-        parts.append(generate_tone_wav(freq=freq, duration=d, sr=sr))
-    # concatenar WAVs simples: extrair frames e reescrever em um único arquivo
-    # Para simplicidade, re-generate a sequência como um único sinal
-    total_dur = sum(pattern)
-    n_samples = int(sr * total_dur)
+def generate_drone_wav(base_freq: float = 220.0, duration: float = 10.0, volume: float = 0.08, sr: int = 22050) -> bytes:
+    """Gera um drone harmônico simples (seno + 2ª harmônica leve)."""
+    n_samples = int(sr * duration)
     buf = io.BytesIO()
     with wave.open(buf, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(sr)
-        max_amp = 32767 * 0.5
-        t_cursor = 0.0
+        max_amp = int(32767 * volume)
         for i in range(n_samples):
             t = i / sr
-            # escolher qual segment we're in
-            elapsed = 0.0
-            freq_now = freq
-            for seg in pattern:
-                if elapsed <= t < elapsed + seg:
-                    break
-                elapsed += seg
-            sample = int(max_amp * math.sin(2 * math.pi * freq_now * t))
+            # base + small harmonic
+            sample = int(max_amp * (0.7 * math.sin(2 * math.pi * base_freq * t) + 0.3 * math.sin(2 * math.pi * base_freq * 2 * t)))
             wf.writeframes(struct.pack("<h", sample))
     return buf.getvalue()
 
 # -------------------------
-# Animação: HTML/CSS/JS (círculo que expande/contrai)
+# Cue patterns por tema
 # -------------------------
-def breathing_animation_html(inhale: int, exhale: int, hold1: int, hold2: int, cycles: int, color: str):
-    """
-    Retorna HTML que anima um círculo com base nos tempos.
-    A animação é controlada por CSS/JS e roda no browser.
-    """
+CUE_PATTERNS: Dict[str, str] = {
+    "single": "single",   # um tom no início de cada fase
+    "double": "double",   # dois toques rápidos no início
+    "soft": "soft",       # tom suave e longo
+}
+
+theme_cue = {
+    "Default": "single",
+    "Sun": "double",
+    "Moon": "soft",
+    "Mercury": "single",
+    "Venus": "soft",
+    "Mars": "double",
+    "Jupiter": "soft",
+    "Saturn": "single",
+}
+cue_pattern = theme_cue.get(planet_choice, "single")
+
+# -------------------------
+# Animação HTML/CSS/JS
+# -------------------------
+def breathing_animation_html(inhale: int, exhale: int, hold1: int, hold2: int, cycles: int, color: str, label_prefix: str = "") -> str:
     total = inhale + hold1 + exhale + hold2
-    # proporção de cada fase em %
     def pct(x): return (x / total) * 100 if total > 0 else 0
     inhale_pct = pct(inhale)
     hold1_pct = pct(hold1)
     exhale_pct = pct(exhale)
     hold2_pct = pct(hold2)
-    # JS usa tempos em ms
-    cycle_ms = int(total * 1000)
     html = f"""
 <style>
   .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
   .circle {{
-    width:120px; height:120px; border-radius:50%;
+    width:160px; height:160px; border-radius:50%;
     background: radial-gradient(circle at 30% 30%, #fff8, {color});
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    transition: transform {inhale}s ease-in-out;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.12);
     transform-origin:center;
   }}
   .label {{ margin-top:12px; font-size:18px; font-weight:600; color:#222; }}
 </style>
 <div class="breath-wrap">
   <div id="circle" class="circle" aria-hidden="true"></div>
-  <div id="label" class="label">Preparar...</div>
+  <div id="label" class="label">{label_prefix}Preparar...</div>
 </div>
 <script>
 const circle = document.getElementById("circle");
@@ -151,12 +164,11 @@ const hold1 = {hold1} * 1000;
 const exhale = {exhale} * 1000;
 const hold2 = {hold2} * 1000;
 const cycles = {cycles};
-let cycle = 0;
 
 function setLabel(text){{ label.textContent = text; }}
 
 async function runCycle(){{
-  for(cycle=0; cycle<cycles; cycle++){{
+  for(let cycle=0; cycle<cycles; cycle++){{
     setLabel("Inspire");
     circle.style.transition = `transform ${{inhale/1000}}s ease-in-out`;
     circle.style.transform = "scale(1.35)";
@@ -178,142 +190,172 @@ runCycle();
     return html
 
 # -------------------------
-# Sessão longa (modo contínuo)
+# Utilitários
 # -------------------------
-st.sidebar.subheader("Sessão longa")
-long_mode = st.sidebar.checkbox("Ativar sessão longa (10–30 min)", value=False)
-long_minutes = st.sidebar.slider("Duração (minutos)", min_value=10, max_value=30, value=15, step=5) if long_mode else 0
+def apply_adaptive(value: float, adaptive: bool) -> float:
+    """Aplica variação aleatória pequena (±10%) se adaptive True."""
+    if not adaptive:
+        return value
+    # variação até ±10%
+    factor = 1.0 + (0.1 * (2 * (math.sin(time.time()) * 0.5)))  # leve variação determinística por tempo
+    return max(0.5, round(value * factor, 2))
+
+def play_cue(freq: float, pattern: str, volume: float = 0.5):
+    """Toca um cue de acordo com o padrão: single, double, soft."""
+    if no_audio:
+        return
+    if pattern == "single":
+        st.audio(generate_tone_wav(freq=freq, duration=0.12, volume=volume), format="audio/wav")
+    elif pattern == "double":
+        st.audio(generate_tone_wav(freq=freq, duration=0.08, volume=volume), format="audio/wav")
+        time.sleep(0.12)
+        st.audio(generate_tone_wav(freq=freq, duration=0.08, volume=volume), format="audio/wav")
+    elif pattern == "soft":
+        st.audio(generate_tone_wav(freq=freq, duration=0.28, volume=volume * 0.7), format="audio/wav")
 
 # -------------------------
-# Áudio e controles
+# Controles principais
 # -------------------------
-theme = PLANET_THEME.get(planet_choice, PLANET_THEME["Default"])
-st.markdown(f"**Tema:** {theme['label']}")
-st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px'></div>", unsafe_allow_html=True)
-
-preset = PRACTICES[intent]
-inhale = st.number_input("Inspire (s)", value=preset["inhale"], min_value=1, max_value=20, step=1)
-hold1 = st.number_input("Segure após inspirar (s)", value=preset["hold1"], min_value=0, max_value=20, step=1)
-exhale = st.number_input("Expire (s)", value=preset["exhale"], min_value=1, max_value=30, step=1)
-hold2 = st.number_input("Segure após expirar (s)", value=preset["hold2"], min_value=0, max_value=20, step=1)
-cycles = st.number_input("Ciclos", value=preset["cycles"], min_value=1, max_value=200, step=1)
-
-st.markdown("---")
-
 col1, col2, col3 = st.columns([1, 1, 1])
 with col1:
     start_btn = st.button("▶️ Iniciar prática")
 with col2:
     stop_btn = st.button("⏹️ Parar")
 with col3:
-    play_audio_btn = st.button("🔔 Tocar sinal de teste")
+    apply_theme_btn = st.button("Aplicar preset do tema (rápido)")
 
-# gerar sinal de teste (um tom curto com frequência do tema)
-if play_audio_btn:
-    tone = generate_tone_wav(freq=theme["tone_freq"], duration=0.25)
-    st.audio(tone, format="audio/wav")
+if apply_theme_btn:
+    # aplicar preset do tema diretamente nos inputs (informa o usuário)
+    p = theme.get("preset", {})
+    st.session_state["inhale"] = int(p.get("inhale", inhale))
+    st.session_state["hold1"] = int(p.get("hold1", hold1))
+    st.session_state["exhale"] = int(p.get("exhale", exhale))
+    st.session_state["hold2"] = int(p.get("hold2", hold2))
+    st.session_state["cycles"] = int(p.get("cycles", cycles))
+    st.success("Preset do tema aplicado. Clique em Iniciar prática para começar.")
 
 # -------------------------
-# Sessão guiada: animação + áudio + texto
+# Afirmação temática
 # -------------------------
-session_running = False
+st.markdown("**Afirmação do tema**")
+st.info(theme.get("affirmation", ""))
+
+# -------------------------
+# Execução da prática guiada
+# -------------------------
 if start_btn:
-    session_running = True
-    # preparar sequência de tons: um tom no início de cada fase (inhale/expire)
-    # pattern: for each cycle: inhale tone (short), exhale tone (short)
-    freq = theme["tone_freq"]
-    # create a short sequence: tone at inhale start and exhale start for each cycle
-    pattern_durations = []
-    for _ in range(cycles):
-        pattern_durations.append(0.05)  # inhale cue
-        pattern_durations.append(inhale)  # silence while breathing (we won't use silence durations in tone generator)
-        pattern_durations.append(0.05)  # exhale cue
-        pattern_durations.append(exhale)
-    # For simplicity, create a repeating short cue WAV and play it at each cue using st.audio inside loop
+    # carregar valores possivelmente atualizados na sessão
+    inhale = int(st.session_state.get("inhale", inhale))
+    hold1 = int(st.session_state.get("hold1", hold1))
+    exhale = int(st.session_state.get("exhale", exhale))
+    hold2 = int(st.session_state.get("hold2", hold2))
+    cycles = int(st.session_state.get("cycles", cycles))
 
-    # show animation
-    html = breathing_animation_html(inhale=inhale, exhale=exhale, hold1=hold1, hold2=hold2, cycles=cycles, color=theme["color"])
-    st.components.v1.html(html, height=260)
+    # animação
+    html = breathing_animation_html(inhale=inhale, exhale=exhale, hold1=hold1, hold2=hold2, cycles=cycles, color=theme["color"], label_prefix=theme["label"] + " — ")
+    st.components.v1.html(html, height=320)
 
-    # guided loop with visual cues and audio cues
+    # drone de fundo (opcional)
+    drone_bytes = None
+    if drone_enabled and not no_audio:
+        drone_bytes = generate_drone_wav(base_freq=theme["tone_freq"] * 0.25, duration=max(10, (inhale + hold1 + exhale + hold2) * cycles + 2), volume=drone_volume)
+        st.audio(drone_bytes, format="audio/wav")
+
     placeholder = st.empty()
     progress = st.progress(0)
-    total_steps = cycles * (inhale + hold1 + exhale + hold2)
+    total_time = (inhale + hold1 + exhale + hold2) * cycles
     elapsed = 0.0
-    stop_requested = False
 
     for c in range(int(cycles)):
         if stop_btn:
-            stop_requested = True
+            placeholder.markdown("### ⏹️ Sessão interrompida.")
             break
+
+        # aplicar variação adaptativa leve
+        inh = apply_adaptive(inhale, adaptive_rhythm)
+        h1 = apply_adaptive(hold1, adaptive_rhythm)
+        exh = apply_adaptive(exhale, adaptive_rhythm)
+        h2 = apply_adaptive(hold2, adaptive_rhythm)
+
         # inhale
-        placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inhale}s**")
-        st.audio(generate_tone_wav(freq=freq, duration=0.12), format="audio/wav")
-        time.sleep(inhale)
-        elapsed += inhale
-        progress.progress(min(1.0, elapsed / (total_steps if total_steps else 1)))
+        placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inh}s**")
+        play_cue(freq=theme["tone_freq"], pattern=cue_pattern, volume=0.5)
+        if not visual_only:
+            time.sleep(inh)
+        else:
+            time.sleep(inh * 0.2)  # visual-only speeds up waiting for UX
+
+        elapsed += inh
+        progress.progress(min(1.0, elapsed / total_time))
 
         # hold1
-        if hold1 > 0:
-            placeholder.markdown(f"### ⏸️ Segure por **{hold1}s**")
-            time.sleep(hold1)
-            elapsed += hold1
-            progress.progress(min(1.0, elapsed / (total_steps if total_steps else 1)))
+        if h1 > 0:
+            placeholder.markdown(f"### ⏸️ Segure por **{h1}s**")
+            if not visual_only:
+                time.sleep(h1)
+            else:
+                time.sleep(h1 * 0.2)
+            elapsed += h1
+            progress.progress(min(1.0, elapsed / total_time))
 
         # exhale
-        placeholder.markdown(f"### 💨 Expire por **{exhale}s**")
-        st.audio(generate_tone_wav(freq=freq * 0.8, duration=0.12), format="audio/wav")
-        time.sleep(exhale)
-        elapsed += exhale
-        progress.progress(min(1.0, elapsed / (total_steps if total_steps else 1)))
+        placeholder.markdown(f"### 💨 Expire por **{exh}s**")
+        play_cue(freq=theme["tone_freq"] * 0.85, pattern=cue_pattern, volume=0.45)
+        if not visual_only:
+            time.sleep(exh)
+        else:
+            time.sleep(exh * 0.2)
+        elapsed += exh
+        progress.progress(min(1.0, elapsed / total_time))
 
         # hold2
-        if hold2 > 0:
-            placeholder.markdown(f"### ⏸️ Segure por **{hold2}s**")
-            time.sleep(hold2)
-            elapsed += hold2
-            progress.progress(min(1.0, elapsed / (total_steps if total_steps else 1)))
+        if h2 > 0:
+            placeholder.markdown(f"### ⏸️ Segure por **{h2}s**")
+            if not visual_only:
+                time.sleep(h2)
+            else:
+                time.sleep(h2 * 0.2)
+            elapsed += h2
+            progress.progress(min(1.0, elapsed / total_time))
 
     placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
     progress.progress(1.0)
 
 # -------------------------
-# Sessão longa: cronômetro com ciclos automáticos e música de fundo (tons)
+# Sessão longa (opcional)
 # -------------------------
+st.markdown("---")
+st.subheader("Sessão longa (blocos)")
+long_mode = st.checkbox("Ativar sessão longa (10–30 min)", value=False)
 if long_mode:
-    st.markdown("---")
-    st.subheader("Sessão longa")
-    st.markdown(
-        f"Modo sessão longa ativado: **{long_minutes} minutos**. A sessão seguirá o padrão selecionado ({intent}) "
-        "com pausas suaves entre blocos."
-    )
+    long_minutes = st.slider("Duração (minutos)", min_value=10, max_value=60, value=20, step=5)
     if st.button("▶️ Iniciar sessão longa"):
         total_seconds = long_minutes * 60
         block_seconds = (inhale + hold1 + exhale + hold2) * cycles
-        # calcular quantos blocos cabem
         if block_seconds <= 0:
-            st.warning("Configuração de respiração inválida para sessão longa.")
+            st.warning("Configuração de respiração inválida.")
         else:
             blocks = max(1, int(total_seconds // block_seconds))
-            st.info(f"Serão executados aproximadamente {blocks} blocos de {cycles} ciclos.")
+            st.info(f"Executando ~{blocks} blocos de {cycles} ciclos.")
             long_progress = st.progress(0)
             start_time = time.time()
             for b in range(blocks):
                 st.write(f"🔁 Bloco {b+1}/{blocks}")
-                # executar um bloco (reutilizar a lógica acima, mas sem animação HTML para não sobrecarregar)
                 for c in range(int(cycles)):
                     st.write(f"   • Ciclo {c+1}/{cycles}: Inspire {inhale}s — Expire {exhale}s")
-                    st.audio(generate_tone_wav(freq=theme["tone_freq"], duration=0.08), format="audio/wav")
+                    if not no_audio:
+                        st.audio(generate_tone_wav(freq=theme["tone_freq"], duration=0.08), format="audio/wav")
                     time.sleep(inhale)
                     if hold1 > 0:
                         time.sleep(hold1)
-                    st.audio(generate_tone_wav(freq=theme["tone_freq"] * 0.8, duration=0.08), format="audio/wav")
+                    if not no_audio:
+                        st.audio(generate_tone_wav(freq=theme["tone_freq"] * 0.85, duration=0.08), format="audio/wav")
                     time.sleep(exhale)
                     if hold2 > 0:
                         time.sleep(hold2)
                 elapsed = time.time() - start_time
                 long_progress.progress(min(1.0, elapsed / total_seconds))
-            st.success("Sessão longa concluída. Reserve alguns minutos para integração e silêncio.")
+            st.success("Sessão longa concluída. Reserve alguns minutos para integração.")
 
 # -------------------------
 # Recursos e segurança
@@ -324,17 +366,8 @@ st.markdown(
     """
 - **Contraindicações:** se tiver problemas respiratórios, cardíacos, pressão alta, gravidez ou qualquer condição médica, consulte um profissional antes de praticar.
 - **Dica:** pratique sentado com coluna ereta e ombros relaxados. Evite prender a respiração de forma forçada.
-- **Integração temática:** o tema selecionado altera a cor e a frequência dos sinais sonoros para apoiar a intenção.
+- **Acessibilidade:** ative 'Sem áudio' ou 'Modo visual simplificado' conforme necessário.
 """
 )
 
-# -------------------------
-# Exportar/Salvar sessão (opcional: instrução)
-# -------------------------
-st.info("Dica: se quiser registrar como se sentiu, use o bloco de notas do app para salvar observações após a prática.")
-
-# -------------------------
-# Fim da página
-# -------------------------
-st.markdown("—")
-st.caption("Pranaterapia — práticas simples para integrar respiração, presença e intenção.")
+st.caption("Pranaterapia — práticas guiadas para integrar respiração, presença e intenção.")
