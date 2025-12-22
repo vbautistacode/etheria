@@ -11,7 +11,6 @@ import numpy as np
 # -------------------------
 # Configuração da página
 # -------------------------
-st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """
@@ -219,22 +218,22 @@ const exhale = {exhale} * 1000;
 const hold2 = {hold2} * 1000;
 const cycles = {cycles};
 function setLabel(text){{ label.textContent = text; }}
-async function runCycle(){
-  for(let cycle=0; cycle<cycles; cycle++){
+async function runCycle(){{
+  for(let cycle = 0; cycle < cycles; cycle++){{ 
     setLabel("Inspire");
-    circle.style.transition = `transform ${inhale/1000}s ease-in-out`;
+    circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
     circle.style.transform = "scale(1.35)";
-    await new Promise(r=>setTimeout(r, inhale));
-    if(hold1>0){ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold1)); }
+    await new Promise(function(r){{ setTimeout(r, inhale); }});
+    if (hold1 > 0){{ setLabel("Segure"); await new Promise(function(r){{ setTimeout(r, hold1); }}); }}
     setLabel("Expire");
-    circle.style.transition = `transform ${exhale/1000}s ease-in-out`;
+    circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
     circle.style.transform = "scale(0.75)";
-    await new Promise(r=>setTimeout(r, exhale));
-    if(hold2>0){ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold2)); }
-  }
+    await new Promise(function(r){{ setTimeout(r, exhale); }});
+    if (hold2 > 0){{ setLabel("Segure"); await new Promise(function(r){{ setTimeout(r, hold2); }}); }}
+  }}
   setLabel("Concluído");
   circle.style.transform = "scale(1)";
-}
+}}
 runCycle();
 </script>
 """
