@@ -1,6 +1,6 @@
 # 08_pranaterapia.py
 import streamlit as st
-import time
+import time 
 import base64
 from pathlib import Path
 
@@ -16,12 +16,12 @@ st.caption(""" Nossa pranaterapia integra respiração, som e visual para harmon
 # -------------------------
 CHAKRAS = {
     "Muladhara": {"color": "#D9534F", "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6}, "affirmation": "Estou seguro e enraizado."},
-    "Svadhisthana": {"color": "#F39C12", "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6}, "affirmation": "Minha criatividade flui."},
-    "Manipura": {"color": "#F1C40F", "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8}, "affirmation": "Ação com clareza."},
-    "Anahata": {"color": "#27AE60", "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6}, "affirmation": "Abro meu coração."},
-    "Vishuddha": {"color": "#3498DB", "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Comunico com verdade."},
-    "Ajna": {"color": "#5B2C6F", "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Minha percepção se afina."},
-    "Sahasrara": {"color": "#8E44AD", "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4}, "affirmation": "Conecto-me ao silêncio."},
+    "Svadhisthana": {"color": "#6A0F60", "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6}, "affirmation": "Minha criatividade flui."},
+    "Manipura": {"color": "#F17C0F", "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8}, "affirmation": "Ação com clareza."},
+    "Anahata": {"color": "#3DAE27", "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6}, "affirmation": "Abro meu coração."},
+    "Vishuddha": {"color": "#346CDB", "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Comunico com verdade."},
+    "Ajna": {"color": "#F4E922", "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Minha percepção se afina."},
+    "Sahasrara": {"color": "#DF27C3", "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4}, "affirmation": "Conecto-me ao silêncio."},
 }
 
 # -------------------------
@@ -35,22 +35,11 @@ PHASES_DIR = BASE_DIR / "static" / "audio" / "phases"
 # Sidebar: controles (sempre no sidebar)
 # -------------------------
 st.sidebar.header("Configurações da sessão")
-chakra = st.sidebar.selectbox("Chakra (sânscrito)", options=list(CHAKRAS.keys()))
+chakra = st.sidebar.selectbox("Chakra ", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
-mode = st.sidebar.radio("Modo", ["Sessão única (arquivo)", "Sino + voz por fase (arquivos separados)", "Visual apenas"], index=0)
-use_bell = st.sidebar.checkbox("Usar sino suave (pré‑mixado no WAV)", value=True)
+mode = st.sidebar.radio("Modo", ["Sessão única", "Sino + voz por fase", "Visual apenas"], index=0)
+use_bell = st.sidebar.checkbox("Usar sino suave", value=True)
 autoplay = st.sidebar.checkbox("Autoplay ao iniciar", value=True)
-
-st.sidebar.markdown("**Ajustes (opcional)**")
-preset = theme["preset"]
-inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
-hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
-exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
-hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
-cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
-
-st.sidebar.markdown("---")
-st.sidebar.caption("Áudios carregados automaticamente de static/audio/sessions/ ou static/audio/phases/")
 
 # -------------------------
 # Helpers: carregar bytes de arquivo local com cache
@@ -261,7 +250,6 @@ st.markdown(
 - Ajuste os tempos de respiração conforme seu conforto; não force retenções ou respirações além do que é confortável para você.  
 - Use fones de ouvido em volume moderado; evite ambientes com risco de queda ou onde seja necessário atenção constante enquanto pratica.  
 - Se estiver usando medicação que afete respiração, consciência ou pressão arterial, consulte seu médico antes de praticar.  
-- Para acessibilidade: disponibilize a transcrição do áudio (arquivo `.txt`) e ofereça modo visual apenas se preferir não ouvir o áudio.
 
 Pratique com atenção e cuide de si.
 """
