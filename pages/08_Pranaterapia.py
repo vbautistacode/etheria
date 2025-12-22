@@ -2,6 +2,7 @@
 import streamlit as st
 import time
 
+st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """
@@ -11,175 +12,319 @@ st.markdown(
 )
 st.caption(
     """
-Nossa pranaterapia integra respiração, som e visual para harmonizar o seu ser.
-Use os controles abaixo para escolher um tema, aplicar presets, ativar drone harmônico, e executar práticas guiadas.
+Nossa pranaterapia integra respiração, som (voz do navegador) e visual para harmonizar o seu ser.
+Escolha um chakra para aplicar um preset prático e iniciar a prática.
 """
 )
 
 # -------------------------
-# Seleção de intenção
+# Presets práticos por chakra (foco em resultados)
 # -------------------------
-st.subheader("🎯 Escolha sua intenção")
-
-intent = st.selectbox(
-    "Selecione uma prática:",
-    [
-        "Calma imediata",
-        "Foco e clareza",
-        "Sono e desaceleração",
-        "Energia suave",
-        "Respiração completa (Pranayama básico)",
-        "Respiração quadrada (Box Breathing)",
-        "Respiração alternada (Nadi Shodhana)",
-    ],
-)
-
-st.divider()
+CHAKRA_PRESETS = {
+    "Root (Raiz)": {
+        "color": "#D9534F",
+        "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6},
+        "cue": "double",
+        "affirmation": "Estou seguro e enraizado."
+    },
+    "Sacral": {
+        "color": "#F39C12",
+        "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6},
+        "cue": "single",
+        "affirmation": "Minha criatividade flui."
+    },
+    "Solar Plexus": {
+        "color": "#F1C40F",
+        "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8},
+        "cue": "double",
+        "affirmation": "Ação com clareza."
+    },
+    "Heart": {
+        "color": "#27AE60",
+        "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6},
+        "cue": "soft",
+        "affirmation": "Abro meu coração."
+    },
+    "Throat": {
+        "color": "#3498DB",
+        "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5},
+        "cue": "single",
+        "affirmation": "Comunico com verdade."
+    },
+    "Third Eye": {
+        "color": "#5B2C6F",
+        "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5},
+        "cue": "soft",
+        "affirmation": "Minha percepção se afina."
+    },
+    "Crown": {
+        "color": "#8E44AD",
+        "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4},
+        "cue": "soft",
+        "affirmation": "Conecto-me ao silêncio."
+    },
+}
 
 # -------------------------
-# Funções auxiliares
+# UI: seleção de chakra e controles
 # -------------------------
-def breathing_cycle(inhale, hold1, exhale, hold2, cycles=5, label="Respire"):
+st.subheader("🎯 Escolha o chakra a trabalhar (preset prático)")
+chakra = st.selectbox("Chakra", options=list(CHAKRA_PRESETS.keys()))
+theme = CHAKRA_PRESETS[chakra]
+st.markdown(f"**Foco:** {theme['affirmation']}")
+st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>", unsafe_allow_html=True)
+
+# controles manuais (inicializados com preset do chakra)
+preset = theme["preset"]
+inhale = st.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=30.0, step=0.5)
+hold1 = st.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=30.0, step=0.5)
+exhale = st.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold2 = st.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=30.0, step=0.5)
+cycles = st.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
+
+if st.button("Aplicar preset do chakra"):
+    st.session_state["inhale"] = float(preset["inhale"])
+    st.session_state["hold1"] = float(preset["hold1"])
+    st.session_state["exhale"] = float(preset["exhale"])
+    st.session_state["hold2"] = float(preset["hold2"])
+    st.session_state["cycles"] = int(preset["cycles"])
+    st.success("Preset aplicado. Ajuste os valores se desejar e inicie a prática.")
+
+# acessibilidade e opções
+st.sidebar.subheader("Opções")
+no_audio = st.sidebar.checkbox("Sem áudio (visual apenas)", value=False)
+speak_enabled = st.sidebar.checkbox("Voz do navegador (Inspire/Expire)", value=True)
+visual_only = st.sidebar.checkbox("Modo visual simplificado", value=False)
+adaptive_rhythm = st.sidebar.checkbox("Variação adaptativa leve (±5%)", value=True)
+
+# -------------------------
+# Função que injeta HTML/JS com Web Speech API
+# -------------------------
+def breathing_animation_html_with_voice(
+    inhale: float, exhale: float, hold1: float, hold2: float, cycles: int,
+    color: str, label_prefix: str = "", speak_enabled: bool = True, voice_lang: str = "pt-BR", cue_pattern: str = "single"
+) -> str:
     """
-    Pequeno guia visual de respiração com contagem.
+    Retorna HTML que anima o círculo e usa Web Speech API para falar 'Inspire' e 'Expire'.
+    Evita conflitos de chaves na f-string duplicando chaves JS.
     """
+    # garantir valores inteiros/float coerentes para JS
+    inh_ms = int(inhale * 1000)
+    h1_ms = int(hold1 * 1000)
+    exh_ms = int(exhale * 1000)
+    h2_ms = int(hold2 * 1000)
+    cycles_js = int(cycles)
+    speak_flag = "true" if speak_enabled else "false"
+    # cue_pattern pode ser usado para modular entonação (aqui apenas passado ao JS)
+    html = f"""
+<style>
+  .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
+  .circle {{ width:160px; height:160px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow: 0 12px 36px rgba(0,0,0,0.12); transform-origin:center; }}
+  .label {{ margin-top:12px; font-size:18px; font-weight:600; color:#222; }}
+</style>
+<div class="breath-wrap">
+  <div id="circle" class="circle" aria-hidden="true"></div>
+  <div id="label" class="label">{label_prefix}Preparar...</div>
+</div>
+<script>
+(function(){{ 
+  const circle = document.getElementById("circle");
+  const label = document.getElementById("label");
+  const inhale = {inh_ms};
+  const hold1 = {h1_ms};
+  const exhale = {exh_ms};
+  const hold2 = {h2_ms};
+  const cycles = {cycles_js};
+  const speakEnabled = {speak_flag};
+  const voiceLang = "{voice_lang}";
+  const cuePattern = "{cue_pattern}";
+
+  function setLabel(text){{ label.textContent = text; }}
+
+  function pickVoice() {{
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+    let v = voices.find(x => x.lang && x.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
+    if (!v) v = voices[0];
+    return v;
+  }}
+
+  function speak(text, voice, rate=1.0, pitch=1.0, volume=1.0) {{
+    if (!speakEnabled || !window.speechSynthesis) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = voiceLang;
+    u.rate = rate;
+    u.pitch = pitch;
+    u.volume = volume;
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  }}
+
+  async function ensureVoicesLoaded() {{
+    return new Promise(r => {{
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) return r();
+      window.speechSynthesis.onvoiceschanged = function(){{ r(); }};
+      setTimeout(r, 600);
+    }});
+  }}
+
+  async function runCycle() {{
+    if (speakEnabled && window.speechSynthesis) {{
+      await ensureVoicesLoaded();
+    }}
+    const voice = pickVoice();
+
+    for (let cycle = 0; cycle < cycles; cycle++) {{
+      // INHALE
+      setLabel("Inspire");
+      circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
+      circle.style.transform = "scale(1.35)";
+      if (speakEnabled) {{
+        // entonação leve por padrão; cuePattern pode modular rate/pitch
+        if (cuePattern === "double") speak("Inspire", voice, 1.05, 1.0, 1.0);
+        else if (cuePattern === "soft") speak("Inspire", voice, 0.95, 0.95, 0.95);
+        else speak("Inspire", voice, 1.0, 1.0, 1.0);
+      }}
+      await new Promise(r => setTimeout(r, inhale));
+
+      // HOLD1
+      if (hold1 > 0) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, hold1));
+      }}
+
+      // EXHALE
+      setLabel("Expire");
+      circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
+      circle.style.transform = "scale(0.75)";
+      if (speakEnabled) {{
+        if (cuePattern === "double") speak("Expire", voice, 1.05, 0.95, 1.0);
+        else if (cuePattern === "soft") speak("Expire", voice, 0.95, 0.9, 0.95);
+        else speak("Expire", voice, 1.0, 0.95, 1.0);
+      }}
+      await new Promise(r => setTimeout(r, exhale));
+
+      // HOLD2
+      if (hold2 > 0) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, hold2));
+      }}
+    }}
+    setLabel("Concluído");
+    circle.style.transform = "scale(1)";
+  }}
+
+  // iniciar automaticamente
+  runCycle();
+}})();
+</script>
+"""
+    return html
+
+# -------------------------
+# Controles principais
+# -------------------------
+col1, col2 = st.columns([1, 1])
+with col1:
+    start_btn = st.button("▶️ Iniciar prática")
+with col2:
+    stop_btn = st.button("⏹️ Parar (interrompe visual)")
+
+# exibir afirmação do chakra
+st.markdown("**Afirmação**")
+st.info(theme["affirmation"])
+
+# -------------------------
+# Execução: injetar HTML/JS com voz (cliente)
+# -------------------------
+if start_btn:
+    # carregar valores possivelmente atualizados na sessão
+    inhale = float(st.session_state.get("inhale", inhale))
+    hold1 = float(st.session_state.get("hold1", hold1))
+    exhale = float(st.session_state.get("exhale", exhale))
+    hold2 = float(st.session_state.get("hold2", hold2))
+    cycles = int(st.session_state.get("cycles", cycles))
+
+    # montar HTML/JS e renderizar (voz roda no navegador)
+    html = breathing_animation_html_with_voice(
+        inhale=inhale,
+        exhale=exhale,
+        hold1=hold1,
+        hold2=hold2,
+        cycles=cycles,
+        color=theme["color"],
+        label_prefix=theme["label"] + " — " if "label" in theme else "",
+        speak_enabled=(speak_enabled and not no_audio),
+        voice_lang="pt-BR",
+        cue_pattern=theme.get("cue", "single")
+    )
+    st.components.v1.html(html, height=360)
+
+    # visual fallback/placeholder para acompanhar (servidor)
     placeholder = st.empty()
-    for _ in range(cycles):
-        placeholder.markdown(f"### 🌿 Inspire por **{inhale}s**")
-        time.sleep(inhale)
+    total_time = (inhale + hold1 + exhale + hold2) * cycles
+    elapsed = 0.0
+    progress = st.progress(0)
+    for c in range(int(cycles)):
+        if stop_btn:
+            placeholder.markdown("### ⏹️ Sessão interrompida.")
+            break
+        # aplicar variação adaptativa leve
+        if adaptive_rhythm:
+            inh = max(0.5, round(inhale * (1.0 + 0.05 * (0.5 - (time.time() % 1)))), 2)
+            exh = max(0.5, round(exhale * (1.0 + 0.05 * (0.5 - ((time.time()+0.3) % 1)))), 2)
+        else:
+            inh = inhale
+            exh = exhale
+
+        placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inh}s**")
+        if not visual_only:
+            time.sleep(inh)
+        else:
+            time.sleep(max(0.2, inh * 0.2))
+        elapsed += inh
+        progress.progress(min(1.0, elapsed / total_time))
 
         if hold1 > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{hold1}s**")
-            time.sleep(hold1)
+            if not visual_only:
+                time.sleep(hold1)
+            else:
+                time.sleep(max(0.2, hold1 * 0.2))
+            elapsed += hold1
+            progress.progress(min(1.0, elapsed / total_time))
 
-        placeholder.markdown(f"### 💨 Expire por **{exhale}s**")
-        time.sleep(exhale)
+        placeholder.markdown(f"### 💨 Expire por **{exh}s**")
+        if not visual_only:
+            time.sleep(exh)
+        else:
+            time.sleep(max(0.2, exh * 0.2))
+        elapsed += exh
+        progress.progress(min(1.0, elapsed / total_time))
 
         if hold2 > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{hold2}s**")
-            time.sleep(hold2)
+            if not visual_only:
+                time.sleep(hold2)
+            else:
+                time.sleep(max(0.2, hold2 * 0.2))
+            elapsed += hold2
+            progress.progress(min(1.0, elapsed / total_time))
 
     placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
-
+    progress.progress(1.0)
 
 # -------------------------
-# Conteúdo por intenção
+# Segurança e notas finais
 # -------------------------
-
-if intent == "Calma imediata":
-    st.subheader("🌿 Calma imediata")
-    st.markdown(
-        """
-Respiração simples para reduzir tensão e ativar o sistema parassimpático.
-
-**Ciclo sugerido:**  
-- Inspire: 4s  
-- Expire: 6s  
-- Sem retenção  
-- 6 ciclos
+st.markdown("---")
+st.subheader("Recursos e segurança")
+st.markdown(
+    """
+- **Contraindicações:** se tiver problemas respiratórios, cardíacos, pressão alta, gravidez ou qualquer condição médica, consulte um profissional antes de praticar.
+- **Dica:** pratique sentado com coluna ereta e ombros relaxados. Evite prender a respiração de forma forçada.
+- **Nota técnica:** a voz é gerada pelo navegador (Web Speech API). Em alguns navegadores a voz pt-BR pode não estar disponível; nesses casos a fala pode usar outra voz instalada.
 """
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(4, 0, 6, 0, cycles=6)
-
-elif intent == "Foco e clareza":
-    st.subheader("🎯 Foco e clareza")
-    st.markdown(
-        """
-Respiração energizante e estável para clarear a mente.
-
-**Ciclo sugerido:**  
-- Inspire: 4s  
-- Segure: 2s  
-- Expire: 4s  
-- Segure: 2s  
-- 5 ciclos
-"""
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(4, 2, 4, 2, cycles=5)
-
-elif intent == "Sono e desaceleração":
-    st.subheader("🌙 Sono e desaceleração")
-    st.markdown(
-        """
-Respiração longa e suave para induzir relaxamento profundo.
-
-**Ciclo sugerido:**  
-- Inspire: 4s  
-- Expire: 8s  
-- 8 ciclos
-"""
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(4, 0, 8, 0, cycles=8)
-
-elif intent == "Energia suave":
-    st.subheader("🔥 Energia suave")
-    st.markdown(
-        """
-Respiração ritmada para despertar o corpo sem agitação.
-
-**Ciclo sugerido:**  
-- Inspire: 3s  
-- Segure: 1s  
-- Expire: 3s  
-- Segure: 1s  
-- 6 ciclos
-"""
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(3, 1, 3, 1, cycles=6)
-
-elif intent == "Respiração completa (Pranayama básico)":
-    st.subheader("🌬️ Respiração completa")
-    st.markdown(
-        """
-A respiração completa envolve abdômen, costelas e peito — enchendo os pulmões de forma natural e fluida.
-
-**Ciclo sugerido:**  
-- Inspire: 5s  
-- Segure: 2s  
-- Expire: 7s  
-- 5 ciclos
-"""
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(5, 2, 7, 0, cycles=5)
-
-elif intent == "Respiração quadrada (Box Breathing)":
-    st.subheader("🟦 Respiração quadrada (Box Breathing)")
-    st.markdown(
-        """
-Técnica usada para foco, estabilidade emocional e redução de ansiedade.
-
-**Ciclo sugerido:**  
-- Inspire: 4s  
-- Segure: 4s  
-- Expire: 4s  
-- Segure: 4s  
-- 5 ciclos
-"""
-    )
-    if st.button("Iniciar prática"):
-        breathing_cycle(4, 4, 4, 4, cycles=5)
-
-elif intent == "Respiração alternada (Nadi Shodhana)":
-    st.subheader("🔄 Respiração alternada (Nadi Shodhana)")
-    st.markdown(
-        """
-Técnica tradicional para equilibrar os canais energéticos (nadis) e acalmar a mente.
-
-**Instruções:**  
-1. Use o polegar direito para fechar a narina direita.  
-2. Inspire pela narina esquerda (4s).  
-3. Feche a narina esquerda com o anelar.  
-4. Expire pela direita (4s).  
-5. Inspire pela direita (4s).  
-6. Feche a direita.  
-7. Expire pela esquerda (4s).  
-
-Repita por 6 ciclos.
-"""
-    )
-    st.info("Esta técnica é guiada por instruções, não por contagem automática.")
+)
+st.caption("Pranaterapia — práticas guiadas para integrar respiração, presença e intenção.")
