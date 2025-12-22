@@ -21,43 +21,43 @@ Escolha um chakra para aplicar um preset prático e iniciar a prática.
 # Presets práticos por chakra (foco em resultados)
 # -------------------------
 CHAKRA_PRESETS = {
-    "Root (Raiz)": {
+    "Muladhara": {  # Root
         "color": "#D9534F",
         "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6},
         "cue": "double",
         "affirmation": "Estou seguro e enraizado."
     },
-    "Sacral": {
+    "Svadhisthana": {  # Sacral
         "color": "#F39C12",
         "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6},
         "cue": "single",
         "affirmation": "Minha criatividade flui."
     },
-    "Solar Plexus": {
+    "Manipura": {  # Solar Plexus
         "color": "#F1C40F",
         "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8},
         "cue": "double",
         "affirmation": "Ação com clareza."
     },
-    "Heart": {
+    "Anahata": {  # Heart
         "color": "#27AE60",
         "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6},
         "cue": "soft",
         "affirmation": "Abro meu coração."
     },
-    "Throat": {
+    "Vishuddha": {  # Throat
         "color": "#3498DB",
         "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5},
         "cue": "single",
         "affirmation": "Comunico com verdade."
     },
-    "Third Eye": {
+    "Ajna": {  # Third Eye
         "color": "#5B2C6F",
         "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5},
         "cue": "soft",
         "affirmation": "Minha percepção se afina."
     },
-    "Crown": {
+    "Sahasrara": {  # Crown
         "color": "#8E44AD",
         "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4},
         "cue": "soft",
@@ -104,18 +104,12 @@ def breathing_animation_html_with_voice(
     inhale: float, exhale: float, hold1: float, hold2: float, cycles: int,
     color: str, label_prefix: str = "", speak_enabled: bool = True, voice_lang: str = "pt-BR", cue_pattern: str = "single"
 ) -> str:
-    """
-    Retorna HTML que anima o círculo e usa Web Speech API para falar 'Inspire' e 'Expire'.
-    Evita conflitos de chaves na f-string duplicando chaves JS.
-    """
-    # garantir valores inteiros/float coerentes para JS
     inh_ms = int(inhale * 1000)
     h1_ms = int(hold1 * 1000)
     exh_ms = int(exhale * 1000)
     h2_ms = int(hold2 * 1000)
     cycles_js = int(cycles)
     speak_flag = "true" if speak_enabled else "false"
-    # cue_pattern pode ser usado para modular entonação (aqui apenas passado ao JS)
     html = f"""
 <style>
   .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
@@ -124,7 +118,7 @@ def breathing_animation_html_with_voice(
 </style>
 <div class="breath-wrap">
   <div id="circle" class="circle" aria-hidden="true"></div>
-  <div id="label" class="label">{label_prefix}Preparar...</div>
+  <div id="label" class="label">{label_prefix}Prepare-se...</div>
 </div>
 <script>
 (function(){{ 
@@ -142,21 +136,26 @@ def breathing_animation_html_with_voice(
   function setLabel(text){{ label.textContent = text; }}
 
   function pickVoice() {{
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices || voices.length === 0) return null;
-    let v = voices.find(x => x.lang && x.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
-    if (!v) v = voices[0];
-    return v;
+    const voices = window.speechSynthesis.getVoices() || [];
+    if (voices.length === 0) return null;
+    // prefer voices that match locale and vendor names for better quality
+    let candidates = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
+    if (candidates.length === 0) candidates = voices;
+    // prefer Google / Microsoft / Amazon voices if present
+    let preferred = candidates.find(v => /google|microsoft|amazon|neural/i.test(v.name));
+    if (!preferred) preferred = candidates[0];
+    return preferred;
   }}
 
-  function speak(text, voice, rate=1.0, pitch=1.0, volume=1.0) {{
+  function speak(text, voice, opts) {{
     if (!speakEnabled || !window.speechSynthesis) return;
     const u = new SpeechSynthesisUtterance(text);
     u.lang = voiceLang;
-    u.rate = rate;
-    u.pitch = pitch;
-    u.volume = volume;
+    u.rate = opts.rate || 1.0;
+    u.pitch = opts.pitch || 1.0;
+    u.volume = opts.volume || 1.0;
     if (voice) u.voice = voice;
+    window.speechSynthesis.cancel(); // evita sobreposição de falas antigas
     window.speechSynthesis.speak(u);
   }}
 
@@ -165,7 +164,7 @@ def breathing_animation_html_with_voice(
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) return r();
       window.speechSynthesis.onvoiceschanged = function(){{ r(); }};
-      setTimeout(r, 600);
+      setTimeout(r, 700);
     }});
   }}
 
@@ -175,16 +174,20 @@ def breathing_animation_html_with_voice(
     }}
     const voice = pickVoice();
 
+    // breve preparação falada
+    setLabel("Prepare-se");
+    if (speakEnabled) speak("Prepare-se", voice, {{rate:0.95, pitch:1.0, volume:0.9}});
+    await new Promise(r => setTimeout(r, 700));
+
     for (let cycle = 0; cycle < cycles; cycle++) {{
       // INHALE
-      setLabel("Inspire");
+      setLabel("Inspire profundamente");
       circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
       circle.style.transform = "scale(1.35)";
       if (speakEnabled) {{
-        // entonação leve por padrão; cuePattern pode modular rate/pitch
-        if (cuePattern === "double") speak("Inspire", voice, 1.05, 1.0, 1.0);
-        else if (cuePattern === "soft") speak("Inspire", voice, 0.95, 0.95, 0.95);
-        else speak("Inspire", voice, 1.0, 1.0, 1.0);
+        if (cuePattern === "double") speak("Inspire profundamente", voice, {{rate:0.98, pitch:1.05, volume:1.0}});
+        else if (cuePattern === "soft") speak("Inspire profundamente", voice, {{rate:0.9, pitch:0.95, volume:0.9}});
+        else speak("Inspire profundamente", voice, {{rate:1.0, pitch:1.0, volume:1.0}});
       }}
       await new Promise(r => setTimeout(r, inhale));
 
@@ -195,13 +198,13 @@ def breathing_animation_html_with_voice(
       }}
 
       // EXHALE
-      setLabel("Expire");
+      setLabel("Expire lentamente");
       circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
       circle.style.transform = "scale(0.75)";
       if (speakEnabled) {{
-        if (cuePattern === "double") speak("Expire", voice, 1.05, 0.95, 1.0);
-        else if (cuePattern === "soft") speak("Expire", voice, 0.95, 0.9, 0.95);
-        else speak("Expire", voice, 1.0, 0.95, 1.0);
+        if (cuePattern === "double") speak("Expire lentamente", voice, {{rate:0.95, pitch:0.95, volume:1.0}});
+        else if (cuePattern === "soft") speak("Expire lentamente", voice, {{rate:0.85, pitch:0.9, volume:0.9}});
+        else speak("Expire lentamente", voice, {{rate:0.95, pitch:0.95, volume:1.0}});
       }}
       await new Promise(r => setTimeout(r, exhale));
 
@@ -215,7 +218,6 @@ def breathing_animation_html_with_voice(
     circle.style.transform = "scale(1)";
   }}
 
-  // iniciar automaticamente
   runCycle();
 }})();
 </script>
