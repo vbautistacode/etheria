@@ -5,7 +5,8 @@ import math
 import io
 import wave
 import struct
-from typing import Optional, Tuple, Dict, List
+from typing import Dict
+import numpy as np
 
 # -------------------------
 # Configuração da página
@@ -54,7 +55,6 @@ theme = PLANET_THEME.get(planet_choice, PLANET_THEME["Default"])
 st.markdown(f"**Tema:** {theme['label']}")
 st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px'></div>", unsafe_allow_html=True)
 
-# controles manuais (inicializados com preset do tema)
 preset = theme.get("preset", {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6})
 inhale = st.number_input("Inspire (s)", value=int(preset["inhale"]), min_value=1, max_value=30, step=1)
 hold1 = st.number_input("Segure após inspirar (s)", value=int(preset["hold1"]), min_value=0, max_value=30, step=1)
@@ -62,15 +62,14 @@ exhale = st.number_input("Expire (s)", value=int(preset["exhale"]), min_value=1,
 hold2 = st.number_input("Segure após expirar (s)", value=int(preset["hold2"]), min_value=0, max_value=30, step=1)
 cycles = st.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=500, step=1)
 
-# aplicar preset do tema
 if st.button("Aplicar preset do tema"):
-    inhale = st.session_state.setdefault("inhale", int(preset["inhale"]))
-    hold1 = st.session_state.setdefault("hold1", int(preset["hold1"]))
-    exhale = st.session_state.setdefault("exhale", int(preset["exhale"]))
-    hold2 = st.session_state.setdefault("hold2", int(preset["hold2"]))
-    cycles = st.session_state.setdefault("cycles", int(preset["cycles"]))
-    # atualizar inputs (Streamlit não atualiza inputs automaticamente; informar usuário)
-    st.success("Preset do tema aplicado. Ajuste os valores se desejar e inicie a prática.")
+    p = theme.get("preset", {})
+    st.session_state["inhale"] = int(p.get("inhale", inhale))
+    st.session_state["hold1"] = int(p.get("hold1", hold1))
+    st.session_state["exhale"] = int(p.get("exhale", exhale))
+    st.session_state["hold2"] = int(p.get("hold2", hold2))
+    st.session_state["cycles"] = int(p.get("cycles", cycles))
+    st.success("Preset do tema aplicado. Clique em Iniciar prática para começar.")
 
 # -------------------------
 # Acessibilidade e opções
@@ -83,48 +82,8 @@ drone_enabled = st.sidebar.checkbox("Drone harmônico de fundo (sutil)", value=F
 drone_volume = st.sidebar.slider("Volume do drone", min_value=0.0, max_value=1.0, value=0.12, step=0.01)
 
 # -------------------------
-# Funções de áudio (tons e drone)
-# -------------------------
-def generate_tone_wav(freq: float = 440.0, duration: float = 0.25, volume: float = 0.5, sr: int = 22050) -> bytes:
-    """Gera um tom senoidal simples e retorna bytes WAV."""
-    n_samples = int(sr * duration)
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sr)
-        max_amp = int(32767 * volume)
-        for i in range(n_samples):
-            t = i / sr
-            sample = int(max_amp * math.sin(2 * math.pi * freq * t))
-            wf.writeframes(struct.pack("<h", sample))
-    return buf.getvalue()
-
-def generate_drone_wav(base_freq: float = 220.0, duration: float = 10.0, volume: float = 0.08, sr: int = 22050) -> bytes:
-    """Gera um drone harmônico simples (seno + 2ª harmônica leve)."""
-    n_samples = int(sr * duration)
-    buf = io.BytesIO()
-    with wave.open(buf, "wb") as wf:
-        wf.setnchannels(1)
-        wf.setsampwidth(2)
-        wf.setframerate(sr)
-        max_amp = int(32767 * volume)
-        for i in range(n_samples):
-            t = i / sr
-            # base + small harmonic
-            sample = int(max_amp * (0.7 * math.sin(2 * math.pi * base_freq * t) + 0.3 * math.sin(2 * math.pi * base_freq * 2 * t)))
-            wf.writeframes(struct.pack("<h", sample))
-    return buf.getvalue()
-
-# -------------------------
 # Cue patterns por tema
 # -------------------------
-CUE_PATTERNS: Dict[str, str] = {
-    "single": "single",   # um tom no início de cada fase
-    "double": "double",   # dois toques rápidos no início
-    "soft": "soft",       # tom suave e longo
-}
-
 theme_cue = {
     "Default": "single",
     "Sun": "double",
@@ -138,24 +97,113 @@ theme_cue = {
 cue_pattern = theme_cue.get(planet_choice, "single")
 
 # -------------------------
+# Geração de áudio contínuo (cues + drone)
+# -------------------------
+SR = 22050
+
+def _sine(freq, length, sr=SR):
+    t = np.linspace(0, length, int(sr * length), False)
+    return np.sin(2 * np.pi * freq * t)
+
+def _apply_envelope(signal: np.ndarray, sr=SR, attack=0.005, release=0.01):
+    n = len(signal)
+    a = int(sr * attack)
+    r = int(sr * release)
+    env = np.ones(n, dtype=float)
+    if a > 0:
+        env[:a] = np.linspace(0.0, 1.0, a)
+    if r > 0:
+        env[-r:] = np.linspace(1.0, 0.0, r)
+    return signal * env
+
+def _mix_and_normalize(signals: list):
+    mix = np.sum(signals, axis=0)
+    peak = np.max(np.abs(mix)) or 1.0
+    return mix / peak * 0.95
+
+def _wav_bytes_from_array(arr: np.ndarray, sr=SR):
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(sr)
+        int_data = (arr * 32767).astype(np.int16)
+        wf.writeframes(int_data.tobytes())
+    return buf.getvalue()
+
+def generate_session_wav(
+    inhale, hold1, exhale, hold2, cycles,
+    cue_freq=440.0, cue_pattern="single",
+    drone_freq=None, drone_volume=0.08, sr=SR
+):
+    total_time = (inhale + hold1 + exhale + hold2) * cycles
+    n_samples = int(total_time * sr)
+    signals = []
+
+    # drone
+    if drone_freq:
+        t = np.linspace(0, total_time, n_samples, False)
+        drone = 0.6 * np.sin(2 * np.pi * drone_freq * t)
+        drone = _apply_envelope(drone, sr, attack=0.5, release=0.5)
+        signals.append(drone * drone_volume)
+    else:
+        signals.append(np.zeros(n_samples))
+
+    # cues
+    cursor = 0.0
+    for _ in range(int(cycles)):
+        start_inhale = int(cursor * sr)
+        # inhale cue
+        if cue_pattern == "single":
+            tone = _sine(cue_freq, 0.12, sr)
+            tone = _apply_envelope(tone, sr, attack=0.005, release=0.01)
+            tmp = np.zeros(n_samples)
+            end = start_inhale + len(tone)
+            if end <= n_samples:
+                tmp[start_inhale:end] += tone
+            signals.append(tmp)
+        elif cue_pattern == "double":
+            t1 = _sine(cue_freq, 0.07, sr); t1 = _apply_envelope(t1, sr, 0.003, 0.006)
+            t2 = _sine(cue_freq, 0.07, sr); t2 = _apply_envelope(t2, sr, 0.003, 0.006)
+            tmp = np.zeros(n_samples)
+            tmp[start_inhale:start_inhale+len(t1)] += t1
+            off = int(0.12 * sr)
+            if start_inhale + off + len(t2) <= n_samples:
+                tmp[start_inhale+off:start_inhale+off+len(t2)] += t2
+            signals.append(tmp)
+        elif cue_pattern == "soft":
+            tone = _sine(cue_freq, 0.28, sr)
+            tone = _apply_envelope(tone, sr, attack=0.02, release=0.05)
+            tmp = np.zeros(n_samples)
+            end = start_inhale + len(tone)
+            if end <= n_samples:
+                tmp[start_inhale:end] += tone
+            signals.append(tmp)
+
+        cursor += inhale + hold1
+        start_exhale = int(cursor * sr)
+        # exhale cue (slightly lower)
+        tone = _sine(cue_freq * 0.85, 0.12, sr)
+        tone = _apply_envelope(tone, sr, attack=0.005, release=0.01)
+        tmp2 = np.zeros(n_samples)
+        end2 = start_exhale + len(tone)
+        if end2 <= n_samples:
+            tmp2[start_exhale:end2] += tone
+        signals.append(tmp2)
+
+        cursor += exhale + hold2
+
+    mix = _mix_and_normalize(signals)
+    return _wav_bytes_from_array(mix, sr=sr)
+
+# -------------------------
 # Animação HTML/CSS/JS
 # -------------------------
 def breathing_animation_html(inhale: int, exhale: int, hold1: int, hold2: int, cycles: int, color: str, label_prefix: str = "") -> str:
-    total = inhale + hold1 + exhale + hold2
-    def pct(x): return (x / total) * 100 if total > 0 else 0
-    inhale_pct = pct(inhale)
-    hold1_pct = pct(hold1)
-    exhale_pct = pct(exhale)
-    hold2_pct = pct(hold2)
     html = f"""
 <style>
   .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
-  .circle {{
-    width:160px; height:160px; border-radius:50%;
-    background: radial-gradient(circle at 30% 30%, #fff8, {color});
-    box-shadow: 0 12px 36px rgba(0,0,0,0.12);
-    transform-origin:center;
-  }}
+  .circle {{ width:160px; height:160px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow: 0 12px 36px rgba(0,0,0,0.12); transform-origin:center; }}
   .label {{ margin-top:12px; font-size:18px; font-weight:600; color:#222; }}
 </style>
 <div class="breath-wrap">
@@ -170,54 +218,27 @@ const hold1 = {hold1} * 1000;
 const exhale = {exhale} * 1000;
 const hold2 = {hold2} * 1000;
 const cycles = {cycles};
-
 function setLabel(text){{ label.textContent = text; }}
-
-async function runCycle(){{
-  for(let cycle=0; cycle<cycles; cycle++){{
+async function runCycle(){
+  for(let cycle=0; cycle<cycles; cycle++){
     setLabel("Inspire");
-    circle.style.transition = `transform ${{inhale/1000}}s ease-in-out`;
+    circle.style.transition = `transform ${inhale/1000}s ease-in-out`;
     circle.style.transform = "scale(1.35)";
     await new Promise(r=>setTimeout(r, inhale));
-    if(hold1>0){{ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold1)); }}
+    if(hold1>0){ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold1)); }
     setLabel("Expire");
-    circle.style.transition = `transform ${{exhale/1000}}s ease-in-out`;
+    circle.style.transition = `transform ${exhale/1000}s ease-in-out`;
     circle.style.transform = "scale(0.75)";
     await new Promise(r=>setTimeout(r, exhale));
-    if(hold2>0){{ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold2)); }}
-  }}
+    if(hold2>0){ setLabel("Segure"); await new Promise(r=>setTimeout(r, hold2)); }
+  }
   setLabel("Concluído");
   circle.style.transform = "scale(1)";
-}}
-
+}
 runCycle();
 </script>
 """
     return html
-
-# -------------------------
-# Utilitários
-# -------------------------
-def apply_adaptive(value: float, adaptive: bool) -> float:
-    """Aplica variação aleatória pequena (±10%) se adaptive True."""
-    if not adaptive:
-        return value
-    # variação até ±10%
-    factor = 1.0 + (0.1 * (2 * (math.sin(time.time()) * 0.5)))  # leve variação determinística por tempo
-    return max(0.5, round(value * factor, 2))
-
-def play_cue(freq: float, pattern: str, volume: float = 0.5):
-    """Toca um cue de acordo com o padrão: single, double, soft."""
-    if no_audio:
-        return
-    if pattern == "single":
-        st.audio(generate_tone_wav(freq=freq, duration=0.12, volume=volume), format="audio/wav")
-    elif pattern == "double":
-        st.audio(generate_tone_wav(freq=freq, duration=0.08, volume=volume), format="audio/wav")
-        time.sleep(0.12)
-        st.audio(generate_tone_wav(freq=freq, duration=0.08, volume=volume), format="audio/wav")
-    elif pattern == "soft":
-        st.audio(generate_tone_wav(freq=freq, duration=0.28, volume=volume * 0.7), format="audio/wav")
 
 # -------------------------
 # Controles principais
@@ -231,7 +252,6 @@ with col3:
     apply_theme_btn = st.button("Aplicar preset do tema (rápido)")
 
 if apply_theme_btn:
-    # aplicar preset do tema diretamente nos inputs (informa o usuário)
     p = theme.get("preset", {})
     st.session_state["inhale"] = int(p.get("inhale", inhale))
     st.session_state["hold1"] = int(p.get("hold1", hold1))
@@ -240,32 +260,34 @@ if apply_theme_btn:
     st.session_state["cycles"] = int(p.get("cycles", cycles))
     st.success("Preset do tema aplicado. Clique em Iniciar prática para começar.")
 
-# -------------------------
-# Afirmação temática
-# -------------------------
 st.markdown("**Afirmação do tema**")
 st.info(theme.get("affirmation", ""))
 
 # -------------------------
-# Execução da prática guiada
+# Execução da prática guiada (áudio contínuo + visual)
 # -------------------------
 if start_btn:
-    # carregar valores possivelmente atualizados na sessão
     inhale = int(st.session_state.get("inhale", inhale))
     hold1 = int(st.session_state.get("hold1", hold1))
     exhale = int(st.session_state.get("exhale", exhale))
     hold2 = int(st.session_state.get("hold2", hold2))
     cycles = int(st.session_state.get("cycles", cycles))
 
-    # animação
+    # gerar WAV contínuo
+    drone_freq = (theme["tone_freq"] * 0.25) if drone_enabled else None
+    session_wav = None
+    if not no_audio:
+        session_wav = generate_session_wav(
+            inhale=inhale, hold1=hold1, exhale=exhale, hold2=hold2, cycles=cycles,
+            cue_freq=theme["tone_freq"], cue_pattern=cue_pattern,
+            drone_freq=drone_freq, drone_volume=drone_volume, sr=SR
+        )
+        # tocar uma vez (reproduz todo o áudio contínuo)
+        st.audio(session_wav, format="audio/wav")
+
+    # animação visual (independente do áudio)
     html = breathing_animation_html(inhale=inhale, exhale=exhale, hold1=hold1, hold2=hold2, cycles=cycles, color=theme["color"], label_prefix=theme["label"] + " — ")
     st.components.v1.html(html, height=320)
-
-    # drone de fundo (opcional)
-    drone_bytes = None
-    if drone_enabled and not no_audio:
-        drone_bytes = generate_drone_wav(base_freq=theme["tone_freq"] * 0.25, duration=max(10, (inhale + hold1 + exhale + hold2) * cycles + 2), volume=drone_volume)
-        st.audio(drone_bytes, format="audio/wav")
 
     placeholder = st.empty()
     progress = st.progress(0)
@@ -277,50 +299,43 @@ if start_btn:
             placeholder.markdown("### ⏹️ Sessão interrompida.")
             break
 
-        # aplicar variação adaptativa leve
-        inh = apply_adaptive(inhale, adaptive_rhythm)
-        h1 = apply_adaptive(hold1, adaptive_rhythm)
-        exh = apply_adaptive(exhale, adaptive_rhythm)
-        h2 = apply_adaptive(hold2, adaptive_rhythm)
+        # variação adaptativa leve (determinística)
+        inh = inhale if not adaptive_rhythm else max(0.5, round(inhale * (1.0 + 0.05 * math.sin(time.time())), 2))
+        h1 = hold1 if not adaptive_rhythm else max(0.0, round(hold1 * (1.0 + 0.05 * math.sin(time.time() + 1)), 2))
+        exh = exhale if not adaptive_rhythm else max(0.5, round(exhale * (1.0 + 0.05 * math.sin(time.time() + 2)), 2))
+        h2 = hold2 if not adaptive_rhythm else max(0.0, round(hold2 * (1.0 + 0.05 * math.sin(time.time() + 3)), 2))
 
-        # inhale
         placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inh}s**")
-        play_cue(freq=theme["tone_freq"], pattern=cue_pattern, volume=0.5)
         if not visual_only:
             time.sleep(inh)
         else:
-            time.sleep(inh * 0.2)  # visual-only speeds up waiting for UX
-
+            time.sleep(max(0.2, inh * 0.2))
         elapsed += inh
         progress.progress(min(1.0, elapsed / total_time))
 
-        # hold1
         if h1 > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{h1}s**")
             if not visual_only:
                 time.sleep(h1)
             else:
-                time.sleep(h1 * 0.2)
+                time.sleep(max(0.2, h1 * 0.2))
             elapsed += h1
             progress.progress(min(1.0, elapsed / total_time))
 
-        # exhale
         placeholder.markdown(f"### 💨 Expire por **{exh}s**")
-        play_cue(freq=theme["tone_freq"] * 0.85, pattern=cue_pattern, volume=0.45)
         if not visual_only:
             time.sleep(exh)
         else:
-            time.sleep(exh * 0.2)
+            time.sleep(max(0.2, exh * 0.2))
         elapsed += exh
         progress.progress(min(1.0, elapsed / total_time))
 
-        # hold2
         if h2 > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{h2}s**")
             if not visual_only:
                 time.sleep(h2)
             else:
-                time.sleep(h2 * 0.2)
+                time.sleep(max(0.2, h2 * 0.2))
             elapsed += h2
             progress.progress(min(1.0, elapsed / total_time))
 
@@ -347,15 +362,20 @@ if long_mode:
             start_time = time.time()
             for b in range(blocks):
                 st.write(f"🔁 Bloco {b+1}/{blocks}")
+                # gerar e tocar um WAV por bloco para reduzir memória se necessário
+                if not no_audio:
+                    block_wav = generate_session_wav(
+                        inhale=inhale, hold1=hold1, exhale=exhale, hold2=hold2, cycles=cycles,
+                        cue_freq=theme["tone_freq"], cue_pattern=cue_pattern,
+                        drone_freq=(theme["tone_freq"] * 0.25) if drone_enabled else None,
+                        drone_volume=drone_volume, sr=SR
+                    )
+                    st.audio(block_wav, format="audio/wav")
                 for c in range(int(cycles)):
                     st.write(f"   • Ciclo {c+1}/{cycles}: Inspire {inhale}s — Expire {exhale}s")
-                    if not no_audio:
-                        st.audio(generate_tone_wav(freq=theme["tone_freq"], duration=0.08), format="audio/wav")
                     time.sleep(inhale)
                     if hold1 > 0:
                         time.sleep(hold1)
-                    if not no_audio:
-                        st.audio(generate_tone_wav(freq=theme["tone_freq"] * 0.85, duration=0.08), format="audio/wav")
                     time.sleep(exhale)
                     if hold2 > 0:
                         time.sleep(hold2)
