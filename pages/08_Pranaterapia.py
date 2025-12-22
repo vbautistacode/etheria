@@ -14,7 +14,13 @@ st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="cente
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """
-A pranaterapia integra respiração, som e visual para harmonizar o prana (energia vital).
+    Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital).
+    Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença.
+    """
+)
+st.caption(
+    """
+Nossa pranaterapia integra respiração, som e visual para harmonizar o seu ser.
 Use os controles abaixo para escolher um tema, aplicar presets, ativar drone harmônico, e executar práticas guiadas.
 """
 )
