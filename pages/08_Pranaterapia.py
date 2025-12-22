@@ -1,80 +1,56 @@
 # 08_pranaterapia.py
 import streamlit as st
 import time
+import base64
+from pathlib import Path
 
 st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """
-    Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital).
-    Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença.
-    """
-)
-st.caption(
-    """
-Nossa pranaterapia integra respiração, som (voz do navegador) e visual para harmonizar o seu ser.
-Escolha um chakra para aplicar um preset prático e iniciar a prática.
+Pranaterapia: práticas guiadas de respiração com áudio pré‑gravado (voz feminina, delicada).
+Faça upload dos WAVs gerados pela IA (voz feminina) para cada chakra e reproduza sessões sincronizadas.
 """
 )
+st.caption("Carregue arquivos de áudio (WAV) para cada chakra ou um arquivo de sessão por chakra.")
 
 # -------------------------
-# Presets práticos por chakra (foco em resultados)
+# Presets por chakra (nomes em sânscrito)
 # -------------------------
-CHAKRA_PRESETS = {
-    "Muladhara": {  # Root
-        "color": "#D9534F",
-        "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6},
-        "cue": "double",
-        "affirmation": "Estou seguro e enraizado."
-    },
-    "Svadhisthana": {  # Sacral
-        "color": "#F39C12",
-        "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6},
-        "cue": "single",
-        "affirmation": "Minha criatividade flui."
-    },
-    "Manipura": {  # Solar Plexus
-        "color": "#F1C40F",
-        "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8},
-        "cue": "double",
-        "affirmation": "Ação com clareza."
-    },
-    "Anahata": {  # Heart
-        "color": "#27AE60",
-        "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6},
-        "cue": "soft",
-        "affirmation": "Abro meu coração."
-    },
-    "Vishuddha": {  # Throat
-        "color": "#3498DB",
-        "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5},
-        "cue": "single",
-        "affirmation": "Comunico com verdade."
-    },
-    "Ajna": {  # Third Eye
-        "color": "#5B2C6F",
-        "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5},
-        "cue": "soft",
-        "affirmation": "Minha percepção se afina."
-    },
-    "Sahasrara": {  # Crown
-        "color": "#8E44AD",
-        "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4},
-        "cue": "soft",
-        "affirmation": "Conecto-me ao silêncio."
-    },
+CHAKRAS = {
+    "Muladhara": {"color": "#D9534F", "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6}, "affirmation": "Estou seguro e enraizado."},
+    "Svadhisthana": {"color": "#F39C12", "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6}, "affirmation": "Minha criatividade flui."},
+    "Manipura": {"color": "#F1C40F", "preset": {"inhale": 2.5, "hold1": 0, "exhale": 2.5, "hold2": 0, "cycles": 8}, "affirmation": "Ação com clareza."},
+    "Anahata": {"color": "#27AE60", "preset": {"inhale": 4, "hold1": 0, "exhale": 6, "hold2": 0, "cycles": 6}, "affirmation": "Abro meu coração."},
+    "Vishuddha": {"color": "#3498DB", "preset": {"inhale": 4, "hold1": 1, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Comunico com verdade."},
+    "Ajna": {"color": "#5B2C6F", "preset": {"inhale": 4, "hold1": 2, "exhale": 4, "hold2": 0, "cycles": 5}, "affirmation": "Minha percepção se afina."},
+    "Sahasrara": {"color": "#8E44AD", "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4}, "affirmation": "Conecto-me ao silêncio."},
 }
 
-# -------------------------
-# UI: seleção de chakra e controles
-# -------------------------
-st.subheader("🎯 Escolha o chakra a trabalhar (preset prático)")
-chakra = st.selectbox("Chakra", options=list(CHAKRA_PRESETS.keys()))
-theme = CHAKRA_PRESETS[chakra]
+st.subheader("1. Selecione o chakra e carregue o áudio")
+chakra = st.selectbox("Chakra (sânscrito)", options=list(CHAKRAS.keys()))
+theme = CHAKRAS[chakra]
 st.markdown(f"**Foco:** {theme['affirmation']}")
 st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>", unsafe_allow_html=True)
 
-# controles manuais (inicializados com preset do chakra)
+# -------------------------
+# Uploads: sessão única ou fases
+# -------------------------
+st.markdown("**Carregue os arquivos WAV** (voz feminina, delicada). Pode enviar um arquivo de sessão completo ou dois arquivos por fase (inhale/exhale).")
+col1, col2 = st.columns(2)
+with col1:
+    session_file = st.file_uploader("Arquivo de sessão (opcional) — WAV", type=["wav"], key=f"session_{chakra}")
+with col2:
+    inhale_file = st.file_uploader("Inhale (opcional) — WAV", type=["wav"], key=f"inhale_{chakra}")
+    exhale_file = st.file_uploader("Exhale (opcional) — WAV", type=["wav"], key=f"exhale_{chakra}")
+
+# -------------------------
+# Modo de reprodução
+# -------------------------
+st.subheader("2. Modo de reprodução")
+mode = st.radio("Modo", ["Sessão única (arquivo)", "Sino + voz por fase (arquivos separados)", "Visual apenas"], index=0)
+use_bell = st.checkbox("Usar sino suave antes de cada fala", value=True)
+# controles manuais (inicializados com preset)
 preset = theme["preset"]
 inhale = st.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=30.0, step=0.5)
 hold1 = st.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=30.0, step=0.5)
@@ -82,284 +58,222 @@ exhale = st.number_input("Expire (s)", value=float(preset["exhale"]), min_value=
 hold2 = st.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=30.0, step=0.5)
 cycles = st.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
 
-if st.button("Aplicar preset do chakra"):
-    st.session_state["inhale"] = float(preset["inhale"])
-    st.session_state["hold1"] = float(preset["hold1"])
-    st.session_state["exhale"] = float(preset["exhale"])
-    st.session_state["hold2"] = float(preset["hold2"])
-    st.session_state["cycles"] = int(preset["cycles"])
-    st.success("Preset aplicado. Ajuste os valores se desejar e inicie a prática.")
+# -------------------------
+# Cache loader para bytes
+# -------------------------
+@st.cache_data
+def load_bytes(uploaded_file):
+    if uploaded_file is None:
+        return None
+    return uploaded_file.read()
 
-# acessibilidade e opções
-st.sidebar.subheader("Opções")
-no_audio = st.sidebar.checkbox("Sem áudio (visual apenas)", value=False)
-speak_enabled = st.sidebar.checkbox("Voz do navegador (Inspire/Expire)", value=True)
-visual_only = st.sidebar.checkbox("Modo visual simplificado", value=False)
-adaptive_rhythm = st.sidebar.checkbox("Variação adaptativa leve (±5%)", value=True)
+# carregar bytes
+session_bytes = load_bytes(session_file)
+inhale_bytes = load_bytes(inhale_file)
+exhale_bytes = load_bytes(exhale_file)
 
 # -------------------------
-# Função que injeta HTML/JS com Web Speech API
+# Função utilitária: base64 para embutir áudio no HTML
 # -------------------------
-def breathing_animation_html_with_voice(
-    inhale: float, exhale: float, hold1: float, hold2: float, cycles: int,
-    color: str, label_prefix: str = "", speak_enabled: bool = True, voice_lang: str = "pt-BR", cue_pattern: str = "single",
-    use_bell: bool = True
-) -> str:
-    inh_ms = int(inhale * 1000)
-    h1_ms = int(hold1 * 1000)
-    exh_ms = int(exhale * 1000)
-    h2_ms = int(hold2 * 1000)
-    cycles_js = int(cycles)
-    speak_flag = "true" if speak_enabled else "false"
-    bell_flag = "true" if use_bell else "false"
+def wav_bytes_to_base64(b: bytes) -> str:
+    return base64.b64encode(b).decode("ascii")
 
+# -------------------------
+# Função que monta HTML sincronizado (usa <audio> e JS)
+# -------------------------
+def build_synced_html(wav_b64: str, total_time: float, color: str, label_prefix: str = "") -> str:
+    """
+    Retorna HTML que cria um player <audio> com o WAV embutido e inicia animação sincronizada.
+    Use para reproduzir um arquivo de sessão único.
+    """
     html = f"""
-<style>
-  .breath-wrap {{ display:flex; align-items:center; justify-content:center; flex-direction:column; }}
-  .circle {{ width:160px; height:160px; border-radius:50%; background: radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow: 0 12px 36px rgba(0,0,0,0.08); transform-origin:center; }}
-  .label {{ margin-top:12px; font-size:18px; font-weight:600; color:#222; }}
-</style>
-<div class="breath-wrap">
-  <div id="circle" class="circle" aria-hidden="true"></div>
-  <div id="label" class="label">{label_prefix}Prepare-se...</div>
+<div style="display:flex;flex-direction:column;align-items:center;">
+  <audio id="sessionAudio" src="data:audio/wav;base64,{wav_b64}" preload="auto" controls></audio>
+  <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
+    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
+    <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
+  </div>
 </div>
 <script>
-(function(){{ 
-  const circle = document.getElementById("circle");
-  const label = document.getElementById("label");
-  const inhale = {inh_ms};
-  const hold1 = {h1_ms};
-  const exhale = {exh_ms};
-  const hold2 = {h2_ms};
-  const cycles = {cycles_js};
-  const speakEnabled = {speak_flag};
-  const voiceLang = "{voice_lang}";
-  const cuePattern = "{cue_pattern}";
-  const useBell = {bell_flag};
+(function(){{
+  const audio = document.getElementById('sessionAudio');
+  const circle = document.getElementById('circle');
+  const label = document.getElementById('label');
 
   function setLabel(text){{ label.textContent = text; }}
 
-  // WebAudio bell (soft ping) com envelope
-  function playBell(freq=440, duration=0.12, volume=0.06) {{
-    try {{
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = freq;
-      g.gain.value = 0.0;
-      o.connect(g);
-      g.connect(ctx.destination);
-      const now = ctx.currentTime;
-      // envelope suave
-      g.gain.linearRampToValueAtTime(volume, now + 0.01);
-      g.gain.linearRampToValueAtTime(0.0, now + duration);
-      o.start(now);
-      o.stop(now + duration + 0.02);
-      // fechar contexto após curto delay para liberar recursos
-      setTimeout(()=>{{ try{{ ctx.close(); }}catch(e){{}} }}, (duration+0.1)*1000);
-    }} catch(e){{ /* falha silenciosa */ }}
-  }}
+  // Exemplo simples: enquanto o áudio toca, animar o círculo com base no tempo atual.
+  // Para sessões geradas com marcas de tempo, você pode mapear audio.currentTime para fases.
+  audio.onplay = () => setLabel("Sessão em andamento");
+  audio.onended = () => setLabel("Concluído");
 
-  // Seleciona voz preferencial (prioriza pt-BR e vozes de qualidade)
-  function pickVoice() {{
-    const voices = window.speechSynthesis.getVoices() || [];
-    if (voices.length === 0) return null;
-    let candidates = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(voiceLang.toLowerCase()));
-    if (candidates.length === 0) candidates = voices;
-    let preferred = candidates.find(v => /google|microsoft|amazon|neural|wave/i.test(v.name));
-    if (!preferred) preferred = candidates[0];
-    return preferred;
-  }}
-
-  // Fala assíncrona que resolve quando termina; não cancela fala anterior imediatamente
-  function speakAsync(text, voice, opts) {{
-    return new Promise(resolve => {{
-      if (!speakEnabled || !window.speechSynthesis) return resolve();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = voiceLang;
-      u.rate = opts.rate || 0.92;    // mais lento por padrão
-      u.pitch = opts.pitch || 0.92;  // pitch levemente reduzido
-      u.volume = opts.volume || 0.75; // volume moderado
-      if (voice) u.voice = voice;
-      u.onend = () => resolve();
-      u.onerror = () => resolve();
-      try {{ window.speechSynthesis.speak(u); }} catch(e){{ resolve(); }}
-    }});
-  }}
-
-  async function ensureVoicesLoaded() {{
-    return new Promise(r => {{
-      const v = window.speechSynthesis.getVoices();
-      if (v.length > 0) return r();
-      window.speechSynthesis.onvoiceschanged = function(){{ r(); }};
-      setTimeout(r, 800);
-    }});
-  }}
-
-  async function runCycle() {{
-    if (speakEnabled && window.speechSynthesis) {{
-      await ensureVoicesLoaded();
+  // animação contínua suave enquanto o áudio toca
+  let animId = null;
+  function animate() {{
+    if (audio.paused) {{
+      if (animId) cancelAnimationFrame(animId);
+      animId = null;
+      return;
     }}
-    const voice = pickVoice();
-
-    // preparação curta e suave
-    setLabel("Prepare-se");
-    if (useBell) playBell(520, 0.12, 0.04);
-    if (speakEnabled) await speakAsync("Prepare-se, com calma", voice, {{rate:0.92, pitch:0.95, volume:0.75}});
-    await new Promise(r => setTimeout(r, 400));
-
-    for (let cycle = 0; cycle < cycles; cycle++) {{
-      // INHALE
-      setLabel("Inspire devagar e profundamente");
-      circle.style.transition = "transform " + (inhale/1000) + "s ease-in-out";
-      circle.style.transform = "scale(1.35)";
-      if (useBell) playBell(520, 0.08, 0.04);
-      if (speakEnabled) {{
-        // frases mais longas e suaves
-        if (cuePattern === "double") speakAsync("Inspire devagar e profundamente", voice, {{rate:0.96, pitch:0.98, volume:0.78}});
-        else if (cuePattern === "soft") speakAsync("Inspire devagar e profundamente", voice, {{rate:0.9, pitch:0.9, volume:0.7}});
-        else speakAsync("Inspire devagar e profundamente", voice, {{rate:0.92, pitch:0.92, volume:0.75}});
-      }}
-      await new Promise(r => setTimeout(r, inhale));
-
-      // HOLD1
-      if (hold1 > 0) {{
-        setLabel("Segure");
-        await new Promise(r => setTimeout(r, hold1));
-      }}
-
-      // EXHALE
-      setLabel("Expire devagar e completamente");
-      circle.style.transition = "transform " + (exhale/1000) + "s ease-in-out";
-      circle.style.transform = "scale(0.75)";
-      if (useBell) playBell(420, 0.08, 0.04); // tom ligeiramente mais grave
-      if (speakEnabled) {{
-        if (cuePattern === "double") speakAsync("Expire devagar e completamente", voice, {{rate:0.94, pitch:0.9, volume:0.78}});
-        else if (cuePattern === "soft") speakAsync("Expire devagar e completamente", voice, {{rate:0.88, pitch:0.88, volume:0.7}});
-        else speakAsync("Expire devagar e completamente", voice, {{rate:0.92, pitch:0.9, volume:0.75}});
-      }}
-      await new Promise(r => setTimeout(r, exhale));
-
-      // HOLD2
-      if (hold2 > 0) {{
-        setLabel("Segure");
-        await new Promise(r => setTimeout(r, hold2));
-      }}
-    }}
-    setLabel("Concluído");
-    circle.style.transform = "scale(1)";
+    const t = audio.currentTime % 2.0; // ciclo visual simples
+    const scale = 1 + 0.25 * Math.sin((t / 2.0) * Math.PI * 2);
+    circle.style.transform = `scale(${scale})`;
+    animId = requestAnimationFrame(animate);
   }}
 
-  runCycle();
+  audio.onplay = () => animate();
+  audio.onpause = () => {{ if (animId) cancelAnimationFrame(animId); animId = null; }};
+  audio.onended = () => {{ if (animId) cancelAnimationFrame(animId); animId = null; }};
 }})();
 </script>
 """
     return html
 
 # -------------------------
-# Controles principais
+# Função que monta HTML para tocar inhale/exhale sequencialmente (sino + voz por fase)
 # -------------------------
-col1, col2 = st.columns([1, 1])
-with col1:
-    start_btn = st.button("▶️ Iniciar prática")
-with col2:
-    stop_btn = st.button("⏹️ Parar (interrompe visual)")
+def build_phase_player_html(inhale_b64: str, exhale_b64: str, inhale_s: float, exhale_s: float, cycles: int, color: str, use_bell: bool, label_prefix: str = "") -> str:
+    """
+    Cria HTML que toca inhale/exhale em sequência usando elementos <audio> e sincroniza animação.
+    Recomendado quando você tem arquivos separados por fase.
+    """
+    bell_script = ""
+    if use_bell:
+        # bell: WebAudio simple ping
+        bell_script = """
+function playBell(freq=520, duration=0.08, volume=0.04) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.value = 0.0;
+    o.connect(g);
+    g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    g.gain.linearRampToValueAtTime(volume, now + 0.01);
+    g.gain.linearRampToValueAtTime(0.0, now + duration);
+    o.start(now);
+    o.stop(now + duration + 0.02);
+    setTimeout(()=>{ try{ ctx.close(); }catch(e){} }, (duration+0.1)*1000);
+  } catch(e) {}
+}
+"""
+    html = f"""
+<div style="display:flex;flex-direction:column;align-items:center;">
+  <audio id="inhaleAudio" src="data:audio/wav;base64,{inhale_b64}" preload="auto"></audio>
+  <audio id="exhaleAudio" src="data:audio/wav;base64,{exhale_b64}" preload="auto"></audio>
+  <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
+    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
+    <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
+  </div>
+</div>
+<script>
+(function(){{
+  const inhaleAudio = document.getElementById('inhaleAudio');
+  const exhaleAudio = document.getElementById('exhaleAudio');
+  const circle = document.getElementById('circle');
+  const label = document.getElementById('label');
+  {bell_script}
 
-# exibir afirmação do chakra
-st.markdown("**Afirmação**")
-st.info(theme["affirmation"])
+  function setLabel(text){{ label.textContent = text; }}
+
+  async function runSequence() {{
+    for (let c=0; c < {cycles}; c++) {{
+      setLabel("Inspire");
+      if ({str(use_bell).lower()}) playBell(520,0.08,0.04);
+      inhaleAudio.currentTime = 0;
+      inhaleAudio.play();
+      await new Promise(r => setTimeout(r, Math.max(500, {int(inhale_s*1000)})));
+
+      if ({int(theme['preset']['hold1']>0)}) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, {int(hold1*1000)}));
+      }}
+
+      setLabel("Expire");
+      if ({str(use_bell).lower()}) playBell(420,0.08,0.04);
+      exhaleAudio.currentTime = 0;
+      exhaleAudio.play();
+      await new Promise(r => setTimeout(r, Math.max(500, {int(exhale_s*1000)})));
+
+      if ({int(theme['preset']['hold2']>0)}) {{
+        setLabel("Segure");
+        await new Promise(r => setTimeout(r, {int(hold2*1000)}));
+      }}
+    }}
+    setLabel("Concluído");
+  }}
+
+  // iniciar automaticamente quando o HTML for renderizado
+  runSequence();
+}})();
+</script>
+"""
+    return html
 
 # -------------------------
-# Execução: injetar HTML/JS com voz (cliente)
+# Ações: iniciar prática
 # -------------------------
-if start_btn:
-    # carregar valores possivelmente atualizados na sessão
-    inhale = float(st.session_state.get("inhale", inhale))
-    hold1 = float(st.session_state.get("hold1", hold1))
-    exhale = float(st.session_state.get("exhale", exhale))
-    hold2 = float(st.session_state.get("hold2", hold2))
-    cycles = int(st.session_state.get("cycles", cycles))
-
-    # montar HTML/JS e renderizar (voz roda no navegador)
-    html = breathing_animation_html_with_voice(
-        inhale=inhale,
-        exhale=exhale,
-        hold1=hold1,
-        hold2=hold2,
-        cycles=cycles,
-        color=theme["color"],
-        label_prefix=theme["label"] + " — " if "label" in theme else "",
-        speak_enabled=(speak_enabled and not no_audio),
-        voice_lang="pt-BR",
-        cue_pattern=theme.get("cue", "single")
-    )
-    st.components.v1.html(html, height=360)
-
-    # visual fallback/placeholder para acompanhar (servidor)
-    placeholder = st.empty()
-    total_time = (inhale + hold1 + exhale + hold2) * cycles
-    elapsed = 0.0
-    progress = st.progress(0)
-    for c in range(int(cycles)):
-        if stop_btn:
-            placeholder.markdown("### ⏹️ Sessão interrompida.")
-            break
-        # aplicar variação adaptativa leve
-        if adaptive_rhythm:
-            inh = max(0.5, round(inhale * (1.0 + 0.05 * (0.5 - (time.time() % 1)))), 2)
-            exh = max(0.5, round(exhale * (1.0 + 0.05 * (0.5 - ((time.time()+0.3) % 1)))), 2)
+st.subheader("3. Iniciar prática")
+start = st.button("▶️ Iniciar prática")
+if start:
+    if mode == "Sessão única (arquivo)":
+        if session_bytes is None:
+            st.error("Nenhum arquivo de sessão carregado. Faça upload de um WAV de sessão para este chakra.")
         else:
-            inh = inhale
-            exh = exhale
-
-        placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inh}s**")
-        if not visual_only:
-            time.sleep(inh)
+            b64 = wav_bytes_to_base64(session_bytes)
+            html = build_synced_html(b64, total_time=(inhale+hold1+exhale+hold2)*cycles, color=theme["color"], label_prefix=chakra + " — ")
+            st.components.v1.html(html, height=420)
+    elif mode == "Sino + voz por fase (arquivos separados)":
+        if inhale_bytes is None or exhale_bytes is None:
+            st.error("Envie os arquivos de inhale e exhale para usar este modo.")
         else:
-            time.sleep(max(0.2, inh * 0.2))
-        elapsed += inh
-        progress.progress(min(1.0, elapsed / total_time))
-
-        if hold1 > 0:
-            placeholder.markdown(f"### ⏸️ Segure por **{hold1}s**")
-            if not visual_only:
+            b64_in = wav_bytes_to_base64(inhale_bytes)
+            b64_ex = wav_bytes_to_base64(exhale_bytes)
+            html = build_phase_player_html(b64_in, b64_ex, inhale, exhale, cycles, theme["color"], use_bell, label_prefix=chakra + " — ")
+            st.components.v1.html(html, height=420)
+    else:
+        # visual only: servidor faz contagem e animação textual
+        placeholder = st.empty()
+        total_time = (inhale + hold1 + exhale + hold2) * cycles
+        elapsed = 0.0
+        progress = st.progress(0)
+        for c in range(int(cycles)):
+            placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inhale}s**")
+            time.sleep(inhale)
+            elapsed += inhale
+            progress.progress(min(1.0, elapsed / total_time))
+            if hold1 > 0:
+                placeholder.markdown(f"### ⏸️ Segure por **{hold1}s**")
                 time.sleep(hold1)
-            else:
-                time.sleep(max(0.2, hold1 * 0.2))
-            elapsed += hold1
+                elapsed += hold1
+                progress.progress(min(1.0, elapsed / total_time))
+            placeholder.markdown(f"### 💨 Expire por **{exhale}s**")
+            time.sleep(exhale)
+            elapsed += exhale
             progress.progress(min(1.0, elapsed / total_time))
-
-        placeholder.markdown(f"### 💨 Expire por **{exh}s**")
-        if not visual_only:
-            time.sleep(exh)
-        else:
-            time.sleep(max(0.2, exh * 0.2))
-        elapsed += exh
-        progress.progress(min(1.0, elapsed / total_time))
-
-        if hold2 > 0:
-            placeholder.markdown(f"### ⏸️ Segure por **{hold2}s**")
-            if not visual_only:
+            if hold2 > 0:
+                placeholder.markdown(f"### ⏸️ Segure por **{hold2}s**")
                 time.sleep(hold2)
-            else:
-                time.sleep(max(0.2, hold2 * 0.2))
-            elapsed += hold2
-            progress.progress(min(1.0, elapsed / total_time))
-
-    placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
-    progress.progress(1.0)
+                elapsed += hold2
+                progress.progress(min(1.0, elapsed / total_time))
+        placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
+        progress.progress(1.0)
 
 # -------------------------
-# Segurança e notas finais
+# Segurança e instruções finais
 # -------------------------
 st.markdown("---")
-st.subheader("Recursos e segurança")
+st.subheader("Notas práticas e segurança")
 st.markdown(
     """
+- **Como preparar os WAVs:** gere clipes com voz feminina e delicada (frases curtas: "Inspire devagar e profundamente", "Expire devagar e completamente") e aplique fade in/out curto e normalização leve.  
+- **Formato recomendado:** WAV mono, 22050–44100 Hz, 16‑bit.  
+- **Sincronização:** para melhor sincronização use um arquivo de sessão único que já contenha todas as falas e pings na ordem correta. O app reproduz esse arquivo e a animação cliente‑lado é iniciada junto.  
+- **Privacidade e custos:** se os WAVs foram gerados por um serviço de IA, verifique termos de uso e licenças.  
 - **Contraindicações:** se tiver problemas respiratórios, cardíacos, pressão alta, gravidez ou qualquer condição médica, consulte um profissional antes de praticar.
-- **Dica:** pratique sentado com coluna ereta e ombros relaxados. Evite prender a respiração de forma forçada.
-- **Nota técnica:** a voz é gerada pelo navegador (Web Speech API). Em alguns navegadores a voz pt-BR pode não estar disponível; nesses casos a fala pode usar outra voz instalada.
 """
 )
-st.caption("Pranaterapia — práticas guiadas para integrar respiração, presença e intenção.")
+st.caption("Pranaterapia — práticas guiadas com áudio pré‑gravado (voz feminina, delicada).")
