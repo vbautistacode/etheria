@@ -253,16 +253,9 @@ if session_path.exists() and intent == "Respiração guiada":
 
     html_sync = f"""
     <div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
-      <button id="prana_visual_play_{escaped_fname}" style="padding:12px 18px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;">
-        ▶️ Iniciar / Pausar
-      </button>
-      <button id="prana_visual_stop_{escaped_fname}" style="padding:12px 18px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;margin-left:8px;">
-        ⏹️ Parar
-      </button>
-
       <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:12px;
           background:radial-gradient(circle at 30% 30%, #fff8, {color});
-          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_pulse_{escaped_fname} 2000ms ease-in-out infinite;">
+          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_pulse_{escaped_fname} 2000ms ease-in-out infinite;cursor:pointer;">
       </div>
       <div id="prana_status_{escaped_fname}" style="margin-top:8px;font-weight:600;color:#222">Pronto</div>
       <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;margin-top:8px;"></div>
@@ -349,7 +342,7 @@ if session_path.exists() and intent == "Respiração guiada":
 
         // atualiza log e status
         setLog('Ciclo ' + (currentCycle+1) + '/' + cycles + ' — ' + seg.label + ' ' + Math.ceil(seg.t * (1 - progress)) + 's');
-        setStatus('Tocando (cliente)');
+        setStatus('Tocando');
 
         // calcula escala e aplica
         const scale = computeScaleForSegment(seg.label, progress);
@@ -394,18 +387,18 @@ if session_path.exists() and intent == "Respiração guiada":
           currentSegmentIndex = 0;
           segmentStart = performance.now();
           circle.style.animation = 'none';
-          setLog('Iniciando prática (cliente)');
+          setLog('Iniciando prática');
           playBtn.textContent = '⏸️ Pausar';
-          setStatus('Tocando (cliente)');
+          setStatus('Tocando');
           raf = requestAnimationFrame(animateFrameLoop);
         }} else if (breathingRunning && paused) {{
           // retomar
           paused = false;
           // ajustar segmentStart para compensar o tempo em pausa
           segmentStart = performance.now() - (pausedElapsed || 0);
-          setLog('Retomando prática (cliente)');
+          setLog('Retomando prática');
           playBtn.textContent = '⏸️ Pausar';
-          setStatus('Tocando (cliente)');
+          setStatus('Tocando');
           raf = requestAnimationFrame(animateFrameLoop);
         }}
       }}
@@ -420,7 +413,7 @@ if session_path.exists() and intent == "Respiração guiada":
         // compute elapsed in current segment to resume later
         pausedElapsed = pauseTime - segmentStart;
         setLog('Pausado');
-        setStatus('Pausado (cliente)');
+        setStatus('Pausado');
         playBtn.textContent = '▶️ Iniciar / Pausar';
         if (raf) cancelAnimationFrame(raf);
         raf = null;
@@ -453,8 +446,8 @@ if session_path.exists() and intent == "Respiração guiada":
               // recompute segmentStart so that pausedElapsed is respected
               segmentStart = performance.now() - (pausedElapsed || 0);
               paused = false;
-              setLog('Retomando prática (cliente)');
-              setStatus('Tocando (cliente)');
+              setLog('Retomando prática');
+              setStatus('Tocando');
               playBtn.textContent = '⏸️ Pausar';
               raf = requestAnimationFrame(animateFrameLoop);
             }} else {{
@@ -484,7 +477,7 @@ if session_path.exists() and intent == "Respiração guiada":
       }});
 
       // Inicialização visual
-      setStatus('Pronto (cliente)');
+      setStatus('Pronto');
       setLog('Pronto para iniciar. A esfera seguirá o ciclo de respiração definido.');
 
 }})();
