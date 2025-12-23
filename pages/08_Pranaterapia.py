@@ -84,7 +84,6 @@ def load_wav_from_path(path: str):
 def wav_bytes_to_base64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
 
-
 # -------------------------
 # Função: player manual com esfera animada
 # -------------------------
@@ -209,8 +208,34 @@ if "playing" not in st.session_state:
 if "stop_flag" not in st.session_state:
     st.session_state.stop_flag = False
 
+
+
 # localizar arquivo de sessão
 session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+from pathlib import Path
+st.write("DEBUG session_path:", session_path)
+try:
+    st.write("exists:", session_path.exists())
+    if session_path.exists():
+        stat = session_path.stat()
+        st.write("size_bytes:", stat.st_size, "mode:", oct(stat.st_mode))
+        with open(session_path, "rb") as f:
+            head = f.read(64)
+        st.write("first_bytes_hex:", head[:16].hex())
+    else:
+        # listar arquivos no diretório para ver o que há
+        parent = session_path.parent
+        st.write("listing parent dir:", parent)
+        try:
+            files = [p.name for p in parent.iterdir()]
+            st.write("files:", files)
+        except Exception as e:
+            st.write("erro listando parent:", str(e))
+except Exception as e:
+    st.error("Erro ao acessar arquivo: " + str(e))
+
+
 
 # renderizar player sempre que o arquivo existir (esfera visível imediatamente)
 if session_path.exists():
