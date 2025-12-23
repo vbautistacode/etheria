@@ -171,7 +171,7 @@ if start_btn:
         )
         # não forçar reprodução do áudio aqui; o usuário usará o player nativo
     elif intent == "Respiração alternada (Nadi Shodhana)":
-        st.subheader("🫁 🔀 Respiração alternada (Nadi Shodhana)")
+        st.subheader("🫁🔀 Respiração alternada (Nadi Shodhana)")
         st.markdown(
              """ 
              Técnica tradicional para equilibrar os canais energéticos (nadis) e acalmar a mente. 
