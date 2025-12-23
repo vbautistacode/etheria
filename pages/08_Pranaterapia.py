@@ -170,6 +170,100 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
 </script>
 """
 
+# Refatoração consolidada: player manual com esfera animada, fallback st.audio,
+# controles Start/Stop, breathing_cycle e verificação de arquivos.
+# Observação: SESSIONS_DIR, PHASES_DIR, CHAKRAS, chakra e theme são assumidos definidos em outro lugar.
+
+import time
+from pathlib import Path
+import streamlit as st
+
+# -------------------------
+# Função: player manual com esfera animada
+# -------------------------
+def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> str:
+    """
+    Retorna HTML/JS para:
+    - botão Iniciar (evita bloqueio de autoplay)
+    - botão Parar (pausa e zera)
+    - esfera animada sincronizada com audio.currentTime
+    - log simples de eventos
+    Use st.components.v1.html(html, height=...) para renderizar.
+    """
+    return f"""
+<div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+    <button id="startBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar (clique)</button>
+    <button id="stopBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
+    <div id="status" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
+  </div>
+
+  <div id="animWrap" style="display:flex;flex-direction:column;align-items:center;">
+    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;transition:transform 120ms linear;"></div>
+    <div id="log" style="margin-top:10px;font-size:12px;color:#666;min-height:18px"></div>
+  </div>
+
+  <audio id="sessionAudio" src="{url}" preload="auto" style="display:none"></audio>
+</div>
+
+<script>
+(function(){{
+  const audio = document.getElementById('sessionAudio');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const circle = document.getElementById('circle');
+  const status = document.getElementById('status');
+  const log = document.getElementById('log');
+
+  function setStatus(text){{ status.textContent = text; }}
+  function addLog(msg){{ log.textContent = msg; console.log(msg); }}
+
+  startBtn.addEventListener('click', async () => {{
+    try {{
+      await audio.play();
+      setStatus("Sessão em andamento");
+      addLog("play OK, currentTime=" + audio.currentTime.toFixed(2));
+    }} catch (e) {{
+      addLog("play failed: " + (e && e.name) + " - " + (e && e.message));
+    }}
+  }});
+
+  stopBtn.addEventListener('click', () => {{
+    try {{
+      audio.pause();
+      audio.currentTime = 0;
+      setStatus("Parado");
+      addLog("stopped");
+    }} catch(e) {{
+      addLog("stop error: " + (e && e.message));
+    }}
+  }});
+
+  audio.addEventListener('play', () => setStatus("Sessão em andamento"));
+  audio.addEventListener('pause', () => setStatus("Pausado"));
+  audio.addEventListener('ended', () => setStatus("Concluído"));
+  audio.addEventListener('error', () => addLog("audio error code: " + (audio.error && audio.error.code)));
+
+  let raf = null;
+  function animate() {{
+    if (audio.paused) {{
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      return;
+    }}
+    const t = audio.currentTime;
+    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+    circle.style.transform = `scale(${{scale}})`;
+    raf = requestAnimationFrame(animate);
+  }}
+
+  audio.addEventListener('play', () => animate());
+  audio.addEventListener('pause', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
+  audio.addEventListener('ended', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
+}})();
+</script>
+"""
+
 # -------------------------
 # Interface principal
 # -------------------------
@@ -203,23 +297,14 @@ cycles = st.sidebar.number_input(
     "Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1
 )
 
-# depois de garantir session_path.exists() == True
-url = f"/static/audio/sessions/{session_path.name}"
-html = build_synced_html_from_url(url, color=theme["color"], label_prefix=f"{chakra} — ", autoplay_flag=False)
-st.components.v1.html(html, height=220)
-
-# fallback robusto (Streamlit serve o arquivo localmente)
-#st.audio(str(session_path))
-
 # -------------------------
-# Session state flags e funções de controle
+# Session state flags e função de ciclo de respiração
 # -------------------------
 if "playing" not in st.session_state:
     st.session_state.playing = False
 if "stop_flag" not in st.session_state:
     st.session_state.stop_flag = False
 
-# função de ciclo de respiração (servidor)
 def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
     """Executa contagem no servidor com possibilidade de interrupção via st.session_state.stop_flag."""
     st.session_state.stop_flag = False
@@ -299,7 +384,6 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
 
 # -------------------------
 # Controles principais: escolha de prática e botões Iniciar / Parar
-# (removidos: "Sessão única" e modo por fases)
 # -------------------------
 intent = st.selectbox(
     "Prática",
@@ -316,12 +400,6 @@ with col_start:
 with col_stop:
     stop_btn = st.button("⏹️ Parar prática")
 
-# inicializar flags de sessão se necessário
-if "stop_flag" not in st.session_state:
-    st.session_state.stop_flag = False
-if "playing" not in st.session_state:
-    st.session_state.playing = False
-
 # ação de parar: sinaliza interrupção (não forçar rerun)
 if stop_btn:
     st.session_state.stop_flag = True
@@ -333,8 +411,6 @@ if start_btn:
     st.session_state.stop_flag = False
 
     if intent == "Respiração guiada":
-        # se houver um ciclo guiado por áudio/arquivo, marque playing conforme necessário
-        # aqui assumimos que breathing_cycle roda no servidor e respeita stop_flag
         breathing_cycle(inhale, hold1, exhale, hold2, cycles=int(cycles))
 
     elif intent == "Respiração quadrada (Box Breathing)":
@@ -373,15 +449,11 @@ if start_btn:
 
 # -------------------------
 # Player: renderiza player manual com esfera + fallback st.audio
-# - Só renderiza se existir o arquivo de sessão para o chakra atual
-# - Usa fallback para st.audio apenas quando o arquivo for pequeno
 # -------------------------
-# Ajuste SESSIONS_DIR e chakra conforme seu contexto (assumidos definidos em outro lugar)
 session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
 
 if session_path.exists():
     # se o usuário clicou em Start e a intenção for a que usa áudio, marque playing
-    # (opcional: você pode condicionar isso a um intent específico)
     if start_btn:
         st.session_state.playing = True
 
@@ -406,7 +478,6 @@ if session_path.exists():
             except Exception:
                 st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
         else:
-            # arquivo grande ou tamanho desconhecido: informar que o player HTML é o método recomendado
             st.info("Usando player por URL (clique em Iniciar). Arquivo grande — st.audio não foi usado como fallback.")
 else:
     # se não existir arquivo de sessão, não renderiza player; opcionalmente exibe aviso
