@@ -215,30 +215,39 @@ if session_path.exists() and intent == "Respiração guiada":
 
     # Bloco HTML/JS robusto: botão visual aciona o <audio>, espera o elemento aparecer e inicia esfera+contagem
 
-    html_sync = f"""
-    <div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
-      <button id="prana_visual_play_{escaped_fname}" style="padding:12px 18px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;">
-        ▶️ Iniciar / Pausar
+    # Cole este bloco imediatamente APÓS st.audio(str(session_path))
+    html_hide_player_and_control = f"""
+    <div id="prana_wrapper_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
+      <!-- botão visível que inicia tudo (pode ser estilizado ou removido se preferir clicar na esfera) -->
+      <button id="prana_start_btn_{escaped_fname}" style="padding:12px 18px;border-radius:10px;border:none;background:{color};color:#fff;cursor:pointer;font-weight:700;">
+        ▶️ Iniciar prática
       </button>
-      <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:12px;
+
+      <!-- esfera visível -->
+      <div id="prana_circle_{escaped_fname}" style="width:180px;height:180px;border-radius:50%;margin-top:14px;
           background:radial-gradient(circle at 30% 30%, #fff8, {color});
-          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_pulse_{escaped_fname} 2000ms ease-in-out infinite;">
+          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_idle_{escaped_fname} 2000ms ease-in-out infinite;">
       </div>
-      <div id="prana_status_{escaped_fname}" style="margin-top:8px;font-weight:600;color:#222">Pronto</div>
-      <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;margin-top:8px;"></div>
+
+      <div id="prana_status_{escaped_fname}" style="margin-top:10px;font-weight:600;color:#222">Pronto</div>
+      <div id="prana_log_{escaped_fname}" style="font-family:monospace;white-space:pre-wrap;margin-top:8px;color:#333;min-height:36px;"></div>
     </div>
 
     <style>
-    @keyframes prana_pulse_{escaped_fname} {{ 0%{{transform:scale(1)}}50%{{transform:scale(1.04)}}100%{{transform:scale(1)}} }}
+    @keyframes prana_idle_{escaped_fname} {{
+      0% {{ transform: scale(1); opacity: 0.98; }}
+      50% {{ transform: scale(1.03); opacity: 1; }}
+      100% {{ transform: scale(1); opacity: 0.98; }}
+    }}
     </style>
 
     <script>
     (function(){{
-      const filename = "{escaped_fname}";
-      const playBtn = document.getElementById('prana_visual_play_' + filename);
-      const circle = document.getElementById('prana_circle_' + filename);
-      const statusEl = document.getElementById('prana_status_' + filename);
-      const logEl = document.getElementById('prana_breath_log_' + filename);
+      const fname = "{escaped_fname}";
+      const startBtn = document.getElementById('prana_start_btn_' + fname);
+      const circle = document.getElementById('prana_circle_' + fname);
+      const statusEl = document.getElementById('prana_status_' + fname);
+      const logEl = document.getElementById('prana_log_' + fname);
 
       const inhale = {inhale};
       const hold1 = {hold1};
@@ -246,30 +255,39 @@ if session_path.exists() and intent == "Respiração guiada":
       const hold2 = {hold2};
       const cycles = {int(cycles)};
 
-      function setStatus(t){{ if (statusEl) statusEl.textContent = t; }}
-      function setLog(t){{ if (logEl) logEl.textContent = t; console.log('[prana]', t); }}
+      function dbg(msg) {{ try{{ console.log('[prana]', msg); }}catch(e){{}} if(logEl) logEl.textContent += msg + "\\n"; }}
+      function setStatus(t) {{ if(statusEl) statusEl.textContent = t; }}
+      function setLog(t) {{ if(logEl) logEl.textContent = t; dbg(t); }}
 
-      function findAudioByFilename(fname){{
+      // procura o <audio> criado por st.audio
+      function findAudio() {{
         const audios = Array.from(document.querySelectorAll('audio'));
-        for (const a of audios){{
-          try{{ if (a.currentSrc && a.currentSrc.indexOf(fname) !== -1) return a; }}catch(e){{}}
-        }}
-        for (const a of audios){{
-          try{{ const s = a.querySelector && a.querySelector('source') && a.querySelector('source').src; if (s && s.indexOf(fname) !== -1) return a; }}catch(e){{}}
-        }}
-        for (const a of audios){{
-          try{{ const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src); if (src && src.endsWith(fname)) return a; }}catch(e){{}}
+        for (const a of audios) {{
+          try {{
+            const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
+            if (src && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
+          }} catch(e){{}}
         }}
         if (audios.length === 1) return audios[0];
         return null;
       }}
 
-      let audio = findAudioByFilename(filename);
-      setLog('Procura inicial por audio: ' + filename + ' -> encontrado? ' + !!audio);
+      // oculta controles do player nativo (se existir) para que só vejamos a esfera
+      function hideNativePlayer(a) {{
+        try {{
+          if (!a) return;
+          a.controls = false;
+          a.style.display = 'none';
+          // se houver wrapper do Streamlit, também escondemos visualmente (opcional)
+          const parent = a.closest('[data-testid="stAudio"]') || a.parentElement;
+          if (parent) parent.style.display = 'none';
+          dbg('player nativo ocultado');
+        }} catch(e) {{ dbg('erro ao ocultar player: ' + e); }}
+      }}
 
-      // animação da esfera baseada no tempo do áudio
+      // animação da esfera baseada no tempo do audio
       let raf = null;
-      function animateFrame(){{
+      function animateFrame(audio) {{
         if (!audio || audio.paused) {{
           if (raf) cancelAnimationFrame(raf);
           raf = null;
@@ -278,17 +296,17 @@ if session_path.exists() and intent == "Respiração guiada":
         const t = audio.currentTime || 0;
         const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
         circle.style.transform = 'scale(' + scale + ')';
-        raf = requestAnimationFrame(animateFrame);
+        raf = requestAnimationFrame(() => animateFrame(audio));
       }}
 
-      // contagem de respiração no cliente (respeita pausas do áudio)
+      // contagem cliente (respeita pausas do audio)
       let breathingRunning = false;
-      function startClientBreathing(){{
+      function startClientBreathing(audio) {{
         if (breathingRunning) return;
         breathingRunning = true;
         let cycleIndex = 0;
 
-        function runCycle(){{
+        function runCycle() {{
           if (!breathingRunning) return;
           if (cycleIndex >= cycles) {{
             setLog('Prática concluída');
@@ -297,39 +315,29 @@ if session_path.exists() and intent == "Respiração guiada":
           }}
           cycleIndex++;
           const seq = [
-            {{label: 'Inspire', t: inhale}},
-            {{label: 'Segure', t: hold1}},
-            {{label: 'Expire', t: exhale}},
-            {{label: 'Segure', t: hold2}}
+            {{label:'Inspire', t:inhale}},
+            {{label:'Segure', t:hold1}},
+            {{label:'Expire', t:exhale}},
+            {{label:'Segure', t:hold2}}
           ];
           let segIndex = 0;
 
-          function nextSegment(){{
+          function nextSegment() {{
             if (!breathingRunning) return;
             if (segIndex >= seq.length) {{
               setTimeout(runCycle, 200);
               return;
             }}
             const seg = seq[segIndex++];
-            if (seg.t <= 0) {{
-              nextSegment();
-              return;
-            }}
+            if (seg.t <= 0) {{ nextSegment(); return; }}
             setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
             const start = performance.now();
-
-            function waitLoop(){{
+            function waitLoop() {{
               if (!breathingRunning) return;
-              if (audio && audio.paused) {{
-                setTimeout(waitLoop, 200);
-                return;
-              }}
+              if (audio && audio.paused) {{ setTimeout(waitLoop, 200); return; }}
               const elapsed = (performance.now() - start) / 1000;
-              if (elapsed >= seg.t) {{
-                nextSegment();
-              }} else {{
-                requestAnimationFrame(waitLoop);
-              }}
+              if (elapsed >= seg.t) nextSegment();
+              else requestAnimationFrame(waitLoop);
             }}
             waitLoop();
           }}
@@ -338,37 +346,28 @@ if session_path.exists() and intent == "Respiração guiada":
         runCycle();
       }}
 
-      function pauseClientBreathing(){{
-        breathingRunning = false;
-      }}
+      function pauseClientBreathing() {{ breathingRunning = false; }}
+      function stopClientBreathing() {{ breathingRunning = false; setLog(''); }}
 
-      function stopClientBreathing(){{
-        breathingRunning = false;
-        setLog('');
-      }}
-
-      function attachListeners(a){{
+      // anexa listeners ao audio (apenas uma vez)
+      function attachListeners(a) {{
         if (!a) return;
         if (a._prana_attached) return;
         a._prana_attached = true;
+        dbg('anexando listeners ao audio: ' + (a.currentSrc || a.src || 'unknown'));
 
         a.addEventListener('play', () => {{
-          document.querySelectorAll('audio').forEach(x => {{ if (x !== a) try{{ x.pause(); }}catch(e){{}} }});
           circle.style.animation = 'none';
           setStatus('Tocando');
-          playBtn.textContent = '⏸️ Pausar';
-          setLog('Áudio: play');
-          requestAnimationFrame(animateFrame);
-          startClientBreathing();
+          requestAnimationFrame(() => animateFrame(a));
+          startClientBreathing(a);
         }});
 
         a.addEventListener('pause', () => {{
           setStatus('Pausado');
           if (raf) cancelAnimationFrame(raf);
           raf = null;
-          circle.style.animation = 'prana_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-          playBtn.textContent = '▶️ Iniciar / Pausar';
-          setLog('Áudio: pause');
+          circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
           pauseClientBreathing();
         }});
 
@@ -376,95 +375,94 @@ if session_path.exists() and intent == "Respiração guiada":
           setStatus('Concluído');
           if (raf) cancelAnimationFrame(raf);
           raf = null;
-          circle.style.animation = 'prana_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-          playBtn.textContent = '▶️ Iniciar / Pausar';
-          setLog('Áudio: ended');
+          circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
           stopClientBreathing();
         }});
 
         a.addEventListener('error', () => {{
           setStatus('Erro no áudio');
-          console.warn('audio error', a.error);
+          dbg('audio error: ' + (a.error && a.error.code));
         }});
       }}
 
-      // Listener do botão: se audio existir alterna; se não, espera o audio aparecer e então toca (preserva gesto do usuário)
-      playBtn.addEventListener('click', async () => {{
+      // comportamento do botão: encontra o audio, oculta o player nativo, anexa listeners e toca
+      startBtn.addEventListener('click', async () => {{
         try {{
-          if (audio) {{
-            if (audio.paused) {{
-              await audio.play();
-              setStatus('Tocando');
-            }} else {{
-              audio.pause();
-              setStatus('Pausado');
-            }}
+          setStatus('Procurando áudio...');
+          let audio = findAudio();
+          if (!audio) {{
+            dbg('audio não encontrado imediatamente — observando DOM por 3s');
+            // observa o DOM até o audio aparecer
+            let handled = false;
+            const obs = new MutationObserver((mutations, observer) => {{
+              audio = findAudio();
+              if (audio && !handled) {{
+                handled = true;
+                observer.disconnect();
+                hideNativePlayer(audio);
+                attachListeners(audio);
+                audio.play().then(() => setStatus('Tocando')).catch(err => {{ dbg('play rejeitado: ' + err); setStatus('Clique na esfera se bloqueado'); }});
+              }}
+            }});
+            obs.observe(document.body, {{ childList: true, subtree: true }});
+            // fallback após 3s
+            setTimeout(() => {{
+              if (!handled) {{
+                audio = findAudio();
+                if (audio) {{
+                  hideNativePlayer(audio);
+                  attachListeners(audio);
+                  audio.play().then(() => setStatus('Tocando (fallback)')).catch(err => {{ dbg('fallback play failed: ' + err); setStatus('Clique na esfera se bloqueado'); }});
+                }} else {{
+                  setStatus('Áudio não encontrado');
+                  dbg('fallback: nenhum audio encontrado');
+                }}
+                obs.disconnect();
+              }}
+            }}, 3000);
             return;
           }}
 
-          setStatus('Aguardando áudio...');
-          let handled = false;
-
-          const observer = new MutationObserver((mutations, obs) => {{
-            audio = findAudioByFilename(filename);
-            if (audio && !handled) {{
-              handled = true;
-              obs.disconnect();
-              attachListeners(audio);
-              audio.play().then(() => setStatus('Tocando')).catch(err => {{
-                console.warn('play failed after found', err);
-                setStatus('Clique no player nativo se bloqueado');
-              }});
-            }}
-          }});
-
-          observer.observe(document.body, {{ childList: true, subtree: true }});
-
-          // fallback: após 4s, tenta anexar ao primeiro audio disponível
-          setTimeout(() => {{
-            if (!handled) {{
-              const fallback = document.querySelector('audio');
-              if (fallback) {{
-                handled = true;
-                audio = fallback;
-                attachListeners(audio);
-                audio.play().then(() => setStatus('Tocando (fallback)')).catch(err => {{
-                  console.warn('fallback play failed', err);
-                  setStatus('Clique no player nativo se bloqueado');
-                }});
-              }} else {{
-                setStatus('Áudio não encontrado');
-              }}
-              observer.disconnect();
-            }}
-          }}, 4000);
-
+          // se encontrou imediatamente
+          hideNativePlayer(audio);
+          attachListeners(audio);
+          await audio.play().then(() => setStatus('Tocando')).catch(err => {{ dbg('play failed: ' + err); setStatus('Clique na esfera se bloqueado'); }});
         }} catch (err) {{
-          console.warn('play failed', err);
-          setStatus('Clique no player nativo se bloqueado');
+          dbg('erro no start handler: ' + err);
+          setStatus('Erro interno');
         }}
       }});
 
-      // se o audio já existir no carregamento, anexa listeners
-      if (audio) {{
-        attachListeners(audio);
+      // opcional: permitir tocar clicando na esfera também (mesmo comportamento)
+      circle.addEventListener('click', () => {{
+        startBtn.click();
+      }});
+
+      // se o audio já existir no carregamento, apenas ocultamos o player (sem tocar)
+      const initial = findAudio();
+      if (initial) {{
+        hideNativePlayer(initial);
+        attachListeners(initial);
+        dbg('audio encontrado no carregamento; player ocultado e listeners anexados');
       }} else {{
-        // observa o DOM e anexa quando aparecer (sem tocar automaticamente)
-        const obs2 = new MutationObserver((mutations, observer) => {{
-          audio = findAudioByFilename(filename);
-          if (audio) {{
-            attachListeners(audio);
+        // observa e oculta quando aparecer
+        const obsInit = new MutationObserver((mutations, observer) => {{
+          const a = findAudio();
+          if (a) {{
+            hideNativePlayer(a);
+            attachListeners(a);
             observer.disconnect();
-            setLog('Audio encontrado durante observação e listeners anexados.');
+            dbg('audio apareceu depois do carregamento; player ocultado e listeners anexados');
           }}
         }});
-        obs2.observe(document.body, {{ childList: true, subtree: true }});
+        obsInit.observe(document.body, {{ childList: true, subtree: true }});
       }}
+
     }})();
 </script>
 """
 
-    st.components.v1.html(html_sync, height=520)
+    st.components.v1.html(html_hide_player_and_control, height=520)
 
 else:
     # se não houver áudio para a prática selecionada, apenas mostra instruções
