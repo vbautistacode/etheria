@@ -91,56 +91,90 @@ if stop_btn:
 # Função de ciclo de respiração (servidor) — mantém comportamento atual
 # ---------------------------------------------------------
 def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
+    """
+    Executa o ciclo de respiração no servidor e atualiza placeholder/progress.
+    Chame esta função diretamente quando o usuário clicar em 'Iniciar prática'.
+    Atenção: esta implementação é síncrona e usa time.sleep; durante a execução
+    o servidor ficará ocupado com esta função até o término.
+    """
+    # reset flag caso exista
     st.session_state.stop_flag = False
+
     placeholder = st.empty()
     total_time = (inhale_s + hold1_s + exhale_s + hold2_s) * cycles
     elapsed = 0.0
-    progress = st.progress(0)
+    progress = st.progress(0.0)
+
     for c in range(int(cycles)):
-        if st.session_state.stop_flag:
+        if st.session_state.get("stop_flag", False):
             placeholder.markdown("### ⏹️ Prática interrompida.")
             return
+
+        # Inspire
         placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inhale_s}s**")
         full = int(inhale_s)
         rem = inhale_s - full
         for _ in range(full):
-            if st.session_state.stop_flag:
+            if st.session_state.get("stop_flag", False):
                 placeholder.markdown("### ⏹️ Prática interrompida.")
                 return
             time.sleep(1)
             elapsed += 1
             progress.progress(min(1.0, elapsed / total_time))
         if rem > 0:
-            time.sleep(rem); elapsed += rem; progress.progress(min(1.0, elapsed / total_time))
+            time.sleep(rem)
+            elapsed += rem
+            progress.progress(min(1.0, elapsed / total_time))
 
+        # Segure 1
         if hold1_s > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{hold1_s}s**")
-            full = int(hold1_s); rem = hold1_s - full
+            full = int(hold1_s)
+            rem = hold1_s - full
             for _ in range(full):
-                if st.session_state.stop_flag:
-                    placeholder.markdown("### ⏹️ Prática interrompida."); return
-                time.sleep(1); elapsed += 1; progress.progress(min(1.0, elapsed / total_time))
+                if st.session_state.get("stop_flag", False):
+                    placeholder.markdown("### ⏹️ Prática interrompida.")
+                    return
+                time.sleep(1)
+                elapsed += 1
+                progress.progress(min(1.0, elapsed / total_time))
             if rem > 0:
-                time.sleep(rem); elapsed += rem; progress.progress(min(1.0, elapsed / total_time))
+                time.sleep(rem)
+                elapsed += rem
+                progress.progress(min(1.0, elapsed / total_time))
 
+        # Expire
         placeholder.markdown(f"### 💨 Expire por **{exhale_s}s**")
-        full = int(exhale_s); rem = exhale_s - full
+        full = int(exhale_s)
+        rem = exhale_s - full
         for _ in range(full):
-            if st.session_state.stop_flag:
-                placeholder.markdown("### ⏹️ Prática interrompida."); return
-            time.sleep(1); elapsed += 1; progress.progress(min(1.0, elapsed / total_time))
+            if st.session_state.get("stop_flag", False):
+                placeholder.markdown("### ⏹️ Prática interrompida.")
+                return
+            time.sleep(1)
+            elapsed += 1
+            progress.progress(min(1.0, elapsed / total_time))
         if rem > 0:
-            time.sleep(rem); elapsed += rem; progress.progress(min(1.0, elapsed / total_time))
+            time.sleep(rem)
+            elapsed += rem
+            progress.progress(min(1.0, elapsed / total_time))
 
+        # Segure 2
         if hold2_s > 0:
             placeholder.markdown(f"### ⏸️ Segure por **{hold2_s}s**")
-            full = int(hold2_s); rem = hold2_s - full
+            full = int(hold2_s)
+            rem = hold2_s - full
             for _ in range(full):
-                if st.session_state.stop_flag:
-                    placeholder.markdown("### ⏹️ Prática interrompida."); return
-                time.sleep(1); elapsed += 1; progress.progress(min(1.0, elapsed / total_time))
+                if st.session_state.get("stop_flag", False):
+                    placeholder.markdown("### ⏹️ Prática interrompida.")
+                    return
+                time.sleep(1)
+                elapsed += 1
+                progress.progress(min(1.0, elapsed / total_time))
             if rem > 0:
-                time.sleep(rem); elapsed += rem; progress.progress(min(1.0, elapsed / total_time))
+                time.sleep(rem)
+                elapsed += rem
+                progress.progress(min(1.0, elapsed / total_time))
 
     placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
     progress.progress(1.0)
