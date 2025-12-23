@@ -207,6 +207,14 @@ cycles = st.sidebar.number_input(
     "Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1
 )
 
+# depois de garantir session_path.exists() == True
+url = f"/static/audio/sessions/{session_path.name}"
+html = build_synced_html_from_url(url, color=theme["color"], label_prefix=f"{chakra} — ", autoplay_flag=False)
+st.components.v1.html(html, height=220)
+
+# fallback robusto (Streamlit serve o arquivo localmente)
+st.audio(str(session_path))
+
 # -------------------------
 # Session state flags e funções de controle
 # -------------------------
