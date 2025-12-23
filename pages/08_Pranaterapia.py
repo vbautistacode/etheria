@@ -12,7 +12,7 @@ st.title("Pranaterapia 🌬️")
 st.markdown(
     "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
     "Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença."
-)
+)+9
 st.caption(
     "Escolha um chakra; se a prática for 'Respiração guiada' o áudio correspondente será carregado. "
     "Use o player nativo para iniciar, pausar ou parar — a esfera e a contagem responderão automaticamente."
@@ -450,32 +450,110 @@ if session_path.exists() and intent == "Respiração guiada":
         raf = null;
       }}
 
-      // Botão Iniciar / Pausar controla apenas o cliente (independente do st.audio)
+      // Botão Play/Pause
       playBtn.addEventListener('click', async () => {{
-        try {{
-          if (!breathingRunning) {{
-            startClientBreathing();
-          }} else {{
-            if (paused) {{
-              // retomar
-              // recompute segmentStart so that pausedElapsed is respected
-              segmentStart = performance.now() - (pausedElapsed || 0);
-              paused = false;
-              setLog('Retomando prática');
-              setStatus('Tocando');
-              playBtn.textContent = '⏸️ Pausar';
-              raf = requestAnimationFrame(animateFrameLoop);
-            }} else {{
-              // pausar
-              pauseClientBreathing();
-            }}
+        // helpers definidos antes do uso
+        function findAudioByFilename(fname) {{
+          const audios = Array.from(document.querySelectorAll('audio'));
+          for (const a of audios) {{
+            try {{
+              const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
+              if (src && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
+            }} catch (e) {{ /* ignore */ }}
           }}
+          if (audios.length === 1) return audios[0];
+          return null;
+        }}
+
+        function attachNativeListeners(a) {{
+          if (!a || a._prana_native_attached) return;
+          a._prana_native_attached = true;
+          a.addEventListener('play', () => {{
+            setStatus('Tocando (nativo)');
+            playBtn.textContent = '⏸️ Pausar';
+          }});
+          a.addEventListener('pause', () => {{
+            setStatus('Pausado (nativo)');
+            playBtn.textContent = '▶️ Iniciar / Pausar';
+          }});
+          a.addEventListener('ended', () => {{
+            setStatus('Concluído (nativo)');
+            playBtn.textContent = '▶️ Iniciar / Pausar';
+          }});
+          a.addEventListener('timeupdate', () => {{
+            // opcional: sincronizar esfera com a.currentTime
+            // const t = a.currentTime;
+            // atualizarEsferaPorTempo(t);
+          }});
+        }}
+
+        async function togglePlayPause(a) {{
+          try {{
+            if (a.paused) {{
+              await a.play();
+              setStatus('Tocando (nativo)');
+              playBtn.textContent = '⏸️ Pausar';
+            }} else {{
+              a.pause();
+              setStatus('Pausado (nativo)');
+              playBtn.textContent = '▶️ Iniciar / Pausar';
+            }}
+          }} catch (err) {{
+            console.warn('play rejected', err);
+            setStatus('Clique no player nativo se bloqueado');
+          }}
+        }}
+
+        try {{
+          // nome do arquivo: usa `filename` se definido no escopo, caso contrário usa fallback
+          const fname = (typeof filename !== 'undefined' && filename) ? filename : "{escaped_fname}";
+
+          // tenta encontrar imediatamente
+          let audio = findAudioByFilename(fname);
+
+          // se não encontrou, observa o DOM por alguns segundos e toca assim que aparecer
+          if (!audio) {{
+            setStatus('Aguardando player nativo...');
+            let handled = false;
+            const obs = new MutationObserver((mutations, observer) => {{
+              audio = findAudioByFilename(fname);
+              if (audio && !handled) {{
+                handled = true;
+                observer.disconnect();
+                attachNativeListeners(audio);
+                togglePlayPause(audio);
+              }}
+            }});
+            obs.observe(document.body, {{ childList: true, subtree: true }});
+
+            // fallback: após 3s tenta o primeiro <audio>
+            setTimeout(() => {{
+              if (!handled) {{
+                const fallback = document.querySelector('audio');
+                if (fallback) {{
+                  audio = fallback;
+                  attachNativeListeners(audio);
+                  togglePlayPause(audio);
+                }} else {{
+                  setStatus('Áudio não encontrado');
+                }}
+                obs.disconnect();
+              }}
+            }}, 3000);
+
+            return;
+          }}
+
+          // se encontrou, alterna play/pause
+          attachNativeListeners(audio);
+          togglePlayPause(audio);
+
         }} catch (err) {{
-          console.warn('Erro no playBtn handler', err);
-          setStatus('Erro interno');
+          console.warn('Erro ao controlar st.audio', err);
+          setStatus('Erro ao controlar áudio');
         }}
       }});
-
+      
       // Botão Parar
       stopBtn.addEventListener('click', () => {{
         try {{
