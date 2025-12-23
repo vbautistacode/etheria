@@ -252,7 +252,7 @@ if session_path.exists() and intent == "Respiração guiada":
     # Cole no lugar do html_sync atual e chame st.components.v1.html(html_sync, height=520).
 
     html_sync = f"""
-    <div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
+    <div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px; gap:12px;">
       <button id="prana_visual_play_{escaped_fname}" style="padding:9px 12px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;">
         ▶️ Iniciar / Pausar
       </button>
