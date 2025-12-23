@@ -1,3 +1,17 @@
+from pathlib import Path
+BASE_DIR = Path(__file__).parent
+STATIC_ROOT = BASE_DIR.parent / "static"   # raiz do projeto
+session_path = STATIC_ROOT / "audio" / "sessions" / f"{chakra.lower()}_session.wav"
+
+st.write("DEBUG session_path:", session_path)
+st.write("exists:", session_path.exists())
+
+if session_path.exists():
+    st.audio(str(session_path))  # teste simples e robusto
+else:
+    st.error("Arquivo não encontrado: " + str(session_path))
+
+
 # 08_pranaterapia.py
 import streamlit as st
 import time
