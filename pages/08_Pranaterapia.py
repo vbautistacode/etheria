@@ -58,6 +58,54 @@ CHAKRAS = {
     },
 }
 
+
+
+# Trecho de teste: renderiza st.audio para os 7 arquivos de sessão
+from pathlib import Path
+import streamlit as st
+
+SESSIONS_DIR = Path(__file__).parent.parent / "static" / "audio" / "sessions"
+
+CHAKRA_FILES = [
+    "muladhara_session.wav",
+    "svadhisthana_session.wav",
+    "manipura_session.wav",
+    "anahata_session.wav",
+    "vishuddha_session.wav",
+    "ajna_session.wav",
+    "sahasrara_session.wav",
+]
+
+st.header("Teste: reprodução direta com st.audio (7 arquivos)")
+for fname in CHAKRA_FILES:
+    path = SESSIONS_DIR / fname
+    st.markdown(f"**Arquivo:** `{fname}`")
+    if not path.exists():
+        st.error(f"Arquivo não encontrado: {path}")
+        continue
+
+    try:
+        size_mb = path.stat().st_size / (1024 * 1024)
+    except Exception as e:
+        size_mb = None
+        st.warning(f"Não foi possível obter tamanho do arquivo: {e}")
+
+    if size_mb is not None:
+        st.write(f"Tamanho: {size_mb:.2f} MB")
+
+    # Renderiza st.audio — Streamlit fará upload/serving conforme o ambiente
+    try:
+        st.audio(str(path))
+        st.success("st.audio renderizado (verifique se o player aparece e se é possível tocar).")
+    except Exception as e:
+        st.error(f"st.audio falhou: {e}")
+        st.info("Se falhar por tamanho, considere converter para MP3 ou hospedar externamente (S3).")
+
+st.caption("Após testar, remova este bloco de teste para voltar ao fluxo normal do app.")
+
+
+
+
 # ---------------------------------------------------------
 # Diretórios (assume estrutura do projeto: <repo-root>/static/audio/sessions)
 # ---------------------------------------------------------
