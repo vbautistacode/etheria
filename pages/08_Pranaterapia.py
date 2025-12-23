@@ -10,7 +10,6 @@ import streamlit as st
 # --------------------
 # Configuração inicial
 # --------------------
-st.set_page_config(page_title="Pranaterapia", layout="centered")
 st.title("Pranaterapia 🌬️")
 st.markdown(
     "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
@@ -50,10 +49,10 @@ chakra = st.sidebar.selectbox("Chakra", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
 
 preset = theme["preset"]
-inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
-hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
-exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
-hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
+inhale = st.sidebar.number_input("Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold1 = st.sidebar.number_input("Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
+exhale = st.sidebar.number_input("Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
+hold2 = st.sidebar.number_input("Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
 cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
 
 # -------------
@@ -182,178 +181,7 @@ if session_path.exists() and intent == "Respiração guiada":
     color = theme["color"]
 
     # 3) Injeta HTML/JS com controles independentes + esfera + sincronização cliente
-    html_controls = f"""
-<div id="prana_wrapper_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
-  <div style="display:flex;gap:10px;align-items:center;">
-    <button id="prana_start_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:{color};color:#fff;cursor:pointer;font-weight:700;">
-      ▶️ Iniciar
-    </button>
-    <button id="prana_pause_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;">
-      ⏸️ Pausar
-    </button>
-    <button id="prana_stop_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;">
-      ⏹️ Parar
-    </button>
-    <div id="prana_status_{escaped_fname}" style="margin-left:12px;font-weight:600;color:#222">Pronto</div>
-  </div>
-
-  <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:14px;
-       background:radial-gradient(circle at 30% 30%, #fff8, {color});
-       box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_idle_{escaped_fname} 2000ms ease-in-out infinite;">
-  </div>
-
-  <div id="prana_log_{escaped_fname}" style="font-family:monospace;white-space:pre-wrap;margin-top:8px;color:#333;min-height:36px;"></div>
-</div>
-
-<!-- audio embutido e oculto, controlado pelos botões -->
-<audio id="prana_audio_{escaped_fname}" src="{data_url}" preload="auto" style="display:none;"></audio>
-
-<style>
-@keyframes prana_idle_{escaped_fname} {{
-  0% {{ transform: scale(1); opacity: 0.98; }}
-  50% {{ transform: scale(1.03); opacity: 1; }}
-  100% {{ transform: scale(1); opacity: 0.98; }}
-}}
-</style>
-
-<script>
-(function(){{
-  const fname = "{escaped_fname}";
-  const startBtn = document.getElementById('prana_start_btn_' + fname);
-  const pauseBtn = document.getElementById('prana_pause_btn_' + fname);
-  const stopBtn = document.getElementById('prana_stop_btn_' + fname);
-  const circle = document.getElementById('prana_circle_' + fname);
-  const statusEl = document.getElementById('prana_status_' + fname);
-  const logEl = document.getElementById('prana_log_' + fname);
-  const audio = document.getElementById('prana_audio_' + fname);
-
-  const inhale = {inhale};
-  const hold1 = {hold1};
-  const exhale = {exhale};
-  const hold2 = {hold2};
-  const cycles = {int(cycles)};
-
-  function dbg(msg) {{ try{{ console.log('[prana]', msg); }}catch(e){{}} if(logEl) logEl.textContent += msg + "\\n"; }}
-  function setStatus(t) {{ if(statusEl) statusEl.textContent = t; }}
-  function setLog(t) {{ if(logEl) logEl.textContent = t; dbg(t); }}
-
-  // animação da esfera baseada no tempo do audio
-  let raf = null;
-  function animateFrame() {{
-    if(!audio || audio.paused) {{ if(raf) cancelAnimationFrame(raf); raf = null; return; }}
-    const t = audio.currentTime || 0;
-    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = 'scale(' + scale + ')';
-    raf = requestAnimationFrame(animateFrame);
-  }}
-
-  // contagem cliente (respeita pausas do audio)
-  let breathingRunning = false;
-  function startClientBreathing() {{
-    if(breathingRunning) return;
-    breathingRunning = true;
-    let cycleIndex = 0;
-    function runCycle() {{
-      if(!breathingRunning) return;
-      if(cycleIndex >= cycles) {{ setLog('Prática concluída'); breathingRunning = false; return; }}
-      cycleIndex++;
-      const seq = [{label:'Inspire', t:inhale},{label:'Segure', t:hold1},{label:'Expire', t:exhale},{label:'Segure', t:hold2}];
-      let segIndex = 0;
-      function nextSegment() {{
-        if(!breathingRunning) return;
-        if(segIndex >= seq.length) {{ setTimeout(runCycle, 200); return; }}
-        const seg = seq[segIndex++];
-        if(seg.t <= 0) {{ nextSegment(); return; }}
-        setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
-        const start = performance.now();
-        function waitLoop() {{
-          if(!breathingRunning) return;
-          if(audio && audio.paused) {{ setTimeout(waitLoop, 200); return; }}
-          const elapsed = (performance.now() - start) / 1000;
-          if(elapsed >= seg.t) nextSegment();
-          else requestAnimationFrame(waitLoop);
-        }}
-        waitLoop();
-      }}
-      nextSegment();
-    }}
-    runCycle();
-  }}
-  function pauseClientBreathing() {{ breathingRunning = false; }}
-  function stopClientBreathing() {{ breathingRunning = false; setLog(''); }}
-
-  // listeners do audio embutido
-  audio.addEventListener('play', () => {{
-    circle.style.animation = 'none';
-    setStatus('Tocando');
-    requestAnimationFrame(animateFrame);
-    startClientBreathing();
-  }});
-  audio.addEventListener('pause', () => {{
-    setStatus('Pausado');
-    if(raf) cancelAnimationFrame(raf);
-    raf = null;
-    circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
-    pauseClientBreathing();
-  }});
-  audio.addEventListener('ended', () => {{
-    setStatus('Concluído');
-    if(raf) cancelAnimationFrame(raf);
-    raf = null;
-    circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
-    stopClientBreathing();
-  }});
-  audio.addEventListener('error', (e) => {{
-    setStatus('Erro no áudio');
-    dbg('audio error: ' + e);
-  }});
-
-  // botões independentes
-  startBtn.addEventListener('click', async () => {{
-    try {{
-      if (audio.paused) {{
-        await audio.play();
-        setStatus('Tocando');
-      }} else {{
-        setStatus('Já tocando');
-      }}
-    }} catch (err) {{
-      dbg('play failed: ' + err);
-      setStatus('Erro ao tocar');
-    }}
-  }});
-
-  pauseBtn.addEventListener('click', () => {{
-    try {{
-      if (!audio.paused) audio.pause();
-      setStatus('Pausado');
-    }} catch (err) {{
-      dbg('pause failed: ' + err);
-    }}
-  }});
-
-  stopBtn.addEventListener('click', () => {{
-    try {{
-      audio.pause();
-      audio.currentTime = 0;
-      setStatus('Parado');
-      stopClientBreathing();
-      circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
-    }} catch (err) {{
-      dbg('stop failed: ' + err);
-    }}
-  }});
-
-  // clique na esfera também inicia/pausa (opcional)
-  circle.addEventListener('click', () => {{
-    if (audio.paused) startBtn.click();
-    else pauseBtn.click();
-  }});
-
-  dbg('Controles independentes prontos (áudio embutido).');
-}})();
-</script>
-"""
+    html_controls = f""" <div id="prana_wrapper_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;"> <div style="display:flex;gap:10px;align-items:center;"> <button id="prana_start_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:{color};color:#fff;cursor:pointer;font-weight:700;"> ▶️ Iniciar </button> <button id="prana_pause_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;"> ⏸️ Pausar </button> <button id="prana_stop_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;"> ⏹️ Parar </button> <div id="prana_status_{escaped_fname}" style="margin-left:12px;font-weight:600;color:#222">Pronto</div> </div> <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:14px; background:radial-gradient(circle at 30% 30%, #fff8, {color}); box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_idle_{escaped_fname} 2000ms ease-in-out infinite;"> </div> <div id="prana_log_{escaped_fname}" style="font-family:monospace;white-space:pre-wrap;margin-top:8px;color:#333;min-height:36px;"></div> </div> <!-- audio embutido e oculto, controlado pelos botões --> <audio id="prana_audio_{escaped_fname}" src="{data_url}" preload="auto" style="display:none;"></audio> <style> @keyframes prana_idle_{escaped_fname} {{ 0% {{ transform: scale(1); opacity: 0.98; }} 50% {{ transform: scale(1.03); opacity: 1; }} 100% {{ transform: scale(1); opacity: 0.98; }} }} </style> <script> (function(){{ const fname = "{escaped_fname}"; const startBtn = document.getElementById('prana_start_btn_' + fname); const pauseBtn = document.getElementById('prana_pause_btn_' + fname); const stopBtn = document.getElementById('prana_stop_btn_' + fname); const circle = document.getElementById('prana_circle_' + fname); const statusEl = document.getElementById('prana_status_' + fname); const logEl = document.getElementById('prana_log_' + fname); const audio = document.getElementById('prana_audio_' + fname); const inhale = {inhale}; const hold1 = {hold1}; const exhale = {exhale}; const hold2 = {hold2}; const cycles = {int(cycles)}; function dbg(msg) {{ try{{ console.log('[prana]', msg); }}catch(e){{}} if(logEl) logEl.textContent += msg + "\\n"; }} function setStatus(t) {{ if(statusEl) statusEl.textContent = t; }} function setLog(t) {{ if(logEl) logEl.textContent = t; dbg(t); }} // animação da esfera baseada no tempo do audio let raf = null; function animateFrame() {{ if(!audio || audio.paused) {{ if(raf) cancelAnimationFrame(raf); raf = null; return; }} const t = audio.currentTime || 0; const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2); circle.style.transform = 'scale(' + scale + ')'; raf = requestAnimationFrame(animateFrame); }} // contagem cliente (respeita pausas do audio) let breathingRunning = false; function startClientBreathing() {{ if(breathingRunning) return; breathingRunning = true; let cycleIndex = 0; function runCycle() {{ if(!breathingRunning) return; if(cycleIndex >= cycles) {{ setLog('Prática concluída'); breathingRunning = false; return; }} cycleIndex++; const seq = [{{label:'Inspire', t:inhale}},{{label:'Segure', t:hold1}},{{label:'Expire', t:exhale}},{{label:'Segure', t:hold2}}]; let segIndex = 0; function nextSegment() {{ if(!breathingRunning) return; if(segIndex >= seq.length) {{ setTimeout(runCycle, 200); return; }} const seg = seq[segIndex++]; if(seg.t <= 0) {{ nextSegment(); return; }} setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's'); const start = performance.now(); function waitLoop() {{ if(!breathingRunning) return; if(audio && audio.paused) {{ setTimeout(waitLoop, 200); return; }} const elapsed = (performance.now() - start) / 1000; if(elapsed >= seg.t) nextSegment(); else requestAnimationFrame(waitLoop); }} waitLoop(); }} nextSegment(); }} runCycle(); }} function pauseClientBreathing() {{ breathingRunning = false; }} function stopClientBreathing() {{ breathingRunning = false; setLog(''); }} // listeners do audio embutido audio.addEventListener('play', () => {{ circle.style.animation = 'none'; setStatus('Tocando'); requestAnimationFrame(animateFrame); startClientBreathing(); }}); audio.addEventListener('pause', () => {{ setStatus('Pausado'); if(raf) cancelAnimationFrame(raf); raf = null; circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite'; pauseClientBreathing(); }}); audio.addEventListener('ended', () => {{ setStatus('Concluído'); if(raf) cancelAnimationFrame(raf); raf = null; circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite'; stopClientBreathing(); }}); audio.addEventListener('error', (e) => {{ setStatus('Erro no áudio'); dbg('audio error: ' + e); }}); // botões independentes startBtn.addEventListener('click', async () => {{ try {{ if (audio.paused) {{ await audio.play(); setStatus('Tocando'); }} else {{ setStatus('Já tocando'); }} }} catch (err) {{ dbg('play failed: ' + err); setStatus('Erro ao tocar'); }} }}); pauseBtn.addEventListener('click', () => {{ try {{ if (!audio.paused) audio.pause(); setStatus('Pausado'); }} catch (err) {{ dbg('pause failed: ' + err); }} }}); stopBtn.addEventListener('click', () => {{ try {{ audio.pause(); audio.currentTime = 0; setStatus('Parado'); stopClientBreathing(); circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite'; }} catch (err) {{ dbg('stop failed: ' + err); }} }}); // clique na esfera também inicia/pausa (opcional) circle.addEventListener('click', () => {{ if (audio.paused) startBtn.click(); else pauseBtn.click(); }}); dbg('Controles independentes prontos (áudio embutido).'); }})(); </script> """
 
     st.components.v1.html(html_controls, height=520)
 
