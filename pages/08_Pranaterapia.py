@@ -18,7 +18,7 @@ st.caption(
 # -------------------------
 CHAKRAS = {
     "Muladhara": {
-        "color": "#D9534F",
+        "color": "#CC0700",
         "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6},
         "affirmation": "Estou seguro e enraizado.",
     },
@@ -315,11 +315,12 @@ with col_start:
 with col_stop:
     stop_btn = st.button("⏹️ Parar prática")
 
-# ação de parar: sinaliza e força rerun para interromper contagem
+# ação de parar: sinaliza interrupção (não forçar rerun)
 if stop_btn:
     st.session_state.stop_flag = True
-    # rerun para atualizar UI imediatamente e interromper qualquer ciclo em andamento
-    st.experimental_rerun()
+    st.session_state.playing = False
+    # não chamar st.experimental_rerun() aqui — deixe o app reagir à flag
+    st.success("Prática interrompida. Aguarde a atualização da interface.")
 
 # fluxo principal (apenas práticas guiadas por contagem ou instrução)
 if start_btn:
