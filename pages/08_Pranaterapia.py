@@ -9,7 +9,7 @@ st.title("🌬️ Pranaterapia")
 st.markdown(
      """ Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença. """
 )
-st.caption(""" Nossa pranaterapia integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset prático e iniciar a prática. """)
+st.caption(""" Nossa pranaterapia integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset e iniciar a prática. """)
 
 # -------------------------
 # Presets por chakra (nomes em sânscrito)
@@ -37,8 +37,7 @@ PHASES_DIR = BASE_DIR / "static" / "audio" / "phases"
 st.sidebar.header("Configurações da sessão")
 chakra = st.sidebar.selectbox("Chakra ", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
-mode = st.sidebar.radio("Modo", ["Sessão única", "Sino + voz por fase", "Visual apenas"], index=0)
-use_bell = st.sidebar.checkbox("Usar sino suave", value=True)
+mode = "Sessão única"
 autoplay = st.sidebar.checkbox("Autoplay ao iniciar", value=True)
 
 # -------------------------
@@ -57,11 +56,13 @@ def wav_bytes_to_base64(b: bytes) -> str:
 # -------------------------
 # Função que monta HTML sincronizado (usa <audio> e JS)
 # -------------------------
-def build_synced_html(wav_b64: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
+# função que cria HTML usando URL do arquivo (mais confiável para arquivos grandes)
+def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
     autoplay_attr = "autoplay" if autoplay_flag else ""
-    html = f"""
+    # controls sem autoplay forçam o usuário a clicar se o navegador bloquear autoplay
+    return f"""
 <div style="display:flex;flex-direction:column;align-items:center;">
-  <audio id="sessionAudio" src="data:audio/wav;base64,{wav_b64}" preload="auto" controls {autoplay_attr}></audio>
+  <audio id="sessionAudio" src="{url}" preload="auto" controls {autoplay_attr}></audio>
   <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
     <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
     <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
@@ -75,9 +76,9 @@ def build_synced_html(wav_b64: str, color: str, label_prefix: str = "", autoplay
 
   function setLabel(text){{ label.textContent = text; }}
 
-  audio.onplay = () => setLabel("Sessão em andamento");
-  audio.onpause = () => setLabel("Pausado");
-  audio.onended = () => setLabel("Concluído");
+  audio.addEventListener('play', () => setLabel("Sessão em andamento"));
+  audio.addEventListener('pause', () => setLabel("Pausado"));
+  audio.addEventListener('ended', () => setLabel("Concluído"));
 
   let raf = null;
   function animate() {{
@@ -88,16 +89,17 @@ def build_synced_html(wav_b64: str, color: str, label_prefix: str = "", autoplay
     }}
     const t = audio.currentTime;
     const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = `scale(${scale})`; # type: ignore # pyright: ignore[reportUndefinedVariable]
+    circle.style.transform = `scale(${scale})`;
     raf = requestAnimationFrame(animate);
   }}
 
-  audio.onplay = () => animate();
-  audio.onpause = () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }};
-  audio.onended = () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }};
+  audio.addEventListener('play', () => animate());
+  audio.addEventListener('pause', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
+  audio.addEventListener('ended', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
 }})();
 </script>
 """
+
     return html
 
 # -------------------------
@@ -191,59 +193,40 @@ exhale_path = PHASES_DIR / f"{chakra.lower()}_exhale.wav"
 
 preset = theme["preset"]
 
-inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
-hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
-exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
-hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
+inhale = st.sidebar.number_input("Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold1 = st.sidebar.number_input("Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
+exhale = st.sidebar.number_input("Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
+hold2 = st.sidebar.number_input("Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
 cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
 
+# -------------------------
+# Chamada principal refatorada: apenas Sessão única (arquivo) usando URL estática
+# -------------------------
 start = st.button("▶️ Iniciar prática")
+
 if start:
-    if mode == "Sessão única (arquivo)":
-        wav_bytes = load_wav_from_path(str(session_path))
-        if wav_bytes is None:
-            st.error(f"Áudio de sessão não encontrado: {session_path}. Coloque o arquivo em static/audio/sessions/ com o nome correto.")
-        else:
-            b64 = wav_bytes_to_base64(wav_bytes)
-            html = build_synced_html(b64, color=theme["color"], label_prefix=chakra + " — ", autoplay_flag=autoplay)
-            st.components.v1.html(html, height=460)
-    elif mode == "Sino + voz por fase (arquivos separados)":
-        inh_bytes = load_wav_from_path(str(inhale_path))
-        exh_bytes = load_wav_from_path(str(exhale_path))
-        if inh_bytes is None or exh_bytes is None:
-            st.error(f"Arquivos de fase não encontrados. Verifique:\n{inhale_path}\n{exhale_path}")
-        else:
-            b64_in = wav_bytes_to_base64(inh_bytes)
-            b64_ex = wav_bytes_to_base64(exh_bytes)
-            html = build_phase_player_html(b64_in, b64_ex, inhale, exhale, cycles, theme["color"], use_bell, label_prefix=chakra + " — ")
-            st.components.v1.html(html, height=460)
+    # caminho esperado do arquivo de sessão
+    session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+    # debug opcional (remova em produção)
+    st.write("DEBUG path:", session_path, "exists:", session_path.exists())
+
+    if not session_path.exists():
+        st.error(f"Áudio de sessão não encontrado: {session_path}. Coloque o arquivo em static/audio/sessions/ com o nome correto.")
     else:
-        # visual only: servidor faz contagem e animação textual
-        placeholder = st.empty()
-        total_time = (inhale + hold1 + exhale + hold2) * cycles
-        elapsed = 0.0
-        progress = st.progress(0)
-        for c in range(int(cycles)):
-            placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inhale}s**")
-            time.sleep(inhale)
-            elapsed += inhale
-            progress.progress(min(1.0, elapsed / total_time))
-            if hold1 > 0:
-                placeholder.markdown(f"### ⏸️ Segure por **{hold1}s**")
-                time.sleep(hold1)
-                elapsed += hold1
-                progress.progress(min(1.0, elapsed / total_time))
-            placeholder.markdown(f"### 💨 Expire por **{exhale}s**")
-            time.sleep(exhale)
-            elapsed += exhale
-            progress.progress(min(1.0, elapsed / total_time))
-            if hold2 > 0:
-                placeholder.markdown(f"### ⏸️ Segure por **{hold2}s**")
-                time.sleep(hold2)
-                elapsed += hold2
-                progress.progress(min(1.0, elapsed / total_time))
-        placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
-        progress.progress(1.0)
+        # URL relativa para o arquivo estático (mais confiável para arquivos grandes)
+        url = f"/static/audio/sessions/{session_path.name}"
+
+        # construir HTML do player usando URL (função definida anteriormente)
+        html = build_synced_html_from_url(
+            url,
+            color=theme["color"],
+            label_prefix=f"{chakra} — ",
+            autoplay_flag=autoplay
+        )
+
+        # renderizar o player/visual sincronizado
+        st.components.v1.html(html, height=460)
 
 # -------------------------
 # Rodapé: instruções rápidas, segurança e saúde
