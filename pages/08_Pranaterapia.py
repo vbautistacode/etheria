@@ -108,8 +108,8 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <button id="startBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer"></button>
-    <button id="stopBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer"></button>
+    <button id="startBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar</button>
+    <button id="stopBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
     <div id="status_{sid}" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
   </div>
 
@@ -159,77 +159,6 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
   </script>
 </div>
 """
-
-
-def build_circle_html(color: str, uid: str = "default") -> str:
-    """
-    Esfera visual separada (renderizada abaixo do player).
-    A animação será controlada pelo player JS (quando o áudio tocar, o player JS pode manipular a esfera se necessário).
-    """
-    sid = uid.replace(" ", "_").lower()
-    # Usar concatenação em JS para evitar que Python tente avaliar {scale} dentro da f-string
-    return f"""
-<div style="display:flex;flex-direction:column;align-items:center;">
-  <div id="circle_{sid}" style="
-      width:180px;height:180px;border-radius:50%;
-      background:radial-gradient(circle at 30% 30%, #fff8, {color});
-      box-shadow:0 12px 36px rgba(0,0,0,0.08);
-      transform-origin:center;
-      animation: initialPulse_{sid} 2000ms ease-in-out infinite;
-      margin-bottom:12px;
-  "></div>
-  <style>
-    @keyframes initialPulse_{sid} {{
-      0% {{ transform: scale(1); opacity: 0.98; }}
-      50% {{ transform: scale(1.04); opacity: 1; }}
-      100% {{ transform: scale(1); opacity: 0.98; }}
-    }}
-  </style>
-
-  <script>
-  (function(){{
-    // sincronização simples: quando o áudio do player tocar, remove o pulso e aplica animação baseada no tempo
-    try {{
-      const audio = document.getElementById('sessionAudio_{sid}');
-      const circle = document.getElementById('circle_{sid}');
-      if (!audio || !circle) return;
-
-      let raf = null;
-      function animateByAudio() {{
-        if (audio.paused) {{
-          if (raf) cancelAnimationFrame(raf);
-          raf = null;
-          return;
-        }}
-        const t = audio.currentTime || 0;
-        const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-        // concatenação segura para evitar conflitos com f-strings Python
-        circle.style.transform = 'scale(' + scale + ')';
-        raf = requestAnimationFrame(animateByAudio);
-      }}
-
-      audio.addEventListener('play', () => {{
-        circle.style.animation = 'none';
-        animateByAudio();
-      }});
-      audio.addEventListener('pause', () => {{
-        if (raf) cancelAnimationFrame(raf);
-        raf = null;
-        circle.style.animation = 'initialPulse_{sid} 2000ms ease-in-out infinite';
-      }});
-      audio.addEventListener('ended', () => {{
-        if (raf) cancelAnimationFrame(raf);
-        raf = null;
-        circle.style.animation = 'initialPulse_{sid} 2000ms ease-in-out infinite';
-      }});
-    }} catch (e) {{
-      console.warn('circle sync error', e);
-    }}
-  }})();
-  </script>
-</div>
-"""
-
 
 # ---------------------------------------------------------
 # Inicializar session_state (flags únicas)
