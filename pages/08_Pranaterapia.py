@@ -81,36 +81,79 @@ def load_wav_from_path(path: str):
         return None
     return p.read_bytes()
 
-
 def wav_bytes_to_base64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
-
 
 # -------------------------
 # Função que monta HTML sincronizado (usa <audio> e JS)
 # -------------------------
 def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
+    """
+    Retorna HTML/JS para um player manual com:
+    - botão Iniciar (evita bloqueio de autoplay)
+    - botão Parar (pausa e zera)
+    - animação visual sincronizada com audio.currentTime
+    - log simples de eventos
+    Use st.components.v1.html(html, height=220) para renderizar.
+    """
+    # autoplay_attr mantido apenas para compatibilidade, mas o player exige clique do usuário
     autoplay_attr = "autoplay" if autoplay_flag else ""
     return f"""
-<div style="display:flex;flex-direction:column;align-items:center;">
-  <audio id="sessionAudio" src="{url}" preload="auto" controls {autoplay_attr}></audio>
-  <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
-    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
-    <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
+<div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+    <button id="startBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar (clique)</button>
+    <button id="stopBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
+    <div id="status" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
   </div>
+
+  <div id="animWrap" style="display:flex;flex-direction:column;align-items:center;">
+    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;transition:transform 120ms linear;"></div>
+    <div id="log" style="margin-top:10px;font-size:12px;color:#666;min-height:18px"></div>
+  </div>
+
+  <audio id="sessionAudio" src="{url}" preload="auto" controls style="display:none" {autoplay_attr}></audio>
 </div>
+
 <script>
 (function(){{
   const audio = document.getElementById('sessionAudio');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
   const circle = document.getElementById('circle');
-  const label = document.getElementById('label');
+  const status = document.getElementById('status');
+  const log = document.getElementById('log');
 
-  function setLabel(text){{ label.textContent = text; }}
+  function setStatus(text){{ status.textContent = text; }}
+  function addLog(msg){{ log.textContent = msg; console.log(msg); }}
 
-  audio.addEventListener('play', () => setLabel("Sessão em andamento"));
-  audio.addEventListener('pause', () => setLabel("Pausado"));
-  audio.addEventListener('ended', () => setLabel("Concluído"));
+  // play on user click to avoid autoplay blocking
+  startBtn.addEventListener('click', async () => {{
+    try {{
+      await audio.play();
+      setStatus("Sessão em andamento");
+      addLog("play OK, currentTime=" + audio.currentTime.toFixed(2));
+    }} catch (e) {{
+      addLog("play failed: " + (e && e.name) + " - " + (e && e.message));
+    }}
+  }});
 
+  stopBtn.addEventListener('click', () => {{
+    try {{
+      audio.pause();
+      audio.currentTime = 0;
+      setStatus("Parado");
+      addLog("stopped");
+    }} catch(e) {{
+      addLog("stop error: " + (e && e.message));
+    }}
+  }});
+
+  audio.addEventListener('play', () => setStatus("Sessão em andamento"));
+  audio.addEventListener('pause', () => setStatus("Pausado"));
+  audio.addEventListener('ended', () => setStatus("Concluído"));
+  audio.addEventListener('error', () => addLog("audio error code: " + (audio.error && audio.error.code)));
+
+  // animação simples ligada ao currentTime
   let raf = null;
   function animate() {{
     if (audio.paused) {{
