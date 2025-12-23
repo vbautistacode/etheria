@@ -348,22 +348,6 @@ if session_path.exists():
 
     st.components.v1.html(html_sync, height=380)
 
-    # 3) Opcional: mostrar st.audio novamente como fallback pequeno (removível)
-    try:
-        size_bytes = session_path.stat().st_size
-    except Exception:
-        size_bytes = None
-
-    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024
-    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
-        # já renderizamos st.audio acima; este bloco é opcional e pode ser removido
-        pass
-    else:
-        st.info("Usando st.audio + player visual. Arquivo grande — player nativo do navegador será usado para tocar.")
-
-else:
-    st.warning(f"Áudio de sessão não encontrado: {session_path}")
-
 # ---------------------------------------------------------
 # Rodapé: instruções rápidas, segurança e saúde
 # ---------------------------------------------------------
