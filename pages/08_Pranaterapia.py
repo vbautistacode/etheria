@@ -91,71 +91,6 @@ def load_wav_from_path(path: str):
 def wav_bytes_to_base64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
 
-
-# -------------------------
-# Uso integrado no fluxo
-# -------------------------
-# garantir flags
-if "playing" not in st.session_state:
-    st.session_state.playing = False
-if "stop_flag" not in st.session_state:
-    st.session_state.stop_flag = False
-
-# localizar arquivo de sessão
-session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-
-# renderizar player sempre que o arquivo existir (esfera visível imediatamente)
-if session_path.exists():
-    url = f"/static/audio/sessions/{session_path.name}"
-    html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
-    st.components.v1.html(html, height=300)  # ajuste height se necessário
-
-    # fallback st.audio apenas para arquivos pequenos
-    try:
-        size_bytes = session_path.stat().st_size
-    except Exception:
-        size_bytes = None
-
-    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024
-    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
-        try:
-            st.audio(str(session_path))
-        except Exception:
-            st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
-else:
-    st.info("Áudio de sessão não encontrado.")
-
-# -------------------------
-# Interface principal
-# -------------------------
-st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
-st.markdown(
-    f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>",
-    unsafe_allow_html=True,
-)
-
-# localizar arquivo de sessão automaticamente (apenas session_path)
-session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-
-preset = theme["preset"]
-
-# controles de tempo no sidebar (visíveis e editáveis)
-inhale = st.sidebar.number_input(
-    "Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5
-)
-hold1 = st.sidebar.number_input(
-    "Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5
-)
-exhale = st.sidebar.number_input(
-    "Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5
-)
-hold2 = st.sidebar.number_input(
-    "Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5
-)
-cycles = st.sidebar.number_input(
-    "Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1
-)
-
 # -------------------------
 # Função: player manual com esfera animada
 # -------------------------
@@ -270,6 +205,67 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
 }})();
 </script>
 """
+
+# -------------------------
+# Uso integrado no fluxo
+# -------------------------
+# garantir flags
+if "playing" not in st.session_state:
+    st.session_state.playing = False
+if "stop_flag" not in st.session_state:
+    st.session_state.stop_flag = False
+
+# localizar arquivo de sessão
+session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+# renderizar player sempre que o arquivo existir (esfera visível imediatamente)
+if session_path.exists():
+    url = f"/static/audio/sessions/{session_path.name}"
+    html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
+    st.components.v1.html(html, height=300)  # ajuste height se necessário
+
+    # fallback st.audio apenas para arquivos pequenos
+    try:
+        size_bytes = session_path.stat().st_size
+    except Exception:
+        size_bytes = None
+
+    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024
+    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
+        try:
+            st.audio(str(session_path))
+        except Exception:
+            st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
+else:
+    st.info("Áudio de sessão não encontrado.")
+
+# -------------------------
+# Interface principal
+# -------------------------
+st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
+st.markdown(
+    f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>",
+    unsafe_allow_html=True,
+)
+
+preset = theme["preset"]
+
+# controles de tempo no sidebar (visíveis e editáveis)
+inhale = st.sidebar.number_input(
+    "Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5
+)
+hold1 = st.sidebar.number_input(
+    "Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5
+)
+exhale = st.sidebar.number_input(
+    "Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5
+)
+hold2 = st.sidebar.number_input(
+    "Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5
+)
+cycles = st.sidebar.number_input(
+    "Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1
+)
 
 # -------------------------
 # Session state flags e função de ciclo de respiração
