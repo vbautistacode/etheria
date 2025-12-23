@@ -180,9 +180,9 @@ function playBell(freq=520, duration=0.08, volume=0.04) {
 """
     return html
 
-# -------------------------
-# Interface principal (sem upload)
-# -------------------------
+# -------------------
+# Interface principal
+# -------------------
 st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
 st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>", unsafe_allow_html=True)
 
