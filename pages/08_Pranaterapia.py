@@ -183,12 +183,11 @@ import streamlit as st
 # -------------------------
 def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> str:
     """
-    Retorna HTML/JS para:
-    - botão Iniciar (evita bloqueio de autoplay)
-    - botão Parar (pausa e zera)
-    - esfera animada sincronizada com audio.currentTime
-    - log simples de eventos
-    Use st.components.v1.html(html, height=...) para renderizar.
+    Player manual com esfera que:
+    - mostra um pulso suave antes do play (visível imediatamente)
+    - ao clicar em Iniciar, toca o áudio e passa a animar pela currentTime
+    - botão Parar pausa e zera
+    - protege contra erros e IDs duplicados
     """
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
@@ -199,67 +198,108 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
   </div>
 
   <div id="animWrap" style="display:flex;flex-direction:column;align-items:center;">
-    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;transition:transform 120ms linear;"></div>
+    <!-- esfera: tem pulso CSS inicial para ficar visível antes do play -->
+    <div id="circle" style="
+      width:160px;height:160px;border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, #fff8, {color});
+      box-shadow:0 12px 36px rgba(0,0,0,0.08);
+      transform-origin:center;
+      animation: initialPulse 2000ms ease-in-out infinite;
+      ">
+    </div>
     <div id="log" style="margin-top:10px;font-size:12px;color:#666;min-height:18px"></div>
   </div>
 
   <audio id="sessionAudio" src="{url}" preload="auto" style="display:none"></audio>
+
+  <style>
+    @keyframes initialPulse {{
+      0% {{ transform: scale(1); opacity: 0.98; }}
+      50% {{ transform: scale(1.04); opacity: 1; }}
+      100% {{ transform: scale(1); opacity: 0.98; }}
+    }}
+  </style>
 </div>
 
 <script>
 (function(){{
-  const audio = document.getElementById('sessionAudio');
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const circle = document.getElementById('circle');
-  const status = document.getElementById('status');
-  const log = document.getElementById('log');
+  try {{
+    const audio = document.getElementById('sessionAudio');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const circle = document.getElementById('circle');
+    const status = document.getElementById('status');
+    const log = document.getElementById('log');
 
-  function setStatus(text){{ status.textContent = text; }}
-  function addLog(msg){{ log.textContent = msg; console.log(msg); }}
-
-  startBtn.addEventListener('click', async () => {{
-    try {{
-      await audio.play();
-      setStatus("Sessão em andamento");
-      addLog("play OK, currentTime=" + audio.currentTime.toFixed(2));
-    }} catch (e) {{
-      addLog("play failed: " + (e && e.name) + " - " + (e && e.message));
-    }}
-  }});
-
-  stopBtn.addEventListener('click', () => {{
-    try {{
-      audio.pause();
-      audio.currentTime = 0;
-      setStatus("Parado");
-      addLog("stopped");
-    }} catch(e) {{
-      addLog("stop error: " + (e && e.message));
-    }}
-  }});
-
-  audio.addEventListener('play', () => setStatus("Sessão em andamento"));
-  audio.addEventListener('pause', () => setStatus("Pausado"));
-  audio.addEventListener('ended', () => setStatus("Concluído"));
-  audio.addEventListener('error', () => addLog("audio error code: " + (audio.error && audio.error.code)));
-
-  let raf = null;
-  function animate() {{
-    if (audio.paused) {{
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
+    if (!audio || !circle || !startBtn || !stopBtn) {{
+      console.warn('Player elements missing; skipping player init.');
       return;
     }}
-    const t = audio.currentTime;
-    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = `scale(${{scale}})`;
-    raf = requestAnimationFrame(animate);
-  }}
 
-  audio.addEventListener('play', () => animate());
-  audio.addEventListener('pause', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
-  audio.addEventListener('ended', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
+    function setStatus(text){{ status.textContent = text; }}
+    function addLog(msg){{ log.textContent = msg; console.log(msg); }}
+
+    // animação baseada no tempo do áudio
+    let raf = null;
+    function animateByAudio() {{
+      if (audio.paused) {{
+        if (raf) cancelAnimationFrame(raf);
+        raf = null;
+        return;
+      }}
+      const t = audio.currentTime || 0;
+      const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+      circle.style.transform = `scale(${{scale}})`;
+      raf = requestAnimationFrame(animateByAudio);
+    }}
+
+    // quando o áudio tocar, removemos o pulso CSS e usamos a animação sincronizada
+    audio.addEventListener('play', () => {{
+      circle.style.animation = 'none';
+      setStatus('Sessão em andamento');
+      animateByAudio();
+      addLog('audio play');
+    }});
+
+    audio.addEventListener('pause', () => {{
+      setStatus('Pausado');
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      addLog('audio pause');
+    }});
+
+    audio.addEventListener('ended', () => {{
+      setStatus('Concluído');
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      addLog('audio ended');
+    }});
+
+    startBtn.addEventListener('click', async () => {{
+      try {{
+        await audio.play();
+      }} catch (e) {{
+        addLog('play failed: ' + (e && e.name) + ' - ' + (e && e.message));
+      }}
+    }});
+
+    stopBtn.addEventListener('click', () => {{
+      try {{
+        audio.pause();
+        audio.currentTime = 0;
+        // restaurar pulso inicial para indicar estado parado
+        circle.style.animation = 'initialPulse 2000ms ease-in-out infinite';
+        setStatus('Parado');
+        addLog('stopped');
+      }} catch (e) {{
+        addLog('stop error: ' + (e && e.message));
+      }}
+    }});
+
+    audio.addEventListener('error', () => addLog('audio error code: ' + (audio.error && audio.error.code)));
+  }} catch (err) {{
+    console.error('Player init error:', err);
+  }}
 }})();
 </script>
 """
