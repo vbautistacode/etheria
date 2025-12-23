@@ -4,13 +4,12 @@ import time
 import base64
 from pathlib import Path
 
-st.set_page_config(page_title="Pranaterapia", page_icon="🌬️", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     """ Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença. """
 )
 st.caption(
-    """ Nossa pranaterapia integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset e iniciar a prática. """
+    """ Integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset e iniciar a prática. """
 )
 
 # -------------------------
@@ -377,12 +376,8 @@ if st.session_state.playing:
 # Rodapé: instruções rápidas, segurança e saúde
 # -------------------------
 st.markdown("---")
-st.markdown(
+st.caption(
     """
-**Instruções:** coloque os arquivos de sessão em `static/audio/sessions/` com nomes como `muladhara_session.wav`.  
-Para modo por fases, coloque `muladhara_inhale.wav` e `muladhara_exhale.wav` em `static/audio/phases/`.  
-O app carregará automaticamente e reproduzirá a sessão selecionada.
-
 **Aviso de segurança e saúde:**  
 - Este conteúdo é apenas para fins informativos e de bem‑estar geral; **não substitui orientação médica ou terapêutica profissional**.  
 - Se você tem condições médicas preexistentes (por exemplo, problemas cardíacos, hipertensão, asma, distúrbios respiratórios, epilepsia), está grávida, ou tem qualquer dúvida sobre praticar exercícios respiratórios, **consulte um profissional de saúde antes de usar**.  
