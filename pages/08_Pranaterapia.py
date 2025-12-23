@@ -305,7 +305,7 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
 """
 
 # -------------------------
-# Interface principal
+# Interface principal (refatorada: sem inhale_path/exhale_path)
 # -------------------------
 st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
 st.markdown(
@@ -313,10 +313,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# localizar arquivos automaticamente
+# localizar arquivo de sessão automaticamente (apenas session_path)
 session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-inhale_path = PHASES_DIR / f"{chakra.lower()}_inhale.wav"
-exhale_path = PHASES_DIR / f"{chakra.lower()}_exhale.wav"
 
 preset = theme["preset"]
 
@@ -490,14 +488,12 @@ if start_btn:
 # -------------------------
 # Player: renderiza player manual com esfera + fallback st.audio
 # -------------------------
-session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-
 if session_path.exists():
     # se o usuário clicou em Start e a intenção for a que usa áudio, marque playing
     if start_btn:
         st.session_state.playing = True
 
-    # renderizar player quando marcado como playing
+    # renderizar player quando marcado como playing (ou sempre renderizar se preferir)
     if st.session_state.playing:
         url = f"/static/audio/sessions/{session_path.name}"
 
@@ -521,7 +517,6 @@ if session_path.exists():
             st.info("Usando player por URL (clique em Iniciar). Arquivo grande — st.audio não foi usado como fallback.")
 else:
     # se não existir arquivo de sessão, não renderiza player; opcionalmente exibe aviso
-    # st.info(f"Áudio de sessão não encontrado: {session_path}")
     pass
 
 # -------------------------
