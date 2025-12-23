@@ -119,7 +119,8 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
     }}
     const t = audio.currentTime;
     const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = `scale(${scale})`;
+    // note: use ${{scale}} so Python f-string does not try to interpolate {scale}
+    circle.style.transform = `scale(${{scale}})`;
     raf = requestAnimationFrame(animate);
   }}
 
@@ -129,7 +130,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
 }})();
 </script>
 """
-
 
 # -------------------------
 # Função que monta HTML para tocar inhale/exhale sequencialmente (mantida para compatibilidade)
@@ -212,7 +212,6 @@ function playBell(freq=520, duration=0.08, volume=0.04) {
 </script>
 """
     return html
-
 
 # -------------------------
 # Interface principal
@@ -332,7 +331,6 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
 
     placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
     progress.progress(1.0)
-
 
 # -------------------------
 # Controles principais: escolha de prática e botões Iniciar / Parar
