@@ -213,7 +213,7 @@ html = build_synced_html_from_url(url, color=theme["color"], label_prefix=f"{cha
 st.components.v1.html(html, height=220)
 
 # fallback robusto (Streamlit serve o arquivo localmente)
-st.audio(str(session_path))
+#st.audio(str(session_path))
 
 # -------------------------
 # Session state flags e funções de controle
