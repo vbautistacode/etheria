@@ -108,8 +108,8 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <button id="startBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar (clique)</button>
-    <button id="stopBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
+    <button id="startBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer"></button>
+    <button id="stopBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer"></button>
     <div id="status_{sid}" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
   </div>
 
