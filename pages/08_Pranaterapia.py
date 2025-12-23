@@ -69,13 +69,6 @@ STATIC_ROOT = PROJECT_ROOT / "static"
 # diretório onde ficam os áudios de sessão
 SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
 
-# garantir que as variáveis existam e mostrar debug útil
-st.write("DEBUG BASE_DIR:", BASE_DIR)
-st.write("DEBUG PROJECT_ROOT:", PROJECT_ROOT)
-st.write("DEBUG STATIC_ROOT:", STATIC_ROOT)
-st.write("DEBUG SESSIONS_DIR:", SESSIONS_DIR)
-
-
 # -------------------------
 # Sidebar: controles (sempre no sidebar)
 # -------------------------
