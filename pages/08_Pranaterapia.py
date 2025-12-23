@@ -56,12 +56,25 @@ CHAKRAS = {
 # -------------------------
 # Paths para assets de áudio (sessões e fases)
 # -------------------------
-BASE_DIR = Path(__file__).parent  # se este arquivo está em pages/
-PROJECT_ROOT = BASE_DIR.parent    # pasta do projeto (etheria)
+from pathlib import Path
+import streamlit as st
+
+# BASE_DIR assume que este arquivo está em <project>/pages
+BASE_DIR = Path(__file__).parent
+PROJECT_ROOT = BASE_DIR.parent
+
+# STATIC_ROOT deve apontar para a pasta static na raiz do projeto
 STATIC_ROOT = PROJECT_ROOT / "static"
 
+# diretório onde ficam os áudios de sessão
 SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
-session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+# garantir que as variáveis existam e mostrar debug útil
+st.write("DEBUG BASE_DIR:", BASE_DIR)
+st.write("DEBUG PROJECT_ROOT:", PROJECT_ROOT)
+st.write("DEBUG STATIC_ROOT:", STATIC_ROOT)
+st.write("DEBUG SESSIONS_DIR:", SESSIONS_DIR)
+
 
 # -------------------------
 # Sidebar: controles (sempre no sidebar)
