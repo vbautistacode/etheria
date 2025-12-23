@@ -302,7 +302,7 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
 intent = st.selectbox(
     "Prática",
     options=[
-        "Respiração guiada (preset atual)",
+        "Respiração guiada",
         "Respiração quadrada (Box Breathing)",
         "Respiração alternada (Nadi Shodhana)",
     ],
