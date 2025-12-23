@@ -1,20 +1,26 @@
 # 08_pranaterapia.py
-import streamlit as st
 import time
 import base64
 from pathlib import Path
 
+import streamlit as st
+
+# ---------------------------------------------------------
+# Título e descrição
+# ---------------------------------------------------------
+st.set_page_config(page_title="Pranaterapia", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
-    """ Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença. """
+    "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
+    "Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença."
 )
 st.caption(
-    """ Integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset e iniciar a prática. """
+    "Integra respiração, som e visual para harmonizar o seu ser. Escolha um chakra para aplicar um preset e iniciar a prática."
 )
 
-# -------------------------
-# Presets por chakra (nomes em sânscrito)
-# -------------------------
+# ---------------------------------------------------------
+# Presets por chakra
+# ---------------------------------------------------------
 CHAKRAS = {
     "Muladhara": {
         "color": "#CC0700",
@@ -53,34 +59,33 @@ CHAKRAS = {
     },
 }
 
-# -------------------------
-# Paths para assets de áudio (sessões e fases)
-# -------------------------
-from pathlib import Path
-import streamlit as st
-
-# BASE_DIR assume que este arquivo está em <project>/pages
+# ---------------------------------------------------------
+# Diretórios (assume estrutura do projeto: <repo-root>/static/audio/sessions)
+# ---------------------------------------------------------
 BASE_DIR = Path(__file__).parent
 PROJECT_ROOT = BASE_DIR.parent
-
-# STATIC_ROOT deve apontar para a pasta static na raiz do projeto
 STATIC_ROOT = PROJECT_ROOT / "static"
-
-# diretório onde ficam os áudios de sessão
 SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
 
-# -------------------------
-# Sidebar: controles (sempre no sidebar)
-# -------------------------
+# ---------------------------------------------------------
+# Sidebar: seleção e configurações
+# ---------------------------------------------------------
 st.sidebar.header("Configurações da sessão")
-chakra = st.sidebar.selectbox("Chakra ", options=list(CHAKRAS.keys()))
+chakra = st.sidebar.selectbox("Chakra", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
-# único modo: Sessão única (arquivo)
-autoplay = st.sidebar.checkbox("Autoplay ao iniciar", value=True)
+autoplay = st.sidebar.checkbox("Autoplay ao iniciar (cliente)", value=False)
 
-# -------------------------
-# Helpers: carregar bytes de arquivo local com cache
-# -------------------------
+# controles de tempo (visíveis e editáveis)
+preset = theme["preset"]
+inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
+exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
+hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
+cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
+
+# ---------------------------------------------------------
+# Helpers (cache leitura de arquivos)
+# ---------------------------------------------------------
 @st.cache_data
 def load_wav_from_path(path: str):
     p = Path(path)
@@ -88,193 +93,196 @@ def load_wav_from_path(path: str):
         return None
     return p.read_bytes()
 
+
 def wav_bytes_to_base64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
 
-# -------------------------
-# Função: player manual com esfera animada
-# -------------------------
-def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> str:
+
+# ---------------------------------------------------------
+# Funções para gerar HTML do player e da esfera (IDs únicos por chakra)
+# ---------------------------------------------------------
+def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "default") -> str:
+    """
+    Player HTML com botões Iniciar/Parar e elemento <audio>.
+    O UID garante IDs únicos se houver múltiplos players na página.
+    """
+    sid = uid.replace(" ", "_").lower()
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-    <button id="startBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar (clique)</button>
-    <button id="stopBtn" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
-    <div id="status" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
+    <button id="startBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">▶️ Iniciar (clique)</button>
+    <button id="stopBtn_{sid}" style="padding:8px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer">⏹️ Parar</button>
+    <div id="status_{sid}" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
   </div>
 
-  <div id="animWrap" style="display:flex;flex-direction:column;align-items:center;">
-    <div id="circle" style="
-      width:160px;height:160px;border-radius:50%;
+  <audio id="sessionAudio_{sid}" src="{url}" preload="auto" style="display:none"></audio>
+
+  <script>
+  (function(){{
+    try {{
+      const audio = document.getElementById('sessionAudio_{sid}');
+      const startBtn = document.getElementById('startBtn_{sid}');
+      const stopBtn = document.getElementById('stopBtn_{sid}');
+      const status = document.getElementById('status_{sid}');
+
+      if (!audio || !startBtn || !stopBtn) {{
+        console.warn('Player elements missing; skipping init.');
+        return;
+      }}
+
+      startBtn.addEventListener('click', async () => {{
+        try {{
+          await audio.play();
+          status.textContent = 'Tocando';
+        }} catch (e) {{
+          status.textContent = 'Erro ao tocar';
+          console.warn('play failed', e);
+        }}
+      }});
+
+      stopBtn.addEventListener('click', () => {{
+        try {{
+          audio.pause();
+          audio.currentTime = 0;
+          status.textContent = 'Parado';
+        }} catch (e) {{
+          console.warn('stop error', e);
+        }}
+      }});
+
+      audio.addEventListener('error', () => {{
+        console.warn('audio error code:', audio.error && audio.error.code);
+        status.textContent = 'Erro no áudio';
+      }});
+    }} catch (err) {{
+      console.error('Player init error:', err);
+    }}
+  }})();
+  </script>
+</div>
+"""
+
+
+def build_circle_html(color: str, uid: str = "default") -> str:
+    """
+    Esfera visual separada (renderizada abaixo do player).
+    A animação será controlada pelo player JS (quando o áudio tocar, o player JS pode manipular a esfera se necessário).
+    """
+    sid = uid.replace(" ", "_").lower()
+    return f"""
+<div style="display:flex;flex-direction:column;align-items:center;">
+  <div id="circle_{sid}" style="
+      width:180px;height:180px;border-radius:50%;
       background:radial-gradient(circle at 30% 30%, #fff8, {color});
       box-shadow:0 12px 36px rgba(0,0,0,0.08);
       transform-origin:center;
-      animation: initialPulse 2000ms ease-in-out infinite;
-      ">
-    </div>
-    <div id="log" style="margin-top:10px;font-size:12px;color:#666;min-height:18px"></div>
-  </div>
-
-  <audio id="sessionAudio" src="{url}" preload="auto" style="display:none"></audio>
-
+      animation: initialPulse_{sid} 2000ms ease-in-out infinite;
+      margin-bottom:12px;
+  "></div>
   <style>
-    @keyframes initialPulse {{
+    @keyframes initialPulse_{sid} {{
       0% {{ transform: scale(1); opacity: 0.98; }}
       50% {{ transform: scale(1.04); opacity: 1; }}
       100% {{ transform: scale(1); opacity: 0.98; }}
     }}
   </style>
-</div>
 
-<script>
-(function(){{
-  try {{
-    const audio = document.getElementById('sessionAudio');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const circle = document.getElementById('circle');
-    const status = document.getElementById('status');
-    const log = document.getElementById('log');
+  <script>
+  (function(){{
+    // sincronização simples: quando o áudio do player tocar, remove o pulso e aplica animação baseada no tempo
+    try {{
+      const audio = document.getElementById('sessionAudio_{sid}');
+      const circle = document.getElementById('circle_{sid}');
+      if (!audio || !circle) return;
 
-    if (!audio || !circle || !startBtn || !stopBtn) {{
-      console.warn('Player elements missing; skipping player init.');
-      return;
-    }}
+      let raf = null;
+      function animateByAudio() {{
+        if (audio.paused) {{
+          if (raf) cancelAnimationFrame(raf);
+          raf = null;
+          return;
+        }}
+        const t = audio.currentTime || 0;
+        const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+        circle.style.transform = `scale(${scale})`;
+        raf = requestAnimationFrame(animateByAudio);
+      }}
 
-    function setStatus(text){{ status.textContent = text; }}
-    function addLog(msg){{ log.textContent = msg; console.log(msg); }}
-
-    let raf = null;
-    function animateByAudio() {{
-      if (audio.paused) {{
+      audio.addEventListener('play', () => {{
+        circle.style.animation = 'none';
+        animateByAudio();
+      }});
+      audio.addEventListener('pause', () => {{
         if (raf) cancelAnimationFrame(raf);
         raf = null;
-        return;
-      }}
-      const t = audio.currentTime || 0;
-      const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-      circle.style.transform = `scale(${{scale}})`;
-      raf = requestAnimationFrame(animateByAudio);
+        circle.style.animation = 'initialPulse_{sid} 2000ms ease-in-out infinite';
+      }});
+      audio.addEventListener('ended', () => {{
+        if (raf) cancelAnimationFrame(raf);
+        raf = null;
+        circle.style.animation = 'initialPulse_{sid} 2000ms ease-in-out infinite';
+      }});
+    }} catch (e) {{
+      console.warn('circle sync error', e);
     }}
-
-    audio.addEventListener('play', () => {{
-      circle.style.animation = 'none';
-      setStatus('Sessão em andamento');
-      animateByAudio();
-      addLog('audio play');
-    }});
-
-    audio.addEventListener('pause', () => {{
-      setStatus('Pausado');
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      addLog('audio pause');
-    }});
-
-    audio.addEventListener('ended', () => {{
-      setStatus('Concluído');
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      addLog('audio ended');
-    }});
-
-    startBtn.addEventListener('click', async () => {{
-      try {{
-        await audio.play();
-      }} catch (e) {{
-        addLog('play failed: ' + (e && e.name) + ' - ' + (e && e.message));
-      }}
-    }});
-
-    stopBtn.addEventListener('click', () => {{
-      try {{
-        audio.pause();
-        audio.currentTime = 0;
-        circle.style.animation = 'initialPulse 2000ms ease-in-out infinite';
-        setStatus('Parado');
-        addLog('stopped');
-      }} catch (e) {{
-        addLog('stop error: ' + (e && e.message));
-      }}
-    }});
-
-    audio.addEventListener('error', () => addLog('audio error code: ' + (audio.error && audio.error.code)));
-  }} catch (err) {{
-    console.error('Player init error:', err);
-  }}
-}})();
-</script>
+  }})();
+  </script>
+</div>
 """
 
-# -------------------------
-# Uso integrado no fluxo
-# -------------------------
-# garantir flags
+
+# ---------------------------------------------------------
+# Inicializar session_state (flags únicas)
+# ---------------------------------------------------------
 if "playing" not in st.session_state:
     st.session_state.playing = False
 if "stop_flag" not in st.session_state:
     st.session_state.stop_flag = False
 
-# localizar arquivo de sessão
-session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+# ---------------------------------------------------------
+# Calcular session_path de forma segura (após seleção do chakra)
+# ---------------------------------------------------------
+session_filename = f"{chakra.lower()}_session.wav"
+session_path = SESSIONS_DIR / session_filename
 
-# renderizar player sempre que o arquivo existir (esfera visível imediatamente)
-if session_path.exists():
-    url = f"/static/audio/sessions/{session_path.name}"
-    html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
-    st.components.v1.html(html, height=300)  # ajuste height se necessário
+# Debug leve (visível apenas em dev; comente se não quiser)
+# st.write("DEBUG session_path:", session_path, "exists:", session_path.exists())
 
-    # fallback st.audio apenas para arquivos pequenos
-    try:
-        size_bytes = session_path.stat().st_size
-    except Exception:
-        size_bytes = None
-
-    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024
-    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
-        try:
-            st.audio(str(session_path))
-        except Exception:
-            st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
-else:
-    st.info("Áudio de sessão não encontrado.")
-
-# -------------------------
-# Interface principal
-# -------------------------
+# ---------------------------------------------------------
+# Interface principal (texto e barra de cor)
+# ---------------------------------------------------------
 st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
 st.markdown(
     f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>",
     unsafe_allow_html=True,
 )
 
-preset = theme["preset"]
-
-# controles de tempo no sidebar (visíveis e editáveis)
-inhale = st.sidebar.number_input(
-    "Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5
-)
-hold1 = st.sidebar.number_input(
-    "Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5
-)
-exhale = st.sidebar.number_input(
-    "Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5
-)
-hold2 = st.sidebar.number_input(
-    "Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5
-)
-cycles = st.sidebar.number_input(
-    "Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1
+# ---------------------------------------------------------
+# Controles principais: escolha de prática e botões Iniciar / Parar (servidor)
+# ---------------------------------------------------------
+intent = st.selectbox(
+    "Prática",
+    options=[
+        "Respiração guiada",
+        "Respiração quadrada (Box Breathing)",
+        "Respiração alternada (Nadi Shodhana)",
+    ],
 )
 
-# -------------------------
-# Session state flags e função de ciclo de respiração
-# -------------------------
-if "playing" not in st.session_state:
+col_start, col_stop = st.columns([1, 1])
+with col_start:
+    start_btn = st.button("▶️ Iniciar prática")
+with col_stop:
+    stop_btn = st.button("⏹️ Parar prática")
+
+if stop_btn:
+    st.session_state.stop_flag = True
     st.session_state.playing = False
-if "stop_flag" not in st.session_state:
-    st.session_state.stop_flag = False
+    st.success("Prática interrompida. Aguarde a atualização da interface.")
 
+# ---------------------------------------------------------
+# Função de ciclo de respiração (servidor)
+# ---------------------------------------------------------
 def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
     """Executa contagem no servidor com possibilidade de interrupção via st.session_state.stop_flag."""
     st.session_state.stop_flag = False
@@ -287,7 +295,6 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
             placeholder.markdown("### ⏹️ Prática interrompida.")
             return
         placeholder.markdown(f"### 🌿 Ciclo {c+1}/{cycles} — Inspire por **{inhale_s}s**")
-        # contar segundos inteiros
         full = int(inhale_s)
         rem = inhale_s - full
         for _ in range(full):
@@ -352,38 +359,20 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
     placeholder.markdown("### ✔️ Prática concluída. Observe como você se sente.")
     progress.progress(1.0)
 
-# -------------------------
-# Controles principais: escolha de prática e botões Iniciar / Parar
-# -------------------------
-intent = st.selectbox(
-    "Prática",
-    options=[
-        "Respiração guiada",
-        "Respiração quadrada (Box Breathing)",
-        "Respiração alternada (Nadi Shodhana)",
-    ],
-)
 
-col_start, col_stop = st.columns([1, 1])
-with col_start:
-    start_btn = st.button("▶️ Iniciar prática")
-with col_stop:
-    stop_btn = st.button("⏹️ Parar prática")
-
-# ação de parar: sinaliza interrupção (não forçar rerun)
-if stop_btn:
-    st.session_state.stop_flag = True
-    st.session_state.playing = False
-    st.success("Prática interrompida. Aguarde a atualização da interface.")
-
-# fluxo principal (apenas práticas guiadas por contagem ou instrução)
+# ---------------------------------------------------------
+# Fluxo principal das práticas (servidor)
+# ---------------------------------------------------------
 if start_btn:
     st.session_state.stop_flag = False
 
     if intent == "Respiração guiada":
+        # marca playing para indicar que o usuário iniciou a prática
+        st.session_state.playing = True
         breathing_cycle(inhale, hold1, exhale, hold2, cycles=int(cycles))
 
     elif intent == "Respiração quadrada (Box Breathing)":
+        st.session_state.playing = True
         st.subheader("🟦 Respiração quadrada (Box Breathing)")
         st.markdown(
             """
@@ -399,6 +388,7 @@ if start_btn:
         breathing_cycle(4, 4, 4, 4, cycles=5)
 
     elif intent == "Respiração alternada (Nadi Shodhana)":
+        st.session_state.playing = True
         st.subheader("🔄 Respiração alternada (Nadi Shodhana)")
         st.markdown(
             """
@@ -417,43 +407,40 @@ if start_btn:
         )
         st.info("Esta técnica é guiada por instruções, não por contagem automática. Use o botão Parar para interromper a prática a qualquer momento.")
 
-# -------------------------
-# Player: renderiza player manual com esfera + fallback st.audio
-# -------------------------
+
+# ---------------------------------------------------------
+# PLAYER (cliente) em primeiro plano, depois ESFERA, depois RENDER DO ÁUDIO (fallback)
+# ---------------------------------------------------------
+uid = chakra  # usado para gerar IDs únicos no HTML
 if session_path.exists():
-    # se o usuário clicou em Start e a intenção for a que usa áudio, marque playing
-    if start_btn:
-        st.session_state.playing = True
+    url = f"/static/audio/sessions/{session_path.name}"
 
-    # renderizar player quando marcado como playing (ou sempre renderizar se preferir)
-    if st.session_state.playing:
-        url = f"/static/audio/sessions/{session_path.name}"
+    # 1) Player HTML em primeiro plano (cliente)
+    st.components.v1.html(build_player_html(url, theme["color"], f"{chakra} — ", uid=uid), height=120)
 
-        # renderiza o player customizado (requere clique do usuário para evitar bloqueio de autoplay)
-        html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
-        st.components.v1.html(html, height=260)
+    # 2) Esfera logo abaixo (visual)
+    st.components.v1.html(build_circle_html(theme["color"], uid=uid), height=240)
 
-        # fallback robusto: use st.audio apenas para arquivos pequenos (evita MediaFileStorageError)
+    # 3) Render do áudio (fallback) — apenas para arquivos pequenos
+    try:
+        size_bytes = session_path.stat().st_size
+    except Exception:
+        size_bytes = None
+
+    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024  # 5 MB threshold
+    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
         try:
-            size_bytes = session_path.stat().st_size
+            st.audio(str(session_path))
         except Exception:
-            size_bytes = None
-
-        MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024  # 5 MB threshold
-        if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
-            try:
-                st.audio(str(session_path))
-            except Exception:
-                st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
-        else:
-            st.info("Usando player por URL (clique em Iniciar). Arquivo grande — st.audio não foi usado como fallback.")
+            st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
+    else:
+        st.info("Usando player por URL (clique em Iniciar). Arquivo grande — st.audio não foi usado como fallback.")
 else:
-    # se não existir arquivo de sessão, não renderiza player; opcionalmente exibe aviso
-    pass
+    st.warning(f"Áudio de sessão não encontrado: {session_path}")
 
-# -------------------------
+# ---------------------------------------------------------
 # Rodapé: instruções rápidas, segurança e saúde
-# -------------------------
+# ---------------------------------------------------------
 st.markdown("---")
 st.caption(
     """
@@ -469,3 +456,10 @@ st.caption(
 Pratique com atenção e cuide de si.
 """
 )
+
+# ---------------------------------------------------------
+# Observações rápidas (onde ajustar)
+# - Para alterar o threshold do fallback st.audio, edite MAX_ST_AUDIO_BYTES.
+# - Se quiser que o player tente autoplay no cliente, marque 'autoplay' no sidebar e adapte o JS.
+# - Se os arquivos não estiverem sendo servidos via /static/, confirme que 'static/' está na raiz do repositório e que o app foi redeployado.
+# ---------------------------------------------------------
