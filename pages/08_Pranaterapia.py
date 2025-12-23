@@ -202,8 +202,7 @@ if session_path.exists() and intent == "Respiração guiada":
         st.stop()
 
     # 2) Injeta componente que encontra o <audio> criado por st.audio e sincroniza esfera + contagem cliente
-    fname = session_path.name
-    escaped_fname = escape(fname)
+    escaped_fname = escape(session_path.name)
     color = theme["color"]
 
     # HTML/JS que:
@@ -211,209 +210,218 @@ if session_path.exists() and intent == "Respiração guiada":
     # - anexa listeners play/pause/ended
     # - anima a esfera com requestAnimationFrame
     # - executa a contagem de respiração no cliente (respeitando pausas do áudio)
-    html_sync_client = f"""
-<div id="prana_client_sync_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
-  <div id="prana_status_{escaped_fname}" style="margin-bottom:8px;font-weight:600;">Pronto</div>
+    # Cole este trecho imediatamente após st.audio(str(session_path))
+    # variáveis já presentes no seu contexto: session_path, theme, inhale, hold1, exhale, hold2, cycles
 
-  <div id="prana_circle_{escaped_fname}" style="
-      width:180px;height:180px;border-radius:50%;
-      background:radial-gradient(circle at 30% 30%, #fff8, {color});
-      box-shadow:0 12px 36px rgba(0,0,0,0.08);
-      transform-origin:center;
-      animation: prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite;
-      margin-bottom:12px;
-  "></div>
+    html_sync = f"""
+    <div id="prana_client_sync_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
+      <div id="prana_status_{escaped_fname}" style="margin-bottom:8px;font-weight:600;">Pronto</div>
 
-  <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;"></div>
+      <div id="prana_circle_{escaped_fname}" style="
+          width:180px;height:180px;border-radius:50%;
+          background:radial-gradient(circle at 30% 30%, #fff8, {color});
+          box-shadow:0 12px 36px rgba(0,0,0,0.08);
+          transform-origin:center;
+          animation: prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite;
+          margin-bottom:12px;
+      "></div>
 
-  <style>
-    @keyframes prana_initial_pulse_{escaped_fname} {{
-      0% {{ transform: scale(1); opacity: 0.98; }}
-      50% {{ transform: scale(1.04); opacity: 1; }}
-      100% {{ transform: scale(1); opacity: 0.98; }}
-    }}
-  </style>
-</div>
+      <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;"></div>
 
-<script>
-(function(){{
-  const fname = "{escaped_fname}";
-  const statusEl = document.getElementById('prana_status_' + fname);
-  const circle = document.getElementById('prana_circle_' + fname);
-  const logEl = document.getElementById('prana_breath_log_' + fname);
+      <style>
+        @keyframes prana_initial_pulse_{escaped_fname} {{
+          0% {{ transform: scale(1); opacity: 0.98; }}
+          50% {{ transform: scale(1.04); opacity: 1; }}
+          100% {{ transform: scale(1); opacity: 0.98; }}
+        }}
+      </style>
+    </div>
 
-  // parâmetros vindos do servidor
-  const inhale = {inhale};
-  const hold1 = {hold1};
-  const exhale = {exhale};
-  const hold2 = {hold2};
-  const cycles = {int(cycles)};
+    <script>
+    (function(){{
+      const fname = "{escaped_fname}";
+      const statusEl = document.getElementById('prana_status_' + fname);
+      const circle = document.getElementById('prana_circle_' + fname);
+      const logEl = document.getElementById('prana_breath_log_' + fname);
 
-  function setStatus(t) {{ if (statusEl) statusEl.textContent = t; }}
-  function setLog(t) {{ if (logEl) logEl.textContent = t; }}
+      const inhale = {inhale};
+      const hold1 = {hold1};
+      const exhale = {exhale};
+      const hold2 = {hold2};
+      const cycles = {int(cycles)};
 
-  function findAudioByFilename(fname) {{
-    const audios = Array.from(document.querySelectorAll('audio'));
-    for (const a of audios) {{
-      try {{
-        if (a.currentSrc && a.currentSrc.indexOf(fname) !== -1) return a;
-        if (a.querySelector && a.querySelector('source') && a.querySelector('source').src && a.querySelector('source').src.indexOf(fname) !== -1) return a;
-      }} catch(e){{}}
-    }}
-    if (audios.length === 1) return audios[0];
-    return null;
-  }}
+      function setStatus(t) {{ if (statusEl) statusEl.textContent = t; }}
+      function setLog(t) {{ if (logEl) logEl.textContent = t; console.log('[prana]', t); }}
 
-  let audio = findAudioByFilename(fname);
-
-  // animação da esfera baseada no tempo do áudio
-  let raf = null;
-  function animateFrame() {{
-    if (!audio || audio.paused) {{
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      return;
-    }}
-    const t = audio.currentTime || 0;
-    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = 'scale(' + scale + ')';
-    raf = requestAnimationFrame(animateFrame);
-  }}
-
-  // contagem de respiração no cliente, respeitando pausas do áudio
-  let breathingRunning = false;
-  function startClientBreathing() {{
-    if (breathingRunning) return;
-    breathingRunning = true;
-    let cycleIndex = 0;
-
-    function runCycle() {{
-      if (!breathingRunning) return;
-      if (cycleIndex >= cycles) {{
-        setLog('Prática concluída');
-        breathingRunning = false;
-        return;
+      function findAudioByFilename(fname) {{
+        const audios = Array.from(document.querySelectorAll('audio'));
+        for (const a of audios) {{
+          try {{
+            if (a.currentSrc && a.currentSrc.indexOf(fname) !== -1) return a;
+          }} catch(e){{}}
+        }}
+        for (const a of audios) {{
+          try {{
+            const s = a.querySelector && a.querySelector('source') && a.querySelector('source').src;
+            if (s && s.indexOf(fname) !== -1) return a;
+          }} catch(e){{}}
+        }}
+        for (const a of audios) {{
+          try {{
+            const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
+            if (src && src.endsWith(fname)) return a;
+          }} catch(e){{}}
+        }}
+        if (audios.length === 1) return audios[0];
+        return null;
       }}
-      cycleIndex++;
-      const seq = [
-        {{label: 'Inspire', t: inhale}},
-        {{label: 'Segure', t: hold1}},
-        {{label: 'Expire', t: exhale}},
-        {{label: 'Segure', t: hold2}}
-      ];
-      let segIndex = 0;
 
-      function nextSegment() {{
-        if (!breathingRunning) return;
-        if (segIndex >= seq.length) {{
-          // pequeno intervalo entre ciclos
-          setTimeout(runCycle, 200);
+      let audio = findAudioByFilename(fname);
+      setLog('Procurando audio: ' + fname + ' — encontrado? ' + !!audio);
+
+      let raf = null;
+      function animateFrame() {{
+        if (!audio || audio.paused) {{
+          if (raf) cancelAnimationFrame(raf);
+          raf = null;
           return;
         }}
-        const seg = seq[segIndex++];
-        if (seg.t <= 0) {{
-          nextSegment();
-          return;
-        }}
-        setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
-        const start = performance.now();
+        const t = audio.currentTime || 0;
+        const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+        circle.style.transform = 'scale(' + scale + ')';
+        raf = requestAnimationFrame(animateFrame);
+      }}
 
-        function waitLoop() {{
+      let breathingRunning = false;
+      function startClientBreathing() {{
+        if (breathingRunning) return;
+        breathingRunning = true;
+        let cycleIndex = 0;
+
+        function runCycle() {{
           if (!breathingRunning) return;
-          if (audio && audio.paused) {{
-            // se o áudio estiver pausado, aguarda até retomar
-            setTimeout(waitLoop, 200);
+          if (cycleIndex >= cycles) {{
+            setLog('Prática concluída');
+            breathingRunning = false;
             return;
           }}
-          const elapsed = (performance.now() - start) / 1000;
-          if (elapsed >= seg.t) {{
-            nextSegment();
-          }} else {{
-            requestAnimationFrame(waitLoop);
+          cycleIndex++;
+          const seq = [
+            {{label: 'Inspire', t: inhale}},
+            {{label: 'Segure', t: hold1}},
+            {{label: 'Expire', t: exhale}},
+            {{label: 'Segure', t: hold2}}
+          ];
+          let segIndex = 0;
+
+          function nextSegment() {{
+            if (!breathingRunning) return;
+            if (segIndex >= seq.length) {{
+              setTimeout(runCycle, 200);
+              return;
+            }}
+            const seg = seq[segIndex++];
+            if (seg.t <= 0) {{
+              nextSegment();
+              return;
+            }}
+            setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
+            const start = performance.now();
+
+            function waitLoop() {{
+              if (!breathingRunning) return;
+              if (audio && audio.paused) {{
+                setTimeout(waitLoop, 200);
+                return;
+              }}
+              const elapsed = (performance.now() - start) / 1000;
+              if (elapsed >= seg.t) {{
+                nextSegment();
+              }} else {{
+                requestAnimationFrame(waitLoop);
+              }}
+            }}
+            waitLoop();
           }}
+          nextSegment();
         }}
-        waitLoop();
+        runCycle();
       }}
-      nextSegment();
-    }}
-    runCycle();
-  }}
 
-  function pauseClientBreathing() {{
-    breathingRunning = false;
-  }}
+      function pauseClientBreathing() {{
+        breathingRunning = false;
+      }}
 
-  function stopClientBreathing() {{
-    breathingRunning = false;
-    setLog('');
-  }}
+      function stopClientBreathing() {{
+        breathingRunning = false;
+        setLog('');
+      }}
 
-  function attachToAudio(audioEl) {{
-    if (!audioEl) return;
-    audio = audioEl;
+      function attachToAudio(audioEl) {{
+        if (!audioEl) return;
+        audio = audioEl;
+        setLog('Anexando listeners ao audio: ' + (audio.currentSrc || audio.src || 'unknown'));
 
-    audio.addEventListener('play', () => {{
-      // pausar outros audios para evitar sobreposição
-      document.querySelectorAll('audio').forEach(a => {{ if (a !== audio) try{{ a.pause(); }}catch(e){{}} }});
-      circle.style.animation = 'none';
-      setStatus('Tocando');
-      requestAnimationFrame(animateFrame);
-      startClientBreathing();
-    }});
+        audio.addEventListener('play', () => {{
+          document.querySelectorAll('audio').forEach(a => {{ if (a !== audio) try{{ a.pause(); }}catch(e){{}} }});
+          circle.style.animation = 'none';
+          setStatus('Tocando');
+          requestAnimationFrame(animateFrame);
+          startClientBreathing();
+        }});
 
-    audio.addEventListener('pause', () => {{
-      setStatus('Pausado');
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      circle.style.animation = 'prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-      // pausa a contagem; ela aguardará retomada do áudio
-      pauseClientBreathing();
-    }});
+        audio.addEventListener('pause', () => {{
+          setStatus('Pausado');
+          if (raf) cancelAnimationFrame(raf);
+          raf = null;
+          circle.style.animation = 'prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite';
+          pauseClientBreathing();
+        }});
 
-    audio.addEventListener('ended', () => {{
-      setStatus('Concluído');
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      circle.style.animation = 'prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-      stopClientBreathing();
-    }});
+        audio.addEventListener('ended', () => {{
+          setStatus('Concluído');
+          if (raf) cancelAnimationFrame(raf);
+          raf = null;
+          circle.style.animation = 'prana_initial_pulse_{escaped_fname} 2000ms ease-in-out infinite';
+          stopClientBreathing();
+        }});
 
-    audio.addEventListener('error', () => {{
-      setStatus('Erro no áudio (veja console)');
-      console.warn('audio error', audio.error);
-    }});
-  }}
+        audio.addEventListener('error', () => {{
+          setStatus('Erro no áudio (veja console)');
+          console.warn('audio error', audio.error);
+        }});
+      }}
 
-  if (audio) {{
-    attachToAudio(audio);
-  }} else {{
-    const obs = new MutationObserver((mutations, observer) => {{
-      audio = findAudioByFilename(fname);
       if (audio) {{
-        observer.disconnect();
         attachToAudio(audio);
-      }}
-    }});
-    obs.observe(document.body, {{ childList: true, subtree: true }});
+      }} else {{
+        const observer = new MutationObserver((mutations, obs) => {{
+          audio = findAudioByFilename(fname);
+          if (audio) {{
+            obs.disconnect();
+            attachToAudio(audio);
+          }}
+        }});
+        observer.observe(document.body, {{ childList: true, subtree: true }});
 
-    // fallback: após 3s, se nenhum audio específico for encontrado, anexa ao primeiro audio disponível
-    setTimeout(() => {{
-      if (!audio) {{
-        const fallback = document.querySelector('audio');
-        if (fallback) {{
-          console.warn('Fallback: anexando ao primeiro <audio> encontrado');
-          attachToAudio(fallback);
-        }} else {{
-          console.warn('Nenhum <audio> encontrado ainda');
-        }}
+        setTimeout(() => {{
+          if (!audio) {{
+            const fallback = document.querySelector('audio');
+            if (fallback) {{
+              console.warn('Fallback: anexando ao primeiro <audio> encontrado');
+              attachToAudio(fallback);
+            }} else {{
+              console.warn('Nenhum <audio> encontrado ainda');
+              setStatus('Áudio não encontrado');
+            }}
+          }}
+        }}, 3000);
       }}
-    }}, 3000);
-  }}
-}})();
-</script>
-"""
-
-    st.components.v1.html(html_sync_client, height=420)
+  }})();
+  </script>
+  """ 
+  
+    st.components.v1.html(html_sync, height=460)
 
 else:
     # se não houver áudio para a prática selecionada, apenas mostra instruções
