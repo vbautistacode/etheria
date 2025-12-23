@@ -59,6 +59,8 @@ CHAKRAS = {
 BASE_DIR = Path(__file__).parent
 SESSIONS_DIR = BASE_DIR / "static" / "audio" / "sessions"
 PHASES_DIR = BASE_DIR / "static" / "audio" / "phases"
+# definir STATIC_ROOT apontando para a pasta static na raiz do projeto
+STATIC_ROOT = BASE_DIR.parent / "static"
 
 # -------------------------
 # Sidebar: controles (sempre no sidebar)
@@ -68,28 +70,6 @@ chakra = st.sidebar.selectbox("Chakra ", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
 # único modo: Sessão única (arquivo)
 autoplay = st.sidebar.checkbox("Autoplay ao iniciar", value=True)
-
-
-# BASE_DIR já definido no topo do arquivo
-# BASE_DIR = Path(__file__).parent
-
-# definir STATIC_ROOT apontando para a pasta static na raiz do projeto
-STATIC_ROOT = BASE_DIR.parent / "static"
-
-# agora que chakra foi selecionado no sidebar, monte o caminho do arquivo
-session_path = STATIC_ROOT / "audio" / "sessions" / f"{chakra.lower()}_session.wav"
-
-# debug seguro (apenas para desenvolvimento)
-st.write("DEBUG session_path:", session_path)
-st.write("exists:", session_path.exists())
-
-# teste de reprodução robusto
-if session_path.exists():
-    st.audio(str(session_path))  # fallback confiável para testar reprodução
-else:
-    st.error("Arquivo não encontrado: " + str(session_path))
-
-
 
 # -------------------------
 # Helpers: carregar bytes de arquivo local com cache
@@ -140,7 +120,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
     }}
     const t = audio.currentTime;
     const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    // note: use ${{scale}} so Python f-string does not try to interpolate {scale}
     circle.style.transform = `scale(${{scale}})`;
     raf = requestAnimationFrame(animate);
   }}
@@ -151,52 +130,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
 }})();
 </script>
 """
-
-# -------------------------
-# Função que monta HTML para tocar inhale/exhale sequencialmente (mantida para compatibilidade)
-# -------------------------
-def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
-    autoplay_attr = "autoplay" if autoplay_flag else ""
-    return f"""
-<div style="display:flex;flex-direction:column;align-items:center;">
-  <audio id="sessionAudio" src="{url}" preload="auto" controls {autoplay_attr}></audio>
-  <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
-    <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
-    <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
-  </div>
-</div>
-<script>
-(function(){{
-  const audio = document.getElementById('sessionAudio');
-  const circle = document.getElementById('circle');
-  const label = document.getElementById('label');
-
-  function setLabel(text){{ label.textContent = text; }}
-
-  audio.addEventListener('play', () => setLabel("Sessão em andamento"));
-  audio.addEventListener('pause', () => setLabel("Pausado"));
-  audio.addEventListener('ended', () => setLabel("Concluído"));
-
-  let raf = null;
-  function animate() {{
-    if (audio.paused) {{
-      if (raf) cancelAnimationFrame(raf);
-      raf = null;
-      return;
-    }}
-    const t = audio.currentTime;
-    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-    circle.style.transform = `scale(${{scale}})`;
-    raf = requestAnimationFrame(animate);
-  }}
-
-  audio.addEventListener('play', () => animate());
-  audio.addEventListener('pause', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
-  audio.addEventListener('ended', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
-}})();
-</script>
-"""
-    return html
 
 # -------------------------
 # Interface principal
