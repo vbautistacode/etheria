@@ -8,7 +8,6 @@ import streamlit as st
 # ---------------------------------------------------------
 # Título e descrição
 # ---------------------------------------------------------
-st.set_page_config(page_title="Pranaterapia", layout="centered")
 st.title("🌬️ Pranaterapia")
 st.markdown(
     "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
@@ -73,7 +72,6 @@ SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
 st.sidebar.header("Configurações da sessão")
 chakra = st.sidebar.selectbox("Chakra", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
-autoplay = st.sidebar.checkbox("Autoplay ao iniciar (cliente)", value=False)
 
 # controles de tempo (visíveis e editáveis)
 preset = theme["preset"]
@@ -169,6 +167,7 @@ def build_circle_html(color: str, uid: str = "default") -> str:
     A animação será controlada pelo player JS (quando o áudio tocar, o player JS pode manipular a esfera se necessário).
     """
     sid = uid.replace(" ", "_").lower()
+    # Usar concatenação em JS para evitar que Python tente avaliar {scale} dentro da f-string
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;">
   <div id="circle_{sid}" style="
@@ -204,7 +203,8 @@ def build_circle_html(color: str, uid: str = "default") -> str:
         }}
         const t = audio.currentTime || 0;
         const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-        circle.style.transform = `scale(${scale})`;
+        // concatenação segura para evitar conflitos com f-strings Python
+        circle.style.transform = 'scale(' + scale + ')';
         raf = requestAnimationFrame(animateByAudio);
       }}
 
@@ -244,9 +244,6 @@ if "stop_flag" not in st.session_state:
 # ---------------------------------------------------------
 session_filename = f"{chakra.lower()}_session.wav"
 session_path = SESSIONS_DIR / session_filename
-
-# Debug leve (visível apenas em dev; comente se não quiser)
-# st.write("DEBUG session_path:", session_path, "exists:", session_path.exists())
 
 # ---------------------------------------------------------
 # Interface principal (texto e barra de cor)
