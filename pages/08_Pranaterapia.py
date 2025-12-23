@@ -56,11 +56,12 @@ CHAKRAS = {
 # -------------------------
 # Paths para assets de áudio (sessões e fases)
 # -------------------------
-BASE_DIR = Path(__file__).parent
-SESSIONS_DIR = BASE_DIR / "static" / "audio" / "sessions"
-PHASES_DIR = BASE_DIR / "static" / "audio" / "phases"
-# definir STATIC_ROOT apontando para a pasta static na raiz do projeto
-STATIC_ROOT = BASE_DIR.parent / "static"
+BASE_DIR = Path(__file__).parent  # se este arquivo está em pages/
+PROJECT_ROOT = BASE_DIR.parent    # pasta do projeto (etheria)
+STATIC_ROOT = PROJECT_ROOT / "static"
+
+SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
+session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
 
 # -------------------------
 # Sidebar: controles (sempre no sidebar)
@@ -208,34 +209,8 @@ if "playing" not in st.session_state:
 if "stop_flag" not in st.session_state:
     st.session_state.stop_flag = False
 
-
-
 # localizar arquivo de sessão
 session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-
-from pathlib import Path
-st.write("DEBUG session_path:", session_path)
-try:
-    st.write("exists:", session_path.exists())
-    if session_path.exists():
-        stat = session_path.stat()
-        st.write("size_bytes:", stat.st_size, "mode:", oct(stat.st_mode))
-        with open(session_path, "rb") as f:
-            head = f.read(64)
-        st.write("first_bytes_hex:", head[:16].hex())
-    else:
-        # listar arquivos no diretório para ver o que há
-        parent = session_path.parent
-        st.write("listing parent dir:", parent)
-        try:
-            files = [p.name for p in parent.iterdir()]
-            st.write("files:", files)
-        except Exception as e:
-            st.write("erro listando parent:", str(e))
-except Exception as e:
-    st.error("Erro ao acessar arquivo: " + str(e))
-
-
 
 # renderizar player sempre que o arquivo existir (esfera visível imediatamente)
 if session_path.exists():
