@@ -182,13 +182,6 @@ import streamlit as st
 # Função: player manual com esfera animada
 # -------------------------
 def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> str:
-    """
-    Player manual com esfera que:
-    - mostra um pulso suave antes do play (visível imediatamente)
-    - ao clicar em Iniciar, toca o áudio e passa a animar pela currentTime
-    - botão Parar pausa e zera
-    - protege contra erros e IDs duplicados
-    """
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
@@ -198,7 +191,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
   </div>
 
   <div id="animWrap" style="display:flex;flex-direction:column;align-items:center;">
-    <!-- esfera: tem pulso CSS inicial para ficar visível antes do play -->
     <div id="circle" style="
       width:160px;height:160px;border-radius:50%;
       background:radial-gradient(circle at 30% 30%, #fff8, {color});
@@ -239,7 +231,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
     function setStatus(text){{ status.textContent = text; }}
     function addLog(msg){{ log.textContent = msg; console.log(msg); }}
 
-    // animação baseada no tempo do áudio
     let raf = null;
     function animateByAudio() {{
       if (audio.paused) {{
@@ -253,7 +244,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
       raf = requestAnimationFrame(animateByAudio);
     }}
 
-    // quando o áudio tocar, removemos o pulso CSS e usamos a animação sincronizada
     audio.addEventListener('play', () => {{
       circle.style.animation = 'none';
       setStatus('Sessão em andamento');
@@ -287,7 +277,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
       try {{
         audio.pause();
         audio.currentTime = 0;
-        // restaurar pulso inicial para indicar estado parado
         circle.style.animation = 'initialPulse 2000ms ease-in-out infinite';
         setStatus('Parado');
         addLog('stopped');
@@ -303,6 +292,39 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> 
 }})();
 </script>
 """
+
+# -------------------------
+# Uso integrado no fluxo
+# -------------------------
+# garantir flags
+if "playing" not in st.session_state:
+    st.session_state.playing = False
+if "stop_flag" not in st.session_state:
+    st.session_state.stop_flag = False
+
+# localizar arquivo de sessão
+session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+# renderizar player sempre que o arquivo existir (esfera visível imediatamente)
+if session_path.exists():
+    url = f"/static/audio/sessions/{session_path.name}"
+    html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
+    st.components.v1.html(html, height=300)  # ajuste height se necessário
+
+    # fallback st.audio apenas para arquivos pequenos
+    try:
+        size_bytes = session_path.stat().st_size
+    except Exception:
+        size_bytes = None
+
+    MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024
+    if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
+        try:
+            st.audio(str(session_path))
+        except Exception:
+            st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
+else:
+    st.info("Áudio de sessão não encontrado.")
 
 # -------------------------
 # Interface principal (refatorada: sem inhale_path/exhale_path)
