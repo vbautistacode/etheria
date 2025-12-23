@@ -1,17 +1,3 @@
-from pathlib import Path
-BASE_DIR = Path(__file__).parent
-STATIC_ROOT = BASE_DIR.parent / "static"   # raiz do projeto
-session_path = STATIC_ROOT / "audio" / "sessions" / f"{chakra.lower()}_session.wav"
-
-st.write("DEBUG session_path:", session_path)
-st.write("exists:", session_path.exists())
-
-if session_path.exists():
-    st.audio(str(session_path))  # teste simples e robusto
-else:
-    st.error("Arquivo não encontrado: " + str(session_path))
-
-
 # 08_pranaterapia.py
 import streamlit as st
 import time
@@ -82,6 +68,28 @@ chakra = st.sidebar.selectbox("Chakra ", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
 # único modo: Sessão única (arquivo)
 autoplay = st.sidebar.checkbox("Autoplay ao iniciar", value=True)
+
+
+# BASE_DIR já definido no topo do arquivo
+# BASE_DIR = Path(__file__).parent
+
+# definir STATIC_ROOT apontando para a pasta static na raiz do projeto
+STATIC_ROOT = BASE_DIR.parent / "static"
+
+# agora que chakra foi selecionado no sidebar, monte o caminho do arquivo
+session_path = STATIC_ROOT / "audio" / "sessions" / f"{chakra.lower()}_session.wav"
+
+# debug seguro (apenas para desenvolvimento)
+st.write("DEBUG session_path:", session_path)
+st.write("exists:", session_path.exists())
+
+# teste de reprodução robusto
+if session_path.exists():
+    st.audio(str(session_path))  # fallback confiável para testar reprodução
+else:
+    st.error("Arquivo não encontrado: " + str(session_path))
+
+
 
 # -------------------------
 # Helpers: carregar bytes de arquivo local com cache
