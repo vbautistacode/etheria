@@ -157,7 +157,7 @@ if start_btn:
         # manter a chamada server-side caso queira registro ou fallback
         pass
     elif intent == "Respiração quadrada (Box Breathing)":
-        st.subheader("🟦 Respiração quadrada (Box Breathing)")
+        st.subheader("🫁 Respiração quadrada (Box Breathing)")
         st.markdown(
             """
             Técnica usada para foco, estabilidade emocional e redução de ansiedade.
@@ -173,12 +173,19 @@ if start_btn:
     elif intent == "Respiração alternada (Nadi Shodhana)":
         st.subheader("🔄 Respiração alternada (Nadi Shodhana)")
         st.markdown(
-            """
-            Técnica tradicional para equilibrar os canais energéticos (nadis) e acalmar a mente.
-            Instruções guiadas (manual) — use o botão Parar para interromper.
-            """
+             """ 
+             Técnica tradicional para equilibrar os canais energéticos (nadis) e acalmar a mente. 
+             
+             **Instruções guiadas (manual):** 
+             1. Use o polegar direito para fechar a narina direita. 
+             2. Inspire pela narina esquerda (4s). 
+             3. Feche a narina esquerda com o anelar. 
+             4. Expire pela direita (4s). 
+             5. Inspire pela direita (4s). 
+             6. Feche a direita. 
+             7. Expire pela esquerda (4s). 
+             Repita por 6 ciclos. """ 
         )
-        st.info("Esta técnica é guiada por instruções, não por contagem automática.")
 
 # ---------------------------------------------------------
 # Localizar e renderizar o áudio (st.audio) e sincronizar com esfera e ciclo no cliente
