@@ -325,7 +325,7 @@ if stop_btn:
 if start_btn:
     st.session_state.stop_flag = False
 
-    if intent == "Respiração guiada (preset atual)":
+    if intent == "Respiração guiada":
         breathing_cycle(inhale, hold1, exhale, hold2, cycles=int(cycles))
 
     elif intent == "Respiração quadrada (Box Breathing)":
