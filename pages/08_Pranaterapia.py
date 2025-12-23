@@ -134,42 +134,11 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
 # -------------------------
 # Função que monta HTML para tocar inhale/exhale sequencialmente (mantida para compatibilidade)
 # -------------------------
-def build_phase_player_html(
-    inhale_b64: str,
-    exhale_b64: str,
-    inhale_s: float,
-    exhale_s: float,
-    cycles: int,
-    color: str,
-    use_bell: bool,
-    label_prefix: str = "",
-) -> str:
-    bell_script = ""
-    if use_bell:
-        bell_script = """
-function playBell(freq=520, duration=0.08, volume=0.04) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'sine';
-    o.frequency.value = freq;
-    g.gain.value = 0.0;
-    o.connect(g);
-    g.connect(ctx.destination);
-    const now = ctx.currentTime;
-    g.gain.linearRampToValueAtTime(volume, now + 0.01);
-    g.gain.linearRampToValueAtTime(0.0, now + duration);
-    o.start(now);
-    o.stop(now + duration + 0.02);
-    setTimeout(()=>{ try{ ctx.close(); }catch(e){} }, (duration+0.1)*1000);
-  } catch(e) {}
-}
-"""
-    html = f"""
+def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
+    autoplay_attr = "autoplay" if autoplay_flag else ""
+    return f"""
 <div style="display:flex;flex-direction:column;align-items:center;">
-  <audio id="inhaleAudio" src="data:audio/wav;base64,{inhale_b64}" preload="auto"></audio>
-  <audio id="exhaleAudio" src="data:audio/wav;base64,{exhale_b64}" preload="auto"></audio>
+  <audio id="sessionAudio" src="{url}" preload="auto" controls {autoplay_attr}></audio>
   <div id="animWrap" style="margin-top:12px;display:flex;flex-direction:column;align-items:center;">
     <div id="circle" style="width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 30% 30%, #fff8, {color});box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;"></div>
     <div id="label" style="margin-top:12px;font-size:18px;font-weight:600;color:#222">{label_prefix}Preparar...</div>
@@ -177,37 +146,32 @@ function playBell(freq=520, duration=0.08, volume=0.04) {
 </div>
 <script>
 (function(){{
-  const inhaleAudio = document.getElementById('inhaleAudio');
-  const exhaleAudio = document.getElementById('exhaleAudio');
+  const audio = document.getElementById('sessionAudio');
   const circle = document.getElementById('circle');
   const label = document.getElementById('label');
-  {bell_script}
 
   function setLabel(text){{ label.textContent = text; }}
 
-  async function runSequence() {{
-    for (let c=0; c < {cycles}; c++) {{
-      setLabel("Inspire");
-      if ({str(use_bell).lower()}) playBell(520,0.08,0.04);
-      inhaleAudio.currentTime = 0;
-      inhaleAudio.play();
-      await new Promise(r => setTimeout(r, Math.max(500, {int(inhale_s*1000)})));
+  audio.addEventListener('play', () => setLabel("Sessão em andamento"));
+  audio.addEventListener('pause', () => setLabel("Pausado"));
+  audio.addEventListener('ended', () => setLabel("Concluído"));
 
-      if ({int(inhale_s>0)}) {{
-        setLabel("Segure");
-        await new Promise(r => setTimeout(r, {int(0*1000)}));
-      }}
-
-      setLabel("Expire");
-      if ({str(use_bell).lower()}) playBell(420,0.08,0.04);
-      exhaleAudio.currentTime = 0;
-      exhaleAudio.play();
-      await new Promise(r => setTimeout(r, Math.max(500, {int(exhale_s*1000)})));
+  let raf = null;
+  function animate() {{
+    if (audio.paused) {{
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      return;
     }}
-    setLabel("Concluído");
+    const t = audio.currentTime;
+    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+    circle.style.transform = `scale(${{scale}})`;
+    raf = requestAnimationFrame(animate);
   }}
 
-  runSequence();
+  audio.addEventListener('play', () => animate());
+  audio.addEventListener('pause', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
+  audio.addEventListener('ended', () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }});
 }})();
 </script>
 """
@@ -334,11 +298,11 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
 
 # -------------------------
 # Controles principais: escolha de prática e botões Iniciar / Parar
+# (removidos: "Sessão única" e modo por fases)
 # -------------------------
 intent = st.selectbox(
     "Prática",
     options=[
-        "Sessão única (arquivo)",
         "Respiração guiada (preset atual)",
         "Respiração quadrada (Box Breathing)",
         "Respiração alternada (Nadi Shodhana)",
@@ -351,34 +315,17 @@ with col_start:
 with col_stop:
     stop_btn = st.button("⏹️ Parar prática")
 
-# ação de parar: sinaliza e força rerun para remover player/contagem
+# ação de parar: sinaliza e força rerun para interromper contagem
 if stop_btn:
     st.session_state.stop_flag = True
-    st.session_state.playing = False
-    # rerun para atualizar UI imediatamente
+    # rerun para atualizar UI imediatamente e interromper qualquer ciclo em andamento
     st.experimental_rerun()
 
-# fluxo principal
+# fluxo principal (apenas práticas guiadas por contagem ou instrução)
 if start_btn:
     st.session_state.stop_flag = False
 
-    if intent == "Sessão única (arquivo)":
-        # tocar arquivo estático via URL (player embutido com controles e animação)
-        session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-        st.write("DEBUG path:", session_path, "exists:", session_path.exists())
-        if not session_path.exists():
-            st.error(
-                f"Áudio de sessão não encontrado: {session_path}. Coloque o arquivo em static/audio/sessions/ com o nome correto."
-            )
-        else:
-            st.session_state.playing = True
-            url = f"/static/audio/sessions/{session_path.name}"
-            html = build_synced_html_from_url(
-                url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ", autoplay_flag=autoplay
-            )
-            st.components.v1.html(html, height=460)
-
-    elif intent == "Respiração guiada (preset atual)":
+    if intent == "Respiração guiada (preset atual)":
         breathing_cycle(inhale, hold1, exhale, hold2, cycles=int(cycles))
 
     elif intent == "Respiração quadrada (Box Breathing)":
