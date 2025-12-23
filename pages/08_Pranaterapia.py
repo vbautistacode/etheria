@@ -85,19 +85,17 @@ def wav_bytes_to_base64(b: bytes) -> str:
     return base64.b64encode(b).decode("ascii")
 
 # -------------------------
-# Função que monta HTML sincronizado (usa <audio> e JS)
+# Função: player manual com esfera animada
 # -------------------------
-def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", autoplay_flag: bool = True) -> str:
+def build_synced_html_from_url(url: str, color: str, label_prefix: str = "") -> str:
     """
-    Retorna HTML/JS para um player manual com:
+    Retorna HTML/JS para:
     - botão Iniciar (evita bloqueio de autoplay)
     - botão Parar (pausa e zera)
-    - animação visual sincronizada com audio.currentTime
+    - esfera animada sincronizada com audio.currentTime
     - log simples de eventos
     Use st.components.v1.html(html, height=220) para renderizar.
     """
-    # autoplay_attr mantido apenas para compatibilidade, mas o player exige clique do usuário
-    autoplay_attr = "autoplay" if autoplay_flag else ""
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
@@ -111,7 +109,7 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
     <div id="log" style="margin-top:10px;font-size:12px;color:#666;min-height:18px"></div>
   </div>
 
-  <audio id="sessionAudio" src="{url}" preload="auto" controls style="display:none" {autoplay_attr}></audio>
+  <audio id="sessionAudio" src="{url}" preload="auto" style="display:none"></audio>
 </div>
 
 <script>
@@ -126,7 +124,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
   function setStatus(text){{ status.textContent = text; }}
   function addLog(msg){{ log.textContent = msg; console.log(msg); }}
 
-  // play on user click to avoid autoplay blocking
   startBtn.addEventListener('click', async () => {{
     try {{
       await audio.play();
@@ -153,7 +150,6 @@ def build_synced_html_from_url(url: str, color: str, label_prefix: str = "", aut
   audio.addEventListener('ended', () => setStatus("Concluído"));
   audio.addEventListener('error', () => addLog("audio error code: " + (audio.error && audio.error.code)));
 
-  // animação simples ligada ao currentTime
   let raf = null;
   function animate() {{
     if (audio.paused) {{
@@ -320,11 +316,16 @@ with col_start:
 with col_stop:
     stop_btn = st.button("⏹️ Parar prática")
 
+# inicializar flags de sessão se necessário
+if "stop_flag" not in st.session_state:
+    st.session_state.stop_flag = False
+if "playing" not in st.session_state:
+    st.session_state.playing = False
+
 # ação de parar: sinaliza interrupção (não forçar rerun)
 if stop_btn:
     st.session_state.stop_flag = True
     st.session_state.playing = False
-    # não chamar st.experimental_rerun() aqui — deixe o app reagir à flag
     st.success("Prática interrompida. Aguarde a atualização da interface.")
 
 # fluxo principal (apenas práticas guiadas por contagem ou instrução)
@@ -332,6 +333,8 @@ if start_btn:
     st.session_state.stop_flag = False
 
     if intent == "Respiração guiada":
+        # se houver um ciclo guiado por áudio/arquivo, marque playing conforme necessário
+        # aqui assumimos que breathing_cycle roda no servidor e respeita stop_flag
         breathing_cycle(inhale, hold1, exhale, hold2, cycles=int(cycles))
 
     elif intent == "Respiração quadrada (Box Breathing)":
@@ -368,15 +371,47 @@ if start_btn:
         )
         st.info("Esta técnica é guiada por instruções, não por contagem automática. Use o botão Parar para interromper a prática a qualquer momento.")
 
-# Se o player estiver marcado como playing (por exemplo após rerun), renderize-o novamente
-if st.session_state.playing:
-    session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
-    if session_path.exists():
+# -------------------------
+# Player: renderiza player manual com esfera + fallback st.audio
+# - Só renderiza se existir o arquivo de sessão para o chakra atual
+# - Usa fallback para st.audio apenas quando o arquivo for pequeno
+# -------------------------
+# Ajuste SESSIONS_DIR e chakra conforme seu contexto (assumidos definidos em outro lugar)
+session_path = SESSIONS_DIR / f"{chakra.lower()}_session.wav"
+
+if session_path.exists():
+    # se o usuário clicou em Start e a intenção for a que usa áudio, marque playing
+    # (opcional: você pode condicionar isso a um intent específico)
+    if start_btn:
+        st.session_state.playing = True
+
+    # renderizar player quando marcado como playing
+    if st.session_state.playing:
         url = f"/static/audio/sessions/{session_path.name}"
-        html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ", autoplay_flag=autoplay)
-        st.components.v1.html(html, height=460)
-    else:
-        st.error(f"Áudio de sessão não encontrado: {session_path}")
+
+        # renderiza o player customizado (requere clique do usuário para evitar bloqueio de autoplay)
+        html = build_synced_html_from_url(url, color=CHAKRAS[chakra]["color"], label_prefix=f"{chakra} — ")
+        st.components.v1.html(html, height=260)
+
+        # fallback robusto: use st.audio apenas para arquivos pequenos (evita MediaFileStorageError)
+        try:
+            size_bytes = session_path.stat().st_size
+        except Exception:
+            size_bytes = None
+
+        MAX_ST_AUDIO_BYTES = 5 * 1024 * 1024  # 5 MB threshold
+        if size_bytes is not None and size_bytes <= MAX_ST_AUDIO_BYTES:
+            try:
+                st.audio(str(session_path))
+            except Exception:
+                st.info("Fallback st.audio falhou; use o player acima para tocar o áudio.")
+        else:
+            # arquivo grande ou tamanho desconhecido: informar que o player HTML é o método recomendado
+            st.info("Usando player por URL (clique em Iniciar). Arquivo grande — st.audio não foi usado como fallback.")
+else:
+    # se não existir arquivo de sessão, não renderiza player; opcionalmente exibe aviso
+    # st.info(f"Áudio de sessão não encontrado: {session_path}")
+    pass
 
 # -------------------------
 # Rodapé: instruções rápidas, segurança e saúde
