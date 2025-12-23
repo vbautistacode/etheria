@@ -67,7 +67,17 @@ if "stop_flag" not in st.session_state:
 st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
 st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>", unsafe_allow_html=True)
 
-# renderiza os botões apenas quando NÃO for "Respiração guiada"
+# defina intent primeiro
+intent = st.selectbox(
+    "Prática",
+    options=[
+        "Respiração guiada",
+        "Respiração quadrada (Box Breathing)",
+        "Respiração alternada (Nadi Shodhana)",
+    ],
+)
+
+# Renderiza botões apenas quando NÃO for "Respiração guiada"
 if intent != "Respiração guiada":
     col_start, col_stop = st.columns([1, 1])
     with col_start:
@@ -75,10 +85,11 @@ if intent != "Respiração guiada":
     with col_stop:
         stop_btn = st.button("⏹️ Parar prática")
 else:
-    # quando for Respiração guiada, não renderiza os botões (variáveis definidas para evitar NameError)
+    # evita NameError em código que verifica start_btn/stop_btn
     start_btn = None
     stop_btn = None
 
+# comportamento do botão Parar (se existir)
 if stop_btn:
     st.session_state.stop_flag = True
     st.session_state.playing = False
