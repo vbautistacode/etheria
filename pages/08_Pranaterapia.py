@@ -1,13 +1,16 @@
-# 08_pranaterapia.py (integração: st.audio controla esfera e ciclo no cliente)
+# 08_pranaterapia.py
+from cProfile import label
 import time
+import base64
 from pathlib import Path
 from html import escape
 
 import streamlit as st
 
-# ---------------------------------------------------------
+# --------------------
 # Configuração inicial
-# ---------------------------------------------------------
+# --------------------
+st.set_page_config(page_title="Pranaterapia", layout="centered")
 st.title("Pranaterapia 🌬️")
 st.markdown(
     "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
@@ -15,12 +18,12 @@ st.markdown(
 )
 st.caption(
     "Escolha um chakra; se a prática for 'Respiração guiada' o áudio correspondente será carregado. "
-    "Use o player nativo para iniciar, pausar ou parar — a esfera e a contagem responderão automaticamente."
+    "Você terá o player nativo (st.audio) e controles independentes que acionam a esfera e a contagem."
 )
 
-# ---------------------------------------------------------
+# -------------------
 # Presets por chakra
-# ---------------------------------------------------------
+# -------------------
 CHAKRAS = {
     "Muladhara": {"color": "#CC0700", "preset": {"inhale": 3, "hold1": 0, "exhale": 4, "hold2": 0, "cycles": 6}, "affirmation": "Estou seguro e enraizado."},
     "Svadhisthana": {"color": "#6A0F60", "preset": {"inhale": 3, "hold1": 0, "exhale": 3, "hold2": 0, "cycles": 6}, "affirmation": "Minha criatividade flui."},
@@ -31,39 +34,39 @@ CHAKRAS = {
     "Sahasrara": {"color": "#DF27C3", "preset": {"inhale": 5, "hold1": 0, "exhale": 7, "hold2": 0, "cycles": 4}, "affirmation": "Conecto-me ao silêncio."},
 }
 
-# ---------------------------------------------------------
+# ------
 # Paths
-# ---------------------------------------------------------
+# ------
 BASE_DIR = Path(__file__).parent
 PROJECT_ROOT = BASE_DIR.parent
 STATIC_ROOT = PROJECT_ROOT / "static"
 SESSIONS_DIR = STATIC_ROOT / "audio" / "sessions"
 
-# ---------------------------------------------------------
-# Sidebar e controles (sem autoplay exposto)
-# ---------------------------------------------------------
+# -------------------
+# Sidebar e controles
+# -------------------
 st.sidebar.header("Configurações da sessão")
 chakra = st.sidebar.selectbox("Chakra", options=list(CHAKRAS.keys()))
 theme = CHAKRAS[chakra]
 
 preset = theme["preset"]
-inhale = st.sidebar.number_input("Inspire", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
-hold1 = st.sidebar.number_input("Segure após inspirar", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
-exhale = st.sidebar.number_input("Expire", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
-hold2 = st.sidebar.number_input("Segure após expirar", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
+inhale = st.sidebar.number_input("Inspire (s)", value=float(preset["inhale"]), min_value=1.0, max_value=60.0, step=0.5)
+hold1 = st.sidebar.number_input("Segure após inspirar (s)", value=float(preset["hold1"]), min_value=0.0, max_value=60.0, step=0.5)
+exhale = st.sidebar.number_input("Expire (s)", value=float(preset["exhale"]), min_value=1.0, max_value=120.0, step=0.5)
+hold2 = st.sidebar.number_input("Segure após expirar (s)", value=float(preset["hold2"]), min_value=0.0, max_value=60.0, step=0.5)
 cycles = st.sidebar.number_input("Ciclos", value=int(preset["cycles"]), min_value=1, max_value=200, step=1)
 
-# ---------------------------------------------------------
+# -------------
 # Session state
-# ---------------------------------------------------------
+# -------------
 if "playing" not in st.session_state:
     st.session_state.playing = False
 if "stop_flag" not in st.session_state:
     st.session_state.stop_flag = False
 
-# ---------------------------------------------------------
+# ------------------
 # Interface principal
-# ---------------------------------------------------------
+# ------------------
 st.subheader(f"{chakra} — Foco: {theme['affirmation']}")
 st.markdown(f"<div style='height:8px;background:{theme['color']};border-radius:6px;margin-bottom:8px'></div>", unsafe_allow_html=True)
 
@@ -78,18 +81,18 @@ intent = st.selectbox(
 
 col_start, col_stop = st.columns([1, 1])
 with col_start:
-    start_btn = st.button("▶️ Iniciar prática")
+    start_btn = st.button("▶️ Iniciar prática (server)")
 with col_stop:
-    stop_btn = st.button("⏹️ Parar prática")
+    stop_btn = st.button("⏹️ Parar prática (server)")
 
 if stop_btn:
     st.session_state.stop_flag = True
     st.session_state.playing = False
-    st.success("Prática interrompida. Aguarde a atualização da interface.")
+    st.success("Prática interrompida (server).")
 
-# ---------------------------------------------------------
-# Função de ciclo de respiração (servidor) — mantém comportamento atual
-# ---------------------------------------------------------
+# -----------------------------
+# Função de ciclo de respiração
+# -----------------------------
 def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
     st.session_state.stop_flag = False
     placeholder = st.empty()
@@ -151,318 +154,208 @@ def breathing_cycle(inhale_s, hold1_s, exhale_s, hold2_s, cycles=5):
 if start_btn:
     st.session_state.stop_flag = False
     st.session_state.playing = True
-
-    if intent == "Respiração guiada":
-        # opcional: não iniciar contagem server-side automaticamente; a contagem cliente será a principal
-        # manter a chamada server-side caso queira registro ou fallback
-        pass
-    elif intent == "Respiração quadrada (Box Breathing)":
-        st.subheader("🫁 Respiração quadrada (Box Breathing)")
-        st.markdown(
-            """
-            Técnica usada para foco, estabilidade emocional e redução de ansiedade.
-            **Ciclo sugerido:**
-            - Inspire: 4s
-            - Segure: 4s
-            - Expire: 4s
-            - Segure: 4s
-            - 5 ciclos
-            """
-        )
-        # não forçar reprodução do áudio aqui; o usuário usará o player nativo
-    elif intent == "Respiração alternada (Nadi Shodhana)":
-        st.subheader("🫁🔀 Respiração alternada (Nadi Shodhana)")
-        st.markdown(
-             """ 
-             Técnica tradicional para equilibrar os canais energéticos (nadis) e acalmar a mente. 
-             
-             **Instruções guiadas (manual):** 
-             1. Use o polegar direito para fechar a narina direita. 
-             2. Inspire pela narina esquerda (4s). 
-             3. Feche a narina esquerda com o anelar. 
-             4. Expire pela direita (4s). 
-             5. Inspire pela direita (4s). 
-             6. Feche a direita. 
-             7. Expire pela esquerda (4s). 
-             Repita por 6 ciclos. """ 
-        )
+    # Mantemos a flag server-side apenas; a contagem principal roda no cliente via JS
+    st.info("Iniciado (server). Use os controles independentes para tocar/pausar/parar o áudio e a esfera.")
 
 # ---------------------------------------------------------
-# Localizar e renderizar o áudio (st.audio) e sincronizar com esfera e ciclo no cliente
+# Localizar e renderizar o áudio (st.audio) e controles
 # ---------------------------------------------------------
 session_filename = f"{chakra.lower()}_session.wav"
 session_path = SESSIONS_DIR / session_filename
 
 if session_path.exists() and intent == "Respiração guiada":
-    # 1) Renderiza st.audio (Streamlit serve internamente)
+    # 1) Renderiza st.audio (visível)
     try:
         st.audio(str(session_path))
     except Exception as e:
         st.error(f"Erro ao renderizar st.audio: {e}")
         st.stop()
 
-    # 2) Injeta componente que encontra o <audio> criado por st.audio e sincroniza esfera + contagem cliente
+    # 2) Prepara áudio embutido (data URL) para controles independentes
+    #    Observação: usar data URL é conveniente para garantir que o elemento <audio> exista
+    #    e seja controlável pelo JS. Para arquivos grandes, prefira servir via URL estático.
+    audio_bytes = session_path.read_bytes()
+    b64 = base64.b64encode(audio_bytes).decode("ascii")
+    data_url = f"data:audio/wav;base64,{b64}"
+
     escaped_fname = escape(session_path.name)
     color = theme["color"]
 
-    # HTML/JS que:
-    # - localiza o <audio> do st.audio (por currentSrc / source.src / fallback)
-    # - anexa listeners play/pause/ended
-    # - anima a esfera com requestAnimationFrame
-    # - executa a contagem de respiração no cliente (respeitando pausas do áudio)
-    # Cole este trecho imediatamente após st.audio(str(session_path))
-    # variáveis já presentes no seu contexto: session_path, theme, inhale, hold1, exhale, hold2, cycles
+    # 3) Injeta HTML/JS com controles independentes + esfera + sincronização cliente
+    html_controls = f"""
+<div id="prana_wrapper_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="prana_start_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:{color};color:#fff;cursor:pointer;font-weight:700;">
+      ▶️ Iniciar
+    </button>
+    <button id="prana_pause_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;">
+      ⏸️ Pausar
+    </button>
+    <button id="prana_stop_btn_{escaped_fname}" style="padding:10px 14px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;font-weight:700;">
+      ⏹️ Parar
+    </button>
+    <div id="prana_status_{escaped_fname}" style="margin-left:12px;font-weight:600;color:#222">Pronto</div>
+  </div>
 
-    # Bloco HTML/JS robusto: botão visual aciona o <audio>, espera o elemento aparecer e inicia esfera+contagem
+  <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:14px;
+       background:radial-gradient(circle at 30% 30%, #fff8, {color});
+       box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_idle_{escaped_fname} 2000ms ease-in-out infinite;">
+  </div>
 
-    # Cole este bloco imediatamente APÓS st.audio(str(session_path))
-    html_hide_player_and_control = f"""
-    <div id="prana_wrapper_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
-      <!-- botão visível que inicia tudo (pode ser estilizado ou removido se preferir clicar na esfera) -->
-      <button id="prana_start_btn_{escaped_fname}" style="padding:12px 18px;border-radius:10px;border:none;background:{color};color:#fff;cursor:pointer;font-weight:700;">
-        ▶️ Iniciar prática
-      </button>
+  <div id="prana_log_{escaped_fname}" style="font-family:monospace;white-space:pre-wrap;margin-top:8px;color:#333;min-height:36px;"></div>
+</div>
 
-      <!-- esfera visível -->
-      <div id="prana_circle_{escaped_fname}" style="width:180px;height:180px;border-radius:50%;margin-top:14px;
-          background:radial-gradient(circle at 30% 30%, #fff8, {color});
-          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_idle_{escaped_fname} 2000ms ease-in-out infinite;">
-      </div>
+<!-- audio embutido e oculto, controlado pelos botões -->
+<audio id="prana_audio_{escaped_fname}" src="{data_url}" preload="auto" style="display:none;"></audio>
 
-      <div id="prana_status_{escaped_fname}" style="margin-top:10px;font-weight:600;color:#222">Pronto</div>
-      <div id="prana_log_{escaped_fname}" style="font-family:monospace;white-space:pre-wrap;margin-top:8px;color:#333;min-height:36px;"></div>
-    </div>
+<style>
+@keyframes prana_idle_{escaped_fname} {{
+  0% {{ transform: scale(1); opacity: 0.98; }}
+  50% {{ transform: scale(1.03); opacity: 1; }}
+  100% {{ transform: scale(1); opacity: 0.98; }}
+}}
+</style>
 
-    <style>
-    @keyframes prana_idle_{escaped_fname} {{
-      0% {{ transform: scale(1); opacity: 0.98; }}
-      50% {{ transform: scale(1.03); opacity: 1; }}
-      100% {{ transform: scale(1); opacity: 0.98; }}
+<script>
+(function(){{
+  const fname = "{escaped_fname}";
+  const startBtn = document.getElementById('prana_start_btn_' + fname);
+  const pauseBtn = document.getElementById('prana_pause_btn_' + fname);
+  const stopBtn = document.getElementById('prana_stop_btn_' + fname);
+  const circle = document.getElementById('prana_circle_' + fname);
+  const statusEl = document.getElementById('prana_status_' + fname);
+  const logEl = document.getElementById('prana_log_' + fname);
+  const audio = document.getElementById('prana_audio_' + fname);
+
+  const inhale = {inhale};
+  const hold1 = {hold1};
+  const exhale = {exhale};
+  const hold2 = {hold2};
+  const cycles = {int(cycles)};
+
+  function dbg(msg) {{ try{{ console.log('[prana]', msg); }}catch(e){{}} if(logEl) logEl.textContent += msg + "\\n"; }}
+  function setStatus(t) {{ if(statusEl) statusEl.textContent = t; }}
+  function setLog(t) {{ if(logEl) logEl.textContent = t; dbg(t); }}
+
+  // animação da esfera baseada no tempo do audio
+  let raf = null;
+  function animateFrame() {{
+    if(!audio || audio.paused) {{ if(raf) cancelAnimationFrame(raf); raf = null; return; }}
+    const t = audio.currentTime || 0;
+    const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
+    circle.style.transform = 'scale(' + scale + ')';
+    raf = requestAnimationFrame(animateFrame);
+  }}
+
+  // contagem cliente (respeita pausas do audio)
+  let breathingRunning = false;
+  function startClientBreathing() {{
+    if(breathingRunning) return;
+    breathingRunning = true;
+    let cycleIndex = 0;
+    function runCycle() {{
+      if(!breathingRunning) return;
+      if(cycleIndex >= cycles) {{ setLog('Prática concluída'); breathingRunning = false; return; }}
+      cycleIndex++;
+      const seq = [{label:'Inspire', t:inhale},{label:'Segure', t:hold1},{label:'Expire', t:exhale},{label:'Segure', t:hold2}];
+      let segIndex = 0;
+      function nextSegment() {{
+        if(!breathingRunning) return;
+        if(segIndex >= seq.length) {{ setTimeout(runCycle, 200); return; }}
+        const seg = seq[segIndex++];
+        if(seg.t <= 0) {{ nextSegment(); return; }}
+        setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
+        const start = performance.now();
+        function waitLoop() {{
+          if(!breathingRunning) return;
+          if(audio && audio.paused) {{ setTimeout(waitLoop, 200); return; }}
+          const elapsed = (performance.now() - start) / 1000;
+          if(elapsed >= seg.t) nextSegment();
+          else requestAnimationFrame(waitLoop);
+        }}
+        waitLoop();
+      }}
+      nextSegment();
     }}
-    </style>
+    runCycle();
+  }}
+  function pauseClientBreathing() {{ breathingRunning = false; }}
+  function stopClientBreathing() {{ breathingRunning = false; setLog(''); }}
 
-    <script>
-    (function(){{
-      const fname = "{escaped_fname}";
-      const startBtn = document.getElementById('prana_start_btn_' + fname);
-      const circle = document.getElementById('prana_circle_' + fname);
-      const statusEl = document.getElementById('prana_status_' + fname);
-      const logEl = document.getElementById('prana_log_' + fname);
+  // listeners do audio embutido
+  audio.addEventListener('play', () => {{
+    circle.style.animation = 'none';
+    setStatus('Tocando');
+    requestAnimationFrame(animateFrame);
+    startClientBreathing();
+  }});
+  audio.addEventListener('pause', () => {{
+    setStatus('Pausado');
+    if(raf) cancelAnimationFrame(raf);
+    raf = null;
+    circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
+    pauseClientBreathing();
+  }});
+  audio.addEventListener('ended', () => {{
+    setStatus('Concluído');
+    if(raf) cancelAnimationFrame(raf);
+    raf = null;
+    circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
+    stopClientBreathing();
+  }});
+  audio.addEventListener('error', (e) => {{
+    setStatus('Erro no áudio');
+    dbg('audio error: ' + e);
+  }});
 
-      const inhale = {inhale};
-      const hold1 = {hold1};
-      const exhale = {exhale};
-      const hold2 = {hold2};
-      const cycles = {int(cycles)};
-
-      function dbg(msg) {{ try{{ console.log('[prana]', msg); }}catch(e){{}} if(logEl) logEl.textContent += msg + "\\n"; }}
-      function setStatus(t) {{ if(statusEl) statusEl.textContent = t; }}
-      function setLog(t) {{ if(logEl) logEl.textContent = t; dbg(t); }}
-
-      // procura o <audio> criado por st.audio
-      function findAudio() {{
-        const audios = Array.from(document.querySelectorAll('audio'));
-        for (const a of audios) {{
-          try {{
-            const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
-            if (src && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
-          }} catch(e){{}}
-        }}
-        if (audios.length === 1) return audios[0];
-        return null;
-      }}
-
-      // oculta controles do player nativo (se existir) para que só vejamos a esfera
-      function hideNativePlayer(a) {{
-        try {{
-          if (!a) return;
-          a.controls = false;
-          a.style.display = 'none';
-          // se houver wrapper do Streamlit, também escondemos visualmente (opcional)
-          const parent = a.closest('[data-testid="stAudio"]') || a.parentElement;
-          if (parent) parent.style.display = 'none';
-          dbg('player nativo ocultado');
-        }} catch(e) {{ dbg('erro ao ocultar player: ' + e); }}
-      }}
-
-      // animação da esfera baseada no tempo do audio
-      let raf = null;
-      function animateFrame(audio) {{
-        if (!audio || audio.paused) {{
-          if (raf) cancelAnimationFrame(raf);
-          raf = null;
-          return;
-        }}
-        const t = audio.currentTime || 0;
-        const scale = 1 + 0.25 * Math.sin((t / 4.0) * Math.PI * 2);
-        circle.style.transform = 'scale(' + scale + ')';
-        raf = requestAnimationFrame(() => animateFrame(audio));
-      }}
-
-      // contagem cliente (respeita pausas do audio)
-      let breathingRunning = false;
-      function startClientBreathing(audio) {{
-        if (breathingRunning) return;
-        breathingRunning = true;
-        let cycleIndex = 0;
-
-        function runCycle() {{
-          if (!breathingRunning) return;
-          if (cycleIndex >= cycles) {{
-            setLog('Prática concluída');
-            breathingRunning = false;
-            return;
-          }}
-          cycleIndex++;
-          const seq = [
-            {{label:'Inspire', t:inhale}},
-            {{label:'Segure', t:hold1}},
-            {{label:'Expire', t:exhale}},
-            {{label:'Segure', t:hold2}}
-          ];
-          let segIndex = 0;
-
-          function nextSegment() {{
-            if (!breathingRunning) return;
-            if (segIndex >= seq.length) {{
-              setTimeout(runCycle, 200);
-              return;
-            }}
-            const seg = seq[segIndex++];
-            if (seg.t <= 0) {{ nextSegment(); return; }}
-            setLog('Ciclo ' + cycleIndex + '/' + cycles + ' — ' + seg.label + ' ' + seg.t + 's');
-            const start = performance.now();
-            function waitLoop() {{
-              if (!breathingRunning) return;
-              if (audio && audio.paused) {{ setTimeout(waitLoop, 200); return; }}
-              const elapsed = (performance.now() - start) / 1000;
-              if (elapsed >= seg.t) nextSegment();
-              else requestAnimationFrame(waitLoop);
-            }}
-            waitLoop();
-          }}
-          nextSegment();
-        }}
-        runCycle();
-      }}
-
-      function pauseClientBreathing() {{ breathingRunning = false; }}
-      function stopClientBreathing() {{ breathingRunning = false; setLog(''); }}
-
-      // anexa listeners ao audio (apenas uma vez)
-      function attachListeners(a) {{
-        if (!a) return;
-        if (a._prana_attached) return;
-        a._prana_attached = true;
-        dbg('anexando listeners ao audio: ' + (a.currentSrc || a.src || 'unknown'));
-
-        a.addEventListener('play', () => {{
-          circle.style.animation = 'none';
-          setStatus('Tocando');
-          requestAnimationFrame(() => animateFrame(a));
-          startClientBreathing(a);
-        }});
-
-        a.addEventListener('pause', () => {{
-          setStatus('Pausado');
-          if (raf) cancelAnimationFrame(raf);
-          raf = null;
-          circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
-          pauseClientBreathing();
-        }});
-
-        a.addEventListener('ended', () => {{
-          setStatus('Concluído');
-          if (raf) cancelAnimationFrame(raf);
-          raf = null;
-          circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
-          stopClientBreathing();
-        }});
-
-        a.addEventListener('error', () => {{
-          setStatus('Erro no áudio');
-          dbg('audio error: ' + (a.error && a.error.code));
-        }});
-      }}
-
-      // comportamento do botão: encontra o audio, oculta o player nativo, anexa listeners e toca
-      startBtn.addEventListener('click', async () => {{
-        try {{
-          setStatus('Procurando áudio...');
-          let audio = findAudio();
-          if (!audio) {{
-            dbg('audio não encontrado imediatamente — observando DOM por 3s');
-            // observa o DOM até o audio aparecer
-            let handled = false;
-            const obs = new MutationObserver((mutations, observer) => {{
-              audio = findAudio();
-              if (audio && !handled) {{
-                handled = true;
-                observer.disconnect();
-                hideNativePlayer(audio);
-                attachListeners(audio);
-                audio.play().then(() => setStatus('Tocando')).catch(err => {{ dbg('play rejeitado: ' + err); setStatus('Clique na esfera se bloqueado'); }});
-              }}
-            }});
-            obs.observe(document.body, {{ childList: true, subtree: true }});
-            // fallback após 3s
-            setTimeout(() => {{
-              if (!handled) {{
-                audio = findAudio();
-                if (audio) {{
-                  hideNativePlayer(audio);
-                  attachListeners(audio);
-                  audio.play().then(() => setStatus('Tocando (fallback)')).catch(err => {{ dbg('fallback play failed: ' + err); setStatus('Clique na esfera se bloqueado'); }});
-                }} else {{
-                  setStatus('Áudio não encontrado');
-                  dbg('fallback: nenhum audio encontrado');
-                }}
-                obs.disconnect();
-              }}
-            }}, 3000);
-            return;
-          }}
-
-          // se encontrou imediatamente
-          hideNativePlayer(audio);
-          attachListeners(audio);
-          await audio.play().then(() => setStatus('Tocando')).catch(err => {{ dbg('play failed: ' + err); setStatus('Clique na esfera se bloqueado'); }});
-        }} catch (err) {{
-          dbg('erro no start handler: ' + err);
-          setStatus('Erro interno');
-        }}
-      }});
-
-      // opcional: permitir tocar clicando na esfera também (mesmo comportamento)
-      circle.addEventListener('click', () => {{
-        startBtn.click();
-      }});
-
-      // se o audio já existir no carregamento, apenas ocultamos o player (sem tocar)
-      const initial = findAudio();
-      if (initial) {{
-        hideNativePlayer(initial);
-        attachListeners(initial);
-        dbg('audio encontrado no carregamento; player ocultado e listeners anexados');
+  // botões independentes
+  startBtn.addEventListener('click', async () => {{
+    try {{
+      if (audio.paused) {{
+        await audio.play();
+        setStatus('Tocando');
       }} else {{
-        // observa e oculta quando aparecer
-        const obsInit = new MutationObserver((mutations, observer) => {{
-          const a = findAudio();
-          if (a) {{
-            hideNativePlayer(a);
-            attachListeners(a);
-            observer.disconnect();
-            dbg('audio apareceu depois do carregamento; player ocultado e listeners anexados');
-          }}
-        }});
-        obsInit.observe(document.body, {{ childList: true, subtree: true }});
+        setStatus('Já tocando');
       }}
+    }} catch (err) {{
+      dbg('play failed: ' + err);
+      setStatus('Erro ao tocar');
+    }}
+  }});
 
-    }})();
+  pauseBtn.addEventListener('click', () => {{
+    try {{
+      if (!audio.paused) audio.pause();
+      setStatus('Pausado');
+    }} catch (err) {{
+      dbg('pause failed: ' + err);
+    }}
+  }});
+
+  stopBtn.addEventListener('click', () => {{
+    try {{
+      audio.pause();
+      audio.currentTime = 0;
+      setStatus('Parado');
+      stopClientBreathing();
+      circle.style.animation = 'prana_idle_{escaped_fname} 2000ms ease-in-out infinite';
+    }} catch (err) {{
+      dbg('stop failed: ' + err);
+    }}
+  }});
+
+  // clique na esfera também inicia/pausa (opcional)
+  circle.addEventListener('click', () => {{
+    if (audio.paused) startBtn.click();
+    else pauseBtn.click();
+  }});
+
+  dbg('Controles independentes prontos (áudio embutido).');
+}})();
 </script>
 """
 
-    st.components.v1.html(html_hide_player_and_control, height=520)
+    st.components.v1.html(html_controls, height=520)
 
 else:
     # se não houver áudio para a prática selecionada, apenas mostra instruções
