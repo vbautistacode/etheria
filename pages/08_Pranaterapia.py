@@ -91,19 +91,7 @@ def load_wav_from_path(path: str):
         return None
     return p.read_bytes()
 
-
-def wav_bytes_to_base64(b: bytes) -> str:
-    return base64.b64encode(b).decode("ascii")
-
-
-# ---------------------------------------------------------
-# Funções para gerar HTML do player e da esfera (IDs únicos por chakra)
-# ---------------------------------------------------------
 def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "default") -> str:
-    """
-    Player HTML com botões Iniciar/Parar e elemento <audio>.
-    O UID garante IDs únicos se houver múltiplos players na página.
-    """
     sid = uid.replace(" ", "_").lower()
     return f"""
 <div style="display:flex;flex-direction:column;align-items:center;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
@@ -113,7 +101,11 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
     <div id="status_{sid}" style="margin-left:12px;font-weight:600;color:#333">{label_prefix}Preparar...</div>
   </div>
 
-  <audio id="sessionAudio_{sid}" src="{url}" preload="auto" style="display:none"></audio>
+  <!-- controles nativos visíveis como fallback/diagnóstico -->
+  <audio id="sessionAudio_{sid}" preload="auto" controls playsinline crossorigin="anonymous" style="width:100%;max-width:520px;">
+    <source src="{url}" type="audio/wav">
+    Seu navegador não suporta o elemento de áudio.
+  </audio>
 
   <script>
   (function(){{
@@ -123,18 +115,22 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
       const stopBtn = document.getElementById('stopBtn_{sid}');
       const status = document.getElementById('status_{sid}');
 
-      if (!audio || !startBtn || !stopBtn) {{
-        console.warn('Player elements missing; skipping init.');
+      if (!audio) {{
+        console.warn('Audio element not found for {sid}');
+        status.textContent = 'Áudio indisponível';
         return;
       }}
 
+      function setStatus(t){{ status.textContent = t; }}
+
       startBtn.addEventListener('click', async () => {{
         try {{
+          // tenta play programático; se bloqueado, usuário pode usar controles nativos
           await audio.play();
-          status.textContent = 'Tocando';
+          setStatus('Tocando');
         }} catch (e) {{
-          status.textContent = 'Erro ao tocar';
           console.warn('play failed', e);
+          setStatus('Clique no controle nativo para tocar');
         }}
       }});
 
@@ -142,15 +138,20 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
         try {{
           audio.pause();
           audio.currentTime = 0;
-          status.textContent = 'Parado';
+          setStatus('Parado');
         }} catch (e) {{
           console.warn('stop error', e);
         }}
       }});
 
+      audio.addEventListener('play', () => setStatus('Tocando'));
+      audio.addEventListener('pause', () => setStatus('Pausado'));
+      audio.addEventListener('ended', () => setStatus('Concluído'));
+
       audio.addEventListener('error', () => {{
-        console.warn('audio error code:', audio.error && audio.error.code);
-        status.textContent = 'Erro no áudio';
+        const err = audio.error;
+        console.warn('audio error code:', err && err.code, err);
+        setStatus('Erro no áudio (veja console)');
       }});
     }} catch (err) {{
       console.error('Player init error:', err);
@@ -159,7 +160,6 @@ def build_player_html(url: str, color: str, label_prefix: str = "", uid: str = "
   </script>
 </div>
 """
-
 
 def build_circle_html(color: str, uid: str = "default") -> str:
     """
@@ -403,9 +403,8 @@ if start_btn:
         )
         st.info("Esta técnica é guiada por instruções, não por contagem automática. Use o botão Parar para interromper a prática a qualquer momento.")
 
-
 # ---------------------------------------------------------
-# PLAYER (cliente) em primeiro plano, depois ESFERA, depois RENDER DO ÁUDIO (fallback)
+# PLAYER em primeiro plano, depois ESFERA, depois RENDER DO ÁUDIO (fallback)
 # ---------------------------------------------------------
 uid = chakra  # usado para gerar IDs únicos no HTML
 if session_path.exists():
@@ -452,10 +451,3 @@ st.caption(
 Pratique com atenção e cuide de si.
 """
 )
-
-# ---------------------------------------------------------
-# Observações rápidas (onde ajustar)
-# - Para alterar o threshold do fallback st.audio, edite MAX_ST_AUDIO_BYTES.
-# - Se quiser que o player tente autoplay no cliente, marque 'autoplay' no sidebar e adapte o JS.
-# - Se os arquivos não estiverem sendo servidos via /static/, confirme que 'static/' está na raiz do repositório e que o app foi redeployado.
-# ---------------------------------------------------------
