@@ -260,318 +260,281 @@ if session_path.exists() and intent == "Respiração guiada":
     # Cole no lugar do html_sync atual e chame st.components.v1.html(html_sync, height=520).
 
     html_sync = f"""
-    <div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px; gap:12px;">
-      <button id="prana_visual_play_{escaped_fname}" style="padding:9px 12px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;">
-        ▶️ Iniciar / Pausar
-      </button>
-      <button id="prana_visual_stop_{escaped_fname}" style="padding:9px 12px;border-radius:10px;border:none;background:#fff;cursor:pointer;font-weight:700;margin-left:8px;">
-        ⏹️ Parar
-      </button>
+<div id="prana_control_wrap_{escaped_fname}" style="display:flex;flex-direction:column;align-items:center;margin-top:12px;">
+  <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:12px;
+      background:radial-gradient(circle at 30% 30%, #fff8, {color});
+      box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_pulse_{escaped_fname} 2000ms ease-in-out infinite;cursor:pointer;">
+  </div>
+  <div id="prana_status_{escaped_fname}" style="margin-top:8px;font-weight:600;color:#222">Pronto</div>
+  <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;margin-top:8px;"></div>
+</div>
 
-      <div id="prana_circle_{escaped_fname}" style="width:160px;height:160px;border-radius:50%;margin-top:12px;
-          background:radial-gradient(circle at 30% 30%, #fff8, {color});
-          box-shadow:0 12px 36px rgba(0,0,0,0.08);transform-origin:center;animation:prana_pulse_{escaped_fname} 2000ms ease-in-out infinite;">
-      </div>
-      <div id="prana_status_{escaped_fname}" style="margin-top:8px;font-weight:600;color:#222">Pronto</div>
-      <div id="prana_breath_log_{escaped_fname}" style="min-height:36px;color:#333;font-weight:600;margin-top:8px;"></div>
-    </div>
+<style>
+@keyframes prana_pulse_{escaped_fname} {{ 0%{{transform:scale(1)}}50%{{transform:scale(1.04)}}100%{{transform:scale(1)}} }}
+</style>
 
-    <style>
-    @keyframes prana_pulse_{escaped_fname} {{ 0%{{transform:scale(1)}}50%{{transform:scale(1.04)}}100%{{transform:scale(1)}} }}
-    </style>
+<script>
+(function(){{
+  const filename = "{escaped_fname}";
+  const circle = document.getElementById('prana_circle_' + filename);
+  const statusEl = document.getElementById('prana_status_' + filename);
+  const logEl = document.getElementById('prana_breath_log_' + filename);
 
-    <script>
-    (function(){{
-      const filename = "{escaped_fname}";
-      const playBtn = document.getElementById('prana_visual_play_' + filename);
-      const stopBtn = document.getElementById('prana_visual_stop_' + filename);
-      const circle = document.getElementById('prana_circle_' + filename);
-      const statusEl = document.getElementById('prana_status_' + filename);
-      const logEl = document.getElementById('prana_breath_log_' + filename);
+  const inhale = {inhale};
+  const hold1 = {hold1};
+  const exhale = {exhale};
+  const hold2 = {hold2};
+  const cycles = {int(cycles)};
 
-      const inhale = {inhale};
-      const hold1 = {hold1};
-      const exhale = {exhale};
-      const hold2 = {hold2};
-      const cycles = {int(cycles)};
+  function setStatus(t){{ if (statusEl) statusEl.textContent = t; }}
+  function setLog(t){{ if (logEl) logEl.textContent = t; console.log('[prana]', t); }}
 
-      function setStatus(t){{ if (statusEl) statusEl.textContent = t; }}
-      function setLog(t){{ if (logEl) logEl.textContent = t; console.log('[prana]', t); }}
+  // util: encontra <audio> do st.audio pelo nome do arquivo (robusto)
+  function findAudioByFilename(fname) {{
+    const audios = Array.from(document.querySelectorAll('audio'));
+    for (const a of audios) {{
+      try {{
+        const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
+        if (src && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
+      }} catch (e) {{ /* ignore */ }}
+    }}
+    if (audios.length === 1) return audios[0];
+    return null;
+  }}
 
-      // Estado do ciclo (cliente-only)
-      let breathingRunning = false;
-      let paused = false;
-      let currentCycle = 0;
-      let currentSegmentIndex = 0;
-      let segmentStart = 0;
-      let raf = null;
+  // mapeia um tempo (s) para ciclo/segmento/progresso
+  function mapTimeToSegment(t_seconds, inhale, hold1, exhale, hold2, cycles) {{
+    const segDur = [inhale, hold1, exhale, hold2];
+    const cycleDuration = segDur.reduce((a,b)=>a+b,0);
+    const totalDuration = cycleDuration * cycles;
+    if (t_seconds <= 0) return {{ cycle:0, segIndex:0, segProgress:0, finished:false }};
+    if (t_seconds >= totalDuration) return {{ cycle: cycles-1, segIndex:3, segProgress:1, finished:true }};
+    const timeInTotal = Math.min(t_seconds, totalDuration);
+    const cycle = Math.floor(timeInTotal / cycleDuration);
+    let timeInCycle = timeInTotal - cycle * cycleDuration;
+    let segIndex = 0;
+    while (segIndex < 4 && timeInCycle > segDur[segIndex]) {{
+      timeInCycle -= segDur[segIndex];
+      segIndex++;
+    }}
+    const segDuration = segDur[segIndex] || 0.0001;
+    const segProgress = Math.min(1, segDuration > 0 ? timeInCycle / segDuration : 1);
+    return {{ cycle, segIndex, segProgress, finished:false }};
+  }}
 
-      // Sequência de segmentos por ciclo
-      function buildSeq() {{
-        return [
-          {{ label: 'Inspire', t: inhale }},
-          {{ label: 'Segure', t: hold1 }},
-          {{ label: 'Expire', t: exhale }},
-          {{ label: 'Segure', t: hold2 }}
-        ];
-      }}
+  // converte segmento/progresso em escala da esfera
+  function scaleFor(segIndex, segProgress, prevSegIndex) {{
+    const minScale = 1.0, maxScale = 1.25;
+    if (segIndex === 0) {{
+      const eased = Math.sin(segProgress * Math.PI / 2);
+      return minScale + (maxScale - minScale) * eased;
+    }} else if (segIndex === 2) {{
+      const eased = 1 - Math.cos(segProgress * Math.PI / 2);
+      return maxScale - (maxScale - minScale) * eased;
+    }} else {{
+      return (prevSegIndex === 0) ? maxScale : minScale;
+    }}
+  }}
 
-      // Função que calcula a escala da esfera com base no progresso do segmento
-      // Inspire: escala sobe de 1.0 -> 1.25
-      // Expire: escala desce de 1.25 -> 1.0
-      // Holds: mantém escala no início/fim do segmento (dependendo se hold after inhale or exhale)
-      function computeScaleForSegment(segLabel, progress) {{
-        // progress: 0..1
-        const minScale = 1.0;
-        const maxScale = 1.25;
-        if (segLabel === 'Inspire') {{
-          // ease in (sinusoidal)
-          const eased = Math.sin(progress * Math.PI / 2); // 0..1
-          return minScale + (maxScale - minScale) * eased;
-        }} else if (segLabel === 'Expire') {{
-          // ease out (cosine)
-          const eased = 1 - Math.cos(progress * Math.PI / 2); // 0..1
-          // but we want decreasing: start at maxScale -> minScale
-          return maxScale - (maxScale - minScale) * eased;
+  // cria um <audio> fallback embutido (opcional) e retorna o elemento
+  function createEmbeddedAudio(dataUrl) {{
+    try {{
+      const a = document.createElement('audio');
+      a.style.display = 'none';
+      a.src = dataUrl;
+      a.preload = 'auto';
+      document.body.appendChild(a);
+      return a;
+    }} catch (e) {{
+      console.warn('Falha ao criar audio embutido', e);
+      return null;
+    }}
+  }}
+
+  // anexa listeners nativos ao audio para refletir estado na UI
+  function attachNativeListeners(a) {{
+    if (!a || a._prana_native_attached) return;
+    a._prana_native_attached = true;
+    a.addEventListener('play', () => {{
+      setStatus('Tocando (nativo)');
+      setLog('Áudio: play');
+    }});
+    a.addEventListener('pause', () => {{
+      setStatus('Pausado (nativo)');
+      setLog('Áudio: pause');
+    }});
+    a.addEventListener('ended', () => {{
+      setStatus('Concluído (nativo)');
+      setLog('Áudio: ended');
+    }});
+  }}
+
+  // loop visual que usa audio.currentTime quando disponível; senão usa relógio cliente
+  function startVisualLoop(opts) {{
+    const {{ audio, circleEl, statusEl, logEl, inhale, hold1, exhale, hold2, cycles }} = opts;
+    let raf = null;
+    let prevSegIndex = 0;
+
+    function frame() {{
+      if (audio && !isNaN(audio.duration) && audio.duration > 0) {{
+        // mapeia currentTime do áudio para o tempo do script
+        const cycleDuration = (inhale + hold1 + exhale + hold2);
+        const totalScriptDuration = cycleDuration * cycles;
+        const scaleFactor = (audio.duration > 0) ? (totalScriptDuration / audio.duration) : 1;
+        const mappedTime = audio.currentTime * scaleFactor;
+        const mapped = mapTimeToSegment(mappedTime, inhale, hold1, exhale, hold2, cycles);
+        const segLabel = ['Inspire','Segure','Expire','Segure'][mapped.segIndex];
+        const segDur = [inhale, hold1, exhale, hold2][mapped.segIndex] || 0;
+        const remaining = Math.max(0, Math.ceil(segDur * (1 - mapped.segProgress)));
+        if (logEl) logEl.textContent = 'Ciclo ' + (mapped.cycle+1) + '/' + cycles + ' — ' + segLabel + ' ' + remaining + 's';
+        if (statusEl) statusEl.textContent = audio.paused ? 'Pausado (nativo)' : 'Tocando (nativo)';
+        const scale = scaleFor(mapped.segIndex, mapped.segProgress, prevSegIndex);
+        circleEl.style.transform = 'scale(' + scale + ')';
+        prevSegIndex = mapped.segIndex;
+        if (!audio.paused) {{
+          raf = requestAnimationFrame(frame);
         }} else {{
-          // holds: decide whether it's hold after inhale (keep max) or hold after exhale (keep min)
-          // We'll keep the scale at maxScale if previous segment was Inspire, else minScale
-          return (currentSegmentIndex === 1) ? maxScale : minScale;
-        }}
-      }}
-
-      // animação por requestAnimationFrame que usa o relógio do cliente (performance.now)
-      function animateFrameLoop() {{
-        if (!breathingRunning || paused) {{
           if (raf) cancelAnimationFrame(raf);
           raf = null;
-          return;
         }}
-
-        const now = performance.now();
-        const seq = buildSeq();
-        const seg = seq[currentSegmentIndex];
-        const segDuration = Math.max(0.001, seg.t * 1000); // ms
-        const elapsed = now - segmentStart;
-        const progress = Math.min(1, elapsed / segDuration);
-
-        // atualiza log e status
-        setLog('Ciclo ' + (currentCycle+1) + '/' + cycles + ' — ' + seg.label + ' ' + Math.ceil(seg.t * (1 - progress)) + 's');
-        setStatus('Tocando');
-
-        // calcula escala e aplica
-        const scale = computeScaleForSegment(seg.label, progress);
-        circle.style.transform = 'scale(' + scale + ')';
-
-        if (progress >= 1) {{
-          // avançar para próximo segmento
-          currentSegmentIndex++;
-          if (currentSegmentIndex >= seq.length) {{
-            // fim do ciclo
-            currentCycle++;
-            if (currentCycle >= cycles) {{
-              // fim da prática
-              breathingRunning = false;
-              paused = false;
-              setLog('Prática concluída');
-              setStatus('Concluído');
-              circle.style.animation = 'prana_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-              if (raf) cancelAnimationFrame(raf);
-              raf = null;
-              return;
-            }} else {{
-              // próximo ciclo: reinicia segmentos
-              currentSegmentIndex = 0;
-            }}
-          }}
-          // iniciar próximo segmento
-          segmentStart = performance.now();
+      }} else {{
+        // fallback: relógio cliente
+        if (!opts._clientState) {{
+          opts._clientState = {{ start: performance.now() }};
         }}
-
-        raf = requestAnimationFrame(animateFrameLoop);
+        const elapsed = (performance.now() - opts._clientState.start) / 1000;
+        const mapped = mapTimeToSegment(elapsed, inhale, hold1, exhale, hold2, cycles);
+        const segLabel = ['Inspire','Segure','Expire','Segure'][mapped.segIndex];
+        const segDur = [inhale, hold1, exhale, hold2][mapped.segIndex] || 0;
+        const remaining = Math.max(0, Math.ceil(segDur * (1 - mapped.segProgress)));
+        if (logEl) logEl.textContent = 'Ciclo ' + (mapped.cycle+1) + '/' + cycles + ' — ' + segLabel + ' ' + remaining + 's';
+        if (statusEl) statusEl.textContent = 'Executando (cliente)';
+        const scale = scaleFor(mapped.segIndex, mapped.segProgress, prevSegIndex);
+        circleEl.style.transform = 'scale(' + scale + ')';
+        prevSegIndex = mapped.segIndex;
+        raf = requestAnimationFrame(frame);
       }}
+    }}
 
-      // inicia ou retoma a contagem cliente
-      function startClientBreathing() {{
-        if (breathingRunning && !paused) return;
-        if (!breathingRunning) {{
-          // iniciar do começo
-          breathingRunning = true;
-          paused = false;
-          currentCycle = 0;
-          currentSegmentIndex = 0;
-          segmentStart = performance.now();
-          circle.style.animation = 'none';
-          setLog('Iniciando prática');
-          playBtn.textContent = '⏸️ Pausar';
-          setStatus('Tocando');
-          raf = requestAnimationFrame(animateFrameLoop);
-        }} else if (breathingRunning && paused) {{
-          // retomar
-          paused = false;
-          // ajustar segmentStart para compensar o tempo em pausa
-          segmentStart = performance.now() - (pausedElapsed || 0);
-          setLog('Retomando prática');
-          playBtn.textContent = '⏸️ Pausar';
-          setStatus('Tocando');
-          raf = requestAnimationFrame(animateFrameLoop);
-        }}
-      }}
+    if (!raf) raf = requestAnimationFrame(frame);
+    return () => {{ if (raf) cancelAnimationFrame(raf); raf = null; }};
+  }}
 
-      // pausa a contagem cliente
-      let pauseTime = 0;
-      let pausedElapsed = 0;
-      function pauseClientBreathing() {{
-        if (!breathingRunning || paused) return;
-        paused = true;
-        pauseTime = performance.now();
-        // compute elapsed in current segment to resume later
-        pausedElapsed = pauseTime - segmentStart;
-        setLog('Pausado');
-        setStatus('Pausado');
-        playBtn.textContent = '▶️ Iniciar / Pausar';
-        if (raf) cancelAnimationFrame(raf);
-        raf = null;
-      }}
+  // fluxo principal: clique na esfera tenta tocar st.audio; se não houver, cria fallback e usa loop cliente
+  let visualStopFn = null;
+  let embeddedAudio = null;
 
-      // para e reseta a contagem cliente
-      function stopClientBreathing() {{
-        breathingRunning = false;
-        paused = false;
-        currentCycle = 0;
-        currentSegmentIndex = 0;
-        segmentStart = 0;
-        pausedElapsed = 0;
-        setLog('');
-        setStatus('Parado');
-        playBtn.textContent = '▶️ Iniciar / Pausar';
-        circle.style.animation = 'prana_pulse_{escaped_fname} 2000ms ease-in-out infinite';
-        if (raf) cancelAnimationFrame(raf);
-        raf = null;
-      }}
+  async function tryStartFromSphere() {{
+    setLog('Tentando iniciar via player nativo...');
+    let audio = findAudioByFilename(filename);
 
-      // Botão Play/Pause
-      playBtn.addEventListener('click', async () => {{
-        // helpers definidos antes do uso
-        function findAudioByFilename(fname) {{
-          const audios = Array.from(document.querySelectorAll('audio'));
-          for (const a of audios) {{
-            try {{
-              const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
-              if (src && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
-            }} catch (e) {{ /* ignore */ }}
-          }}
-          if (audios.length === 1) return audios[0];
-          return null;
-        }}
-
-        function attachNativeListeners(a) {{
-          if (!a || a._prana_native_attached) return;
-          a._prana_native_attached = true;
-          a.addEventListener('play', () => {{
-            setStatus('Tocando (nativo)');
-            playBtn.textContent = '⏸️ Pausar';
-          }});
-          a.addEventListener('pause', () => {{
-            setStatus('Pausado (nativo)');
-            playBtn.textContent = '▶️ Iniciar / Pausar';
-          }});
-          a.addEventListener('ended', () => {{
-            setStatus('Concluído (nativo)');
-            playBtn.textContent = '▶️ Iniciar / Pausar';
-          }});
-          a.addEventListener('timeupdate', () => {{
-            // opcional: sincronizar esfera com a.currentTime
-            // const t = a.currentTime;
-            // atualizarEsferaPorTempo(t);
-          }});
-        }}
-
-        async function togglePlayPause(a) {{
-          try {{
-            if (a.paused) {{
-              await a.play();
-              setStatus('Tocando (nativo)');
-              playBtn.textContent = '⏸️ Pausar';
-            }} else {{
-              a.pause();
-              setStatus('Pausado (nativo)');
-              playBtn.textContent = '▶️ Iniciar / Pausar';
-            }}
-          }} catch (err) {{
-            console.warn('play rejected', err);
+    if (!audio) {{
+      setLog('Player nativo não encontrado. Observando DOM por 3s...');
+      let handled = false;
+      const obs = new MutationObserver((mutations, observer) => {{
+        audio = findAudioByFilename(filename);
+        if (audio && !handled) {{
+          handled = true;
+          observer.disconnect();
+          attachNativeListeners(audio);
+          // start visual loop using this audio
+          if (visualStopFn) visualStopFn();
+          visualStopFn = startVisualLoop({{ audio, circleEl: circle, statusEl, logEl, inhale, hold1, exhale, hold2, cycles }});
+          audio.play().then(() => setStatus('Tocando (nativo)')).catch(err => {{
+            console.warn('play rejected after found', err);
             setStatus('Clique no player nativo se bloqueado');
-          }}
+          }});
         }}
+      }});
+      obs.observe(document.body, {{ childList: true, subtree: true }});
 
-        try {{
-          // nome do arquivo: usa `filename` se definido no escopo, caso contrário usa fallback
-          const fname = (typeof filename !== 'undefined' && filename) ? filename : "{escaped_fname}";
-
-          // tenta encontrar imediatamente
-          let audio = findAudioByFilename(fname);
-
-          // se não encontrou, observa o DOM por alguns segundos e toca assim que aparecer
-          if (!audio) {{
-            setStatus('Aguardando player nativo...');
-            let handled = false;
-            const obs = new MutationObserver((mutations, observer) => {{
-              audio = findAudioByFilename(fname);
-              if (audio && !handled) {{
-                handled = true;
-                observer.disconnect();
-                attachNativeListeners(audio);
-                togglePlayPause(audio);
-              }}
+      // fallback: após 3s cria áudio embutido se você tiver data URL disponível (opcional)
+      setTimeout(() => {{
+        if (!handled) {{
+          observer.disconnect && observer.disconnect();
+          const fallbackAudio = document.querySelector('audio');
+          if (fallbackAudio) {{
+            audio = fallbackAudio;
+            attachNativeListeners(audio);
+            if (visualStopFn) visualStopFn();
+            visualStopFn = startVisualLoop({{ audio, circleEl: circle, statusEl, logEl, inhale, hold1, exhale, hold2, cycles }});
+            audio.play().then(() => setStatus('Tocando (fallback)')).catch(err => {{
+              console.warn('fallback play failed', err);
+              setStatus('Clique no player nativo se bloqueado');
             }});
-            obs.observe(document.body, {{ childList: true, subtree: true }});
-
-            // fallback: após 3s tenta o primeiro <audio>
-            setTimeout(() => {{
-              if (!handled) {{
-                const fallback = document.querySelector('audio');
-                if (fallback) {{
-                  audio = fallback;
-                  attachNativeListeners(audio);
-                  togglePlayPause(audio);
-                }} else {{
-                  setStatus('Áudio não encontrado');
-                }}
-                obs.disconnect();
-              }}
-            }}, 3000);
-
             return;
           }}
-
-          // se encontrou, alterna play/pause
-          attachNativeListeners(audio);
-          togglePlayPause(audio);
-
-        }} catch (err) {{
-          console.warn('Erro ao controlar st.audio', err);
-          setStatus('Erro ao controlar áudio');
+          // Se não há nenhum audio no DOM, usar loop cliente (sem som)
+          setLog('Nenhum player encontrado — iniciando visual sem áudio (cliente).');
+          if (visualStopFn) visualStopFn();
+          visualStopFn = startVisualLoop({{ audio: null, circleEl: circle, statusEl, logEl, inhale, hold1, exhale, hold2, cycles }});
         }}
-      }});
-      
-      // Botão Parar
-      stopBtn.addEventListener('click', () => {{
-        try {{
-          stopClientBreathing();
-        }} catch (err) {{
-          console.warn('Erro no stopBtn handler', err);
-          setStatus('Erro interno');
+      }}, 3000);
+
+      return;
+    }}
+
+    // se encontrou audio imediatamente
+    attachNativeListeners(audio);
+    if (visualStopFn) visualStopFn();
+    visualStopFn = startVisualLoop({{ audio, circleEl: circle, statusEl, logEl, inhale, hold1, exhale, hold2, cycles }});
+    try {{
+      await audio.play();
+      setStatus('Tocando (nativo)');
+    }} catch (err) {{
+      console.warn('play rejected', err);
+      setStatus('Clique no player nativo se bloqueado');
+    }}
+  }}
+
+  // clique na esfera: inicia/pausa dependendo do estado do audio/visual
+  circle.addEventListener('click', async () => {{
+    try {{
+      // se já existe um audio nativo e está tocando, pause-o
+      const audio = findAudioByFilename(filename);
+      if (audio) {{
+        if (!audio.paused) {{
+          audio.pause();
+          setStatus('Pausado (nativo)');
+          setLog('Pausado pelo clique na esfera');
+          return;
+        }} else {{
+          // se está pausado, tocar
+          await audio.play().then(() => setStatus('Tocando (nativo)')).catch(err => {{
+            console.warn('play rejected on click', err);
+            setStatus('Clique no player nativo se bloqueado');
+          }});
+          return;
         }}
-      }});
+      }}
+      // se não há audio nativo, tenta iniciar via fluxo principal
+      await tryStartFromSphere();
+    }} catch (err) {{
+      console.warn('Erro no clique da esfera', err);
+      setStatus('Erro interno');
+    }}
+  }});
 
-      // clique na esfera também alterna play/pause
-      circle.addEventListener('click', () => {{
-        playBtn.click();
-      }});
+  // duplo clique para parar visual e áudio embutido (se houver)
+  circle.addEventListener('dblclick', () => {{
+    try {{
+      if (visualStopFn) visualStopFn();
+      const audio = findAudioByFilename(filename) || embeddedAudio;
+      if (audio) {{
+        try {{ audio.pause(); audio.currentTime = 0; }} catch(e){{}}
+      }}
+      setStatus('Parado');
+      setLog('');
+      circle.style.animation = 'prana_pulse_{escaped_fname} 2000ms ease-in-out infinite';
+    }} catch (err) {{
+      console.warn('Erro no dblclick', err);
+      setStatus('Erro interno');
+    }}
+  }});
 
-      // Inicialização visual
-      setStatus('Pronto');
-      setLog('Pronto para iniciar. A esfera seguirá o ciclo de respiração definido.');
+  // inicialização visual
+  setStatus('Pronto (cliente)');
+  setLog('Clique na esfera para iniciar; ela tentará tocar o player nativo e sincronizar-se ao áudio.');
 
 }})();
 </script>
