@@ -12,7 +12,7 @@ st.title("Pranaterapia 🌬️")
 st.markdown(
     "Pranaterapia: práticas guiadas de respiração e meditação centradas no prana (energia vital). "
     "Sessões curtas por intenção (calma, foco, sono) e exercícios para integrar respiração e presença."
-)+9
+)
 st.caption(
     "Escolha um chakra; se a prática for 'Respiração guiada' o áudio correspondente será carregado. "
     "Use o player nativo para iniciar, pausar ou parar — a esfera e a contagem responderão automaticamente."
