@@ -450,25 +450,45 @@ if session_path.exists() and intent == "Respiração guiada":
         raf = null;
       }}
 
-      // Botão Iniciar / Pausar controla apenas o cliente (independente do st.audio)
+      // handler simples: playBtn aciona o st.audio (play/pause)
       playBtn.addEventListener('click', async () => {{
         try {{
-          if (!breathingRunning) {{
-            startClientBreathing();
-          }} else {{
-            if (paused) {{
-              // retomar
-              // recompute segmentStart so that pausedElapsed is respected
-              segmentStart = performance.now() - (pausedElapsed || 0);
-              paused = false;
-              setLog('Retomando prática');
-              setStatus('Tocando');
-              playBtn.textContent = '⏸️ Pausar';
-              raf = requestAnimationFrame(animateFrameLoop);
-            }} else {{
-              // pausar
-              pauseClientBreathing();
+          // procura audio: tenta casar pelo filename, senão usa o primeiro audio com src
+          function findAudio(fname) {{
+            const audios = Array.from(document.querySelectorAll('audio'));
+            for (const a of audios) {{
+              try {{
+                const src = a.currentSrc || a.src || (a.querySelector && a.querySelector('source') && a.querySelector('source').src);
+                if (src && fname && (src.indexOf(fname) !== -1 || src.endsWith(fname))) return a;
+              }} catch (e) {{}}
             }}
+            return audios.find(a => (a.currentSrc || a.src)) || null;
+          }}
+
+          // substitua `filename` pelo nome/identificador que você usa no template, se houver
+          const audio = findAudio(typeof filename !== 'undefined' ? filename : null);
+
+          if (!audio) {{
+            setStatus('Áudio não encontrado');
+            setLog('Nenhum player nativo disponível');
+            return;
+          }}
+
+          // alterna play / pause e atualiza UI
+          if (audio.paused) {{
+            await audio.play().then(() => {{
+              setStatus('Tocando (nativo)');
+              setLog('Áudio: play');
+              playBtn.textContent = '⏸️ Pausar';
+            }}).catch(err => {{
+              console.warn('play rejected', err);
+              setStatus('Clique no player nativo se bloqueado');
+            }});
+          }} else {{
+            audio.pause();
+            setStatus('Pausado (nativo)');
+            setLog('Áudio: pause');
+            playBtn.textContent = '▶️ Iniciar / Pausar';
           }}
         }} catch (err) {{
           console.warn('Erro no playBtn handler', err);
