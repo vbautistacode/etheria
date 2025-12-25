@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.title("Musicoterapia 🪉🎼🎵🎶🎻")
+st.title("Musicoterapia 🪉")
 st.markdown(
     """
     Musicoterapia: uso terapêutico do som para regular estados emocionais e promover
