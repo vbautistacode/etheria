@@ -3,8 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Aromaterapia", layout="wide")
-st.title("Aromaterapia")
+st.title("Aromaterapia 🌿")
 st.markdown(
     """
     Aromaterapia: guia introdutório sobre óleos essenciais, métodos de uso e receitas

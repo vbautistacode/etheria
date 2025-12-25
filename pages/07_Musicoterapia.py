@@ -3,8 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Musicoterapia", layout="wide")
-st.title("Musicoterapia")
+st.title("Musicoterapia 🎵")
 st.markdown(
     """
     Musicoterapia: uso terapêutico do som para regular estados emocionais e promover
@@ -22,7 +21,7 @@ Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://example.com/energ
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
 
-# Mapeamentos por signo/planeta (exemplos)
+# --- Mapeamentos por signo/planeta (exemplos) ---
 SIGN_TO_TRACKS = {
     "Áries": ["Ritmo Vital"], "Touro": ["Tonalidade Terra"], "Gêmeos": ["Batida Alfa"],
     "Câncer": ["Cascata Noturna"], "Leão": ["Ritmo Vital"], "Virgem": ["Batida Alfa"],
@@ -35,9 +34,22 @@ PLANET_TO_TRACKS = {
     "Saturno": ["Tonalidade Terra"], "Netuno": ["Ondas Suaves"], "Urano": ["Batida Alfa"], "Plutão": ["Ondas Suaves"]
 }
 
+# --- Nova correspondência Nota -> Planeta (solfejo) ---
+# Nota: Dó "C" = Marte, Ré "D" = Sol, Mi "E" = Mercúrio,
+# Fá "F" = Saturno, Sol "G" = Júpiter, Lá "A" = Vênus, Si "B" = Lua
+NOTE_TO_PLANET = {
+    "C (Dó)": "Marte",
+    "D (Ré)": "Sol",
+    "E (Mi)": "Mercúrio",
+    "F (Fá)": "Saturno",
+    "G (Sol)": "Júpiter",
+    "A (Lá)": "Vênus",
+    "B (Si)": "Lua"
+}
+
 # --- Interface lateral ---
 st.sidebar.header("Filtros")
-mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por intenção / uso", "Busca livre"])
+mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por nota musical", "Por intenção / uso", "Busca livre"])
 
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_TRACKS.keys()))
@@ -45,13 +57,18 @@ if mode == "Por signo":
 elif mode == "Por planeta regente":
     planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(PLANET_TO_TRACKS.keys()))))
     suggested = PLANET_TO_TRACKS.get(planet, [])
+elif mode == "Por nota musical":
+    note = st.sidebar.selectbox("Escolha a nota (solfejo)", list(NOTE_TO_PLANET.keys()))
+    mapped_planet = NOTE_TO_PLANET.get(note)
+    # sugerir faixas associadas ao planeta mapeado, se houver
+    suggested = PLANET_TO_TRACKS.get(mapped_planet, [])
 elif mode == "Por intenção / uso":
     intent = st.sidebar.selectbox("Escolha a intenção", ["Relaxamento","Foco","Sono","Aterramento","Energia"])
 else:
     query = st.sidebar.text_input("Busca livre (título, categoria)")
 
 # --- Painel principal ---
-st.header("Faixas e playlists")
+st.header("Faixas, notas e correspondências")
 
 col1, col2 = st.columns([1, 2])
 
@@ -67,6 +84,19 @@ with col1:
         st.markdown("**Faixas associadas:**")
         for t in suggested:
             st.write(f"- {t}")
+    elif mode == "Por nota musical":
+        st.markdown(f"**Nota selecionada:** {note}")
+        st.markdown(f"**Planeta correspondente:** {mapped_planet}")
+        st.markdown("**Faixas sugeridas (pelo planeta):**")
+        for t in suggested:
+            st.write(f"- {t}")
+        st.markdown("---")
+        st.markdown("**Como usar a correspondência nota→planeta**")
+        st.markdown(
+            "- Use a nota correspondente ao planeta para criar exercícios tonais curtos.\n"
+            "- Por exemplo, tocar ou ouvir faixas centradas em Dó (Marte) para vigor e ação.\n"
+            "- Combine com intenção (foco, relaxamento) para modular o efeito."
+        )
     elif mode == "Por intenção / uso":
         st.markdown(f"**Intenção:** {intent}")
     else:
@@ -77,11 +107,11 @@ with col1:
             st.write("Digite um termo na barra lateral para filtrar faixas.")
 
     st.markdown("---")
-    st.subheader("Sugestões de uso")
+    st.subheader("Sugestões práticas")
     st.markdown(
-        "- Para relaxamento: ouvir 10–20 minutos em volume baixo, com foco na respiração.\n"
-        "- Para foco: usar faixas com batidas suaves e frequências alfa por 20–40 minutos.\n"
-        "- Para sono: reduzir estímulos visuais e usar trilhas contínuas sem picos."
+        "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
+        "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
+        "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
     )
 
 with col2:
@@ -90,6 +120,8 @@ with col2:
     if mode == "Por signo" and suggested:
         df_display = df_display[df_display["Título"].isin(suggested)]
     elif mode == "Por planeta regente" and suggested:
+        df_display = df_display[df_display["Título"].isin(suggested)]
+    elif mode == "Por nota musical" and suggested:
         df_display = df_display[df_display["Título"].isin(suggested)]
     elif mode == "Por intenção / uso":
         if intent == "Relaxamento":
@@ -118,6 +150,14 @@ with col2:
     else:
         st.info("Nenhuma faixa encontrada com os filtros atuais.")
 
+# --- Visualização rápida das correspondências nota -> planeta ---
+st.markdown("---")
+st.subheader("Correspondência Nota → Planeta (solfejo)")
+note_table = pd.DataFrame([
+    {"Nota (solfejo)": k, "Planeta": v} for k, v in NOTE_TO_PLANET.items()
+])
+st.table(note_table)
+
 st.markdown("---")
 st.subheader("Personalize as correspondências")
-st.markdown("Se quiser fornecer listas próprias de faixas ou mapeamentos signo→faixas, cole aqui e eu adapto o código.")
+st.markdown("Se quiser fornecer listas próprias de faixas, notas ou mapeamentos signo→faixas, cole aqui e eu adapto o código.")

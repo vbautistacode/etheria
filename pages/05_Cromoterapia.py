@@ -3,8 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Cromoterapia", layout="wide")
-st.title("Cromoterapia")
+st.title("Cromoterapia 🌈")
 st.markdown(
     """
     Cromoterapia: exploração das cores e suas frequências para modular humor e energia.
