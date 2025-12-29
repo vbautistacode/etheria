@@ -99,8 +99,6 @@ else:
     suggested_color_energy = None
 
 # --- Painel principal ---
-#st.header("Paletas e recomendações")
-
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -141,23 +139,24 @@ with col2:
             q = query.strip().lower()
             df_display = df_display[df_display.apply(lambda r: q in str(r["Intenção"]).lower() or q in str(r["Descrição"]).lower(), axis=1)]
 
-    # tabela e seleção dentro de expander (oculta por padrão)
+    # exibe apenas a tabela dentro do expander (oculta por padrão)
     with st.expander("Mostrar paletas disponíveis"):
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-        st.markdown("### Detalhes da paleta")
-        palettes = df_display["Intenção"].tolist()
-        if palettes:
-            sel = st.selectbox("Escolha uma paleta", [""] + palettes)
-            if sel:
-                row = df_display[df_display["Intenção"] == sel].iloc[0]
-                st.markdown(f"**{row['Intenção']}**")
-                st.markdown(f"- **Cor primária:** {row['Cor Primária']}")
-                st.markdown(f"- **Cor secundária:** {row['Cor Secundária']}")
-                st.markdown(f"- **Tom de apoio:** {row['Tom de Apoio']}")
-                st.markdown(f"- **Descrição:** {row['Descrição']}")
-        else:
-            st.info("Nenhuma paleta encontrada com os filtros atuais.")
+    # Detalhes da paleta ficam visíveis fora do expander
+    st.markdown("### Detalhes da paleta")
+    palettes = df_display["Intenção"].tolist()
+    if palettes:
+        sel = st.selectbox("Escolha uma paleta", [""] + palettes)
+        if sel:
+            row = df_display[df_display["Intenção"] == sel].iloc[0]
+            st.markdown(f"**{row['Intenção']}**")
+            st.markdown(f"- **Cor primária:** {row['Cor Primária']}")
+            st.markdown(f"- **Cor secundária:** {row['Cor Secundária']}")
+            st.markdown(f"- **Tom de apoio:** {row['Tom de Apoio']}")
+            st.markdown(f"- **Descrição:** {row['Descrição']}")
+    else:
+        st.info("Nenhuma paleta encontrada com os filtros atuais.")
 
 st.markdown("---")
 
