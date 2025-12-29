@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
+st.set_page_config(page_title="Cristaloterapia", layout="wide")
 st.title("Cristaloterapia 💎")
 
 st.markdown(
@@ -76,8 +77,9 @@ SIGN_TO_STONES = {
     "Peixes": ["Ametista", "Celestina"],
 }
 
-# Sugestões por planeta regente (exemplo)
+# Sugestões por planeta regente (exemplo) — inclui correspondências clássicas e as novas fornecidas
 PLANET_TO_STONES = {
+    # mapeamentos originais (mantidos quando aplicáveis)
     "Sol": ["Citrino", "Topázio"],
     "Lua": ["Ametista", "Selenita", "Quartzo Anjo"],
     "Marte": ["Granada", "Quartzo Vermelho"],
@@ -89,6 +91,28 @@ PLANET_TO_STONES = {
     "Netuno": ["Celestina"],
     "Plutão": ["Obsidiana", "Turmalina Negra"],
 }
+
+# --- Novas correspondências solicitadas (sobrepõem/acompanham PLANET_TO_STONES) ---
+# Lua: Ametista; Marte: Rubi; Mercurio: Topázio; Jupiter: Rubina; Venus: Safira; Saturno: Esmeralda; Sol: Granada (Cárbunculo).
+PLANET_TO_STONES_UPDATE = {
+    "Lua": ["Ametista"],
+    "Marte": ["Rubi"],
+    "Mercúrio": ["Topázio"],
+    "Júpiter": ["Rubina"],
+    "Vênus": ["Safira"],
+    "Saturno": ["Esmeralda"],
+    "Sol": ["Granada (Cárbunculo)"],
+}
+
+# Mescla as atualizações em PLANET_TO_STONES, preservando entradas existentes e adicionando as novas
+for planet, stones in PLANET_TO_STONES_UPDATE.items():
+    existing = PLANET_TO_STONES.get(planet, [])
+    # cria lista única preservando ordem: novas pedras primeiro, depois as existentes que não duplicam
+    merged = []
+    for s in stones + existing:
+        if s not in merged:
+            merged.append(s)
+    PLANET_TO_STONES[planet] = merged
 
 # --- Layout: filtros e busca ---
 st.sidebar.header("Filtros e buscas")
@@ -113,7 +137,7 @@ elif mode == "Por planeta regente":
 
 elif mode == "Por objetivo / uso":
     # lista base + valores da tabela sem duplicatas, preservando ordem legível
-    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade",]
+    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade"]
     table_objectives = [o for o in df["Família de Energia"].unique().tolist() if o not in base_objectives]
     combined_objectives = base_objectives + table_objectives
     obj = st.sidebar.selectbox("Escolha o objetivo", combined_objectives)
@@ -172,7 +196,7 @@ with col2:
     elif mode == "Por objetivo / uso":
         if obj:
             # filtra por família de energia ou por substring
-            df_display = df_display[df_display["Família de Energia"].str.contains(obj, case=False, na=False) |
+            df_display = df_display[df_display["Família de Energia"].str.contains(obj, case=False, na=False) | 
                                      df_display["Principais Benefícios"].str.contains(obj, case=False, na=False)]
     else:
         if query:
@@ -198,6 +222,19 @@ with col2:
             st.markdown(f"**Energização recomendada:** {row['Energização']}")
     else:
         st.info("Nenhuma pedra encontrada com os filtros atuais.")
+
+# --- Correspondência planeta → pedra (nova seção) ---
+st.markdown("---")
+st.subheader("Correspondência Planeta → Pedra")
+st.markdown(
+    "Lista de correspondências clássicas e adicionais. Use como referência rápida ao escolher cristais por influência planetária."
+)
+
+planet_table = pd.DataFrame([
+    {"Planeta": p, "Pedras (sugestões)": ", ".join(v)}
+    for p, v in sorted(PLANET_TO_STONES.items())
+])
+st.table(planet_table)
 
 # --- Extras: exportar visualização (cópia para área de transferência) ---
 st.markdown("---")
