@@ -196,14 +196,6 @@ with col1:
         else:
             st.write("Digite um termo na barra lateral para filtrar faixas.")
 
-    st.markdown("---")
-    st.subheader("Sugestões práticas")
-    st.markdown(
-        "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
-        "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
-        "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
-    )
-
 with col2:
     st.subheader("Catálogo de faixas")
     df_display = tracks_df.copy()
@@ -247,3 +239,13 @@ note_table = pd.DataFrame([
     {"Nota (solfejo)": k, "Planeta": v} for k, v in NOTE_TO_PLANET.items()
 ])
 st.table(note_table)
+
+# --- Observações e cuidados ---
+st.markdown("---")
+st.subheader("Sugestões práticas")
+st.markdown(
+    "**Observações:**\n\n"
+        "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
+        "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
+        "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
+)
