@@ -95,22 +95,28 @@ st.sidebar.header("Filtros e buscas")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre / tabela"])
 
 if mode == "Por signo":
-    sign = st.sidebar.selectbox("Selecione o signo", ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"])
+    sign = st.sidebar.selectbox(
+        "Selecione o signo",
+        ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
+    )
     planet = SIGN_TO_PLANET.get(sign, "—")
     st.sidebar.markdown(f"**Planeta regente:** {planet}")
     suggested = SIGN_TO_STONES.get(sign, [])
     st.sidebar.markdown("**Pedras sugeridas:** " + (", ".join(suggested) if suggested else "Nenhuma sugerida"))
 
 elif mode == "Por planeta regente":
-    planet_choice = st.sidebar.selectbox("Selecione o planeta", sorted(list({v for v in SIGN_TO_PLANET.values()})))
+    # cria lista única e ordenada de planetas (remove duplicatas)
+    planet_list = sorted(set(SIGN_TO_PLANET.values()))
+    planet_choice = st.sidebar.selectbox("Selecione o planeta", planet_list)
     suggested = PLANET_TO_STONES.get(planet_choice, [])
     st.sidebar.markdown("**Pedras associadas:** " + (", ".join(suggested) if suggested else "Nenhuma sugerida"))
 
 elif mode == "Por objetivo / uso":
-    objectives = sorted(df["Família de Energia"].unique().tolist())
-    obj = st.sidebar.selectbox("Escolha o objetivo", ["Proteção","Prosperidade","Espiritualidade","Vitalidade","Coração"] + objectives)
-    # normalize selection to match table values
-    # we'll filter by substring match
+    # lista base + valores da tabela sem duplicatas, preservando ordem legível
+    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade",]
+    table_objectives = [o for o in df["Família de Energia"].unique().tolist() if o not in base_objectives]
+    combined_objectives = base_objectives + table_objectives
+    obj = st.sidebar.selectbox("Escolha o objetivo", combined_objectives)
     st.sidebar.markdown("Resultados mostrados na tabela principal abaixo.")
 
 else:
