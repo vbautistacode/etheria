@@ -15,6 +15,7 @@ st.markdown(
 )
 
 # --- Dados CSV (tabela de referência) ---
+# CSV_DATA existente por esta versão ampliada (mais pedras comumente usadas)
 CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
 Turmalina Negra,Proteção,Escudo Energético,Bloqueia inveja e radiação de aparelhos.,Fumo/Terra,Sol/Terra
 Obsidiana,Proteção,Espelho da Alma,Revela verdades e corta laços negativos.,Água/Terra,Sol ou Lua
@@ -22,6 +23,7 @@ Nuumita,Proteção,Pedra do Xamã,Bloqueia manipulação e protege a alma.,Fumo/
 Ônix,Proteção,Autocontrole,Dá força estrutural em tempos difíceis.,Água/Sal,Sol ou Lua
 Hematita,Proteção,Foco e Lógica,Aterra a mente e evita a dispersão.,Fumo/Terra,Sol
 Quartzo Fumê,Proteção,Desintoxicação,Transmuta stress em energia leve.,Água/Fumo,Sol ou Terra
+Turmalina Negra (var.) ,Proteção,Escudo Energético,Bloqueia energias negativas e radiação.,Fumo/Terra,Sol/Terra
 Citrino,Prosperidade,Fluxo de Riqueza,Atrai dinheiro e sucesso nos negócios.,Autolimpante,Sol
 Pirita,Prosperidade,Ímã de Ouro,Atrai bens materiais e autoconfiança.,Fumo,Sol
 Aventurina,Prosperidade,Sorte e Oportunidade,Atrai sorte rápida e novas chances.,Água,Sol
@@ -40,6 +42,55 @@ Quartzo Vermelho,Vitalidade,Força de Vontade,Tira as ideias do papel e dá foco
 Jaspe,Vitalidade,Nutridor Supremo,Sustenta e estabiliza em longas jornadas.,Água/Sal,Terra ou Sol
 Esmeralda,Coração,Amor Sábio,Fortalece a lealdade e o amor maduro.,Fumo/Água,Lua
 Turquesa Verde,Coração,Sabedoria Ancestral,Proteção em viagens e autoexpressão.,Fumo apenas,Lua ou Terra
+
+# Pedras adicionais comumente consultadas no esoterismo
+Quartzo Cristal,Amplificador,Purificação e amplificação,Amplifica intenções e outros cristais.,Água/Sal,Sol ou Lua
+Quartzo Rosa,Coração,Amor e Cura Emocional,Promove amor próprio e cura de feridas emocionais.,Água/Sal,Lua
+Pedra da Lua (Moonstone),Intuição,Renovação Emocional,Estimula intuição e ciclos femininos.,Água/Lua,Lua
+Lápis-Lazúli,Espiritualidade,Visão Interior,Clareia a mente e favorece comunicação espiritual.,Fumo,Lua
+Malachita,Transformação,Proteção e Cura,Transmuta padrões e protege em viagens, cuidado com água.,Fumo/Terra,Sol
+Fluorita,Clareza,Organização Mental,Ajuda concentração e ordena pensamentos dispersos.,Água/Sal,Sol ou Lua
+Labradorita,Proteção Intuitiva,Escudo Mágico,Protege a aura e intensifica intuição.,Fumo/Terra,Lua
+Cianita (Kyanite),Alinhamento,Comunicação e Alinhamento,Alinha chakras sem necessidade de limpeza,Água,Lua
+Rhodonita,Coração,Reconciliação,Ajuda cura emocional e relações,Água/Sal,Sol ou Lua
+Amazonita,Comunicação,Equilíbrio Emocional,Suaviza emoções e facilita expressão,Água/Sal,Lua
+Peridoto,Renovação,Liberação de Padrões,Apoia renovação e prosperidade,Água/Sal,Sol
+Morganita,Coração,Amor Divino,Abre o coração para compaixão e cura,Água/Sal,Lua
+Kunzita,Emoção,Amor e Cura Emocional,Suporta liberação de traumas emocionais,Água/Sal,Lua
+Sapphire (Safira),Proteção Espiritual,Clareza e Sabedoria,Favorece discernimento e proteção,Água/Sal,Sol ou Lua
+Rubi (Rubi),Vitalidade,Paixão e Coragem,Aumenta energia vital e coragem,Água/Sal,Sol
+Safira Azul,Espiritualidade,Clareza Mental,Auxilia concentração e intuição,Água/Sal,Lua
+Rubiina (variante de Granada),Prosperidade,Paixão e Manifestação,Estimula ação e prosperidade,Água/Sal,Sol
+Bloodstone (Heliotrópio),Proteção,Vitalidade e Coragem,Fortalece resistência e coragem,Água/Sal,Sol
+Chrysocolla,Comunicação,Calma e Expressão,Suaviza emoções e melhora expressão,Água/Sal,Lua
+Chrysoprase,Prosperidade,Renovação do Coração,Abre o coração para novas oportunidades,Água/Sal,Sol
+Howlita,Calma,Redução de Ansiedade,Ajuda sono e pacificação mental,Água/Sal,Lua
+Turquesa,Proteção e Comunicação,Viagem e Cura,Protege em viagens e favorece expressão,Água/Sal,Lua ou Terra
+Sodalita (var.),Comunicação,Clareza e Verdade,Melhora expressão e lógica,Água/Sal,Lua
+Fluorita Arco-Íris,Equilíbrio,Integração,Equilibra emoções e mente,Água/Sal,Sol ou Lua
+Lepidolita,Calmante,Alívio de Ansiedade,Contém lítio natural; acalma e estabiliza,Água/Sal,Lua
+Obsidiana Negra,Proteção,Limpeza Profunda,Libera padrões e protege,Água/Terra,Sol ou Lua
+Turmalina Rosa,Amor,Autoaceitação,Suporta cura emocional,Água/Sal,Lua
+Sodalita Azul,Comunicação,Clareza Verbal,Auxilia expressão autêntica,Água/Sal,Lua
+Ametista Chevron,Espiritualidade,Proteção e Intuição,Combina propriedades de ametista e quartzo,Água/Fumo,Lua
+Angel Quartz (Quartzo Anjo),Espiritualidade,Conexão e Cura,Facilita estados meditativos,Água/Fumo,Lua
+Celestita (var.),Espiritualidade,Paz e Conexão,Promove calma e conexão com guias,Água/Fumo,Lua
+Black Onyx (Ônix Negro),Proteção,Força e Estabilidade,Oferece suporte em tempos difíceis,Água/Sal,Sol
+Pyrite (Pirita),Prosperidade,Confiança e Ação,Aumenta iniciativa e proteção,Água/Sal,Sol
+Garnet (Granada),Vitalidade,Paixão e Proteção,Revitaliza energia e coragem,Água/Sal,Sol
+Peridot (var.),Prosperidade,Renovação e Cura,Ajuda liberação de padrões antigos,Água/Sal,Sol
+Moonstone Rainbow,Intuição,Ciclos e Renovação,Suporta equilíbrio emocional,Água/Lua,Lua
+Lapis Lazuli,Visão Interior,Clareza Espiritual,Ajuda expressão e intuição,Água/Sal,Lua
+Malachite (var.),Transformação,Proteção e Cura,Transmuta energias densas,Água/Terra,Sol
+Fluorite Verde,Clareza,Equilíbrio Emocional,Auxilia foco e limpeza mental,Água/Sal,Sol
+Labradorita (var.),Proteção,Intuição e Magia,Amplifica intuição e protege aura,Água/Terra,Lua
+Kyanite Azul,Alinhamento,Comunicação Clara,Alinha chakras sem limpeza,Água,Lua
+Rhodonite (var.),Coração,Reconciliação e Cura,Suporta relações e perdão,Água/Sal,Sol ou Lua
+Amazonita (var.),Comunicação,Equilíbrio e Coragem,Suaviza emoções e facilita expressão,Água/Sal,Lua
+Bloodstone (var.),Proteção,Vitalidade e Coragem,Fortalece resistência física,Água/Sal,Sol
+Chrysocolla (var.),Comunicação,Calma e Cura,Suporta expressão compassiva,Água/Sal,Lua
+Smoky Quartz (Quartzo Fumê),Proteção,Desintoxicação,Transmuta stress em energia leve.,Água/Fumo,Sol ou Terra
+Clear Quartz (Quartzo Cristal),Amplificador,Purificação e Amplificação,Amplifica intenções e outros cristais.,Água/Sal,Sol ou Lua
 """
 
 df = pd.read_csv(StringIO(CSV_DATA))
@@ -237,11 +288,11 @@ planet_table = pd.DataFrame([
 st.table(planet_table)
 
 # --- Extras: exportar visualização (cópia para área de transferência) ---
-st.markdown("---")
-st.subheader("Exportar / copiar")
-st.markdown("Você pode copiar a tabela filtrada e colar em uma planilha. Use o botão abaixo para gerar CSV na tela.")
-csv = df_display.to_csv(index=False)
-st.download_button("Baixar CSV (tabela filtrada)", csv, file_name="cristaloterapia_tabela.csv", mime="text/csv")
+#st.markdown("---")
+#st.subheader("Exportar / copiar")
+#st.markdown("Você pode copiar a tabela filtrada e colar em uma planilha. Use o botão abaixo para gerar CSV na tela.")
+#csv = df_display.to_csv(index=False)
+#st.download_button("Baixar CSV (tabela filtrada)", csv, file_name="cristaloterapia_tabela.csv", mime="text/csv")
 
 # --- Observações e cuidados ---
 st.markdown("---")
@@ -249,5 +300,4 @@ st.markdown(
     "**Observações:**\n\n"
     "- As sugestões são simbólicas e informativas; não substituem orientação profissional.\n"
     "- Ao limpar ou energizar cristais, siga práticas seguras (evite água em pedras solúveis, cuidado com luz solar prolongada, etc.).\n"
-    "- Personalize os mapeamentos `SIGN_TO_STONES` e `PLANET_TO_STONES` conforme sua tradição ou fonte."
 )
