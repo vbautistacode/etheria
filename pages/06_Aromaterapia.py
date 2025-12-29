@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
+st.set_page_config(page_title="Aromaterapia", layout="wide")
 st.title("Aromaterapia 🌿")
 st.markdown(
     """
@@ -45,6 +46,22 @@ PLANET_TO_OILS = {
     "Saturno": ["Cedro"], "Netuno": ["Lavanda"], "Urano": ["Eucalipto"], "Plutão": ["Cedro"]
 }
 
+# --- Novas correspondências Perfume → Planeta (solicitadas) ---
+# Lua: Jasmim; Marte: Verbena; Mercurio: Gardênia; Jupiter: Flor de Maçã; Venus: Hortênsia; Saturno: Alecrim; Sol: Sândalo
+PLANET_TO_PERFUMES = {
+    "Lua": ["Jasmim"],
+    "Marte": ["Verbena"],
+    "Mercúrio": ["Gardênia"],
+    "Júpiter": ["Flor de Maçã"],
+    "Vênus": ["Hortênsia"],
+    "Saturno": ["Alecrim"],
+    "Sol": ["Sândalo"],
+    # complementar para outros planetas se necessário
+    "Urano": ["Notas Cítricas"],
+    "Netuno": ["Notas Marinhas"],
+    "Plutão": ["Notas Amadeiradas"]
+}
+
 # --- Interface lateral ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre"])
@@ -52,16 +69,18 @@ mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente",
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_OILS.keys()))
     suggested = SIGN_TO_OILS.get(sign, [])
+    # infer planet if desired (not shown in sidebar here)
 elif mode == "Por planeta regente":
-    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(PLANET_TO_OILS.keys()))))
+    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(list(PLANET_TO_OILS.keys()) + list(PLANET_TO_PERFUMES.keys())))))
     suggested = PLANET_TO_OILS.get(planet, [])
+    suggested_perfumes = PLANET_TO_PERFUMES.get(planet, [])
 elif mode == "Por objetivo / uso":
     objective = st.sidebar.selectbox("Escolha o objetivo", ["Relaxamento","Foco","Sono","Aterramento","Elevação de humor"])
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
 
 # --- Painel principal ---
-st.header("Óleos essenciais e recomendações")
+st.header("Óleos essenciais, perfumes e recomendações")
 
 col1, col2 = st.columns([1, 2])
 
@@ -77,6 +96,9 @@ with col1:
         st.markdown("**Óleos associados:**")
         for o in suggested:
             st.write(f"- {o}")
+        st.markdown("**Perfumes/Notas sugeridas:**")
+        for p in suggested_perfumes:
+            st.write(f"- {p}")
     elif mode == "Por objetivo / uso":
         st.markdown(f"**Objetivo:** {objective}")
     else:
@@ -127,6 +149,16 @@ with col2:
     else:
         st.info("Nenhum óleo encontrado com os filtros atuais.")
 
+# --- Correspondência Planeta → Perfume (nova seção) ---
 st.markdown("---")
-st.subheader("Personalize as correspondências")
-st.markdown("Se quiser fornecer mapeamentos próprios (signo → óleos ou planeta → óleos), cole aqui em JSON ou descreva e eu adapto o código.")
+st.subheader("Correspondência Planeta → Perfume / Nota olfativa")
+st.markdown(
+    "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
+)
+planet_perfume_table = pd.DataFrame([
+    {"Planeta": p, "Perfume / Nota sugerida": ", ".join(v)}
+    for p, v in sorted(PLANET_TO_PERFUMES.items())
+])
+st.table(planet_perfume_table)
+
+st.markdown("---")
