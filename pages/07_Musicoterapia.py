@@ -45,8 +45,7 @@ CLASSICAL_CSV = """Título,Composer,Work,Key,URL
 "Prelude in E minor","Bach","Prelude in E minor (WTC)","E minor","https://www.youtube.com/watch?v=jDjJ8aL6JK0"
 "Chaconne (Partita No.2)","Bach","Partita No.2 in D minor (Chaconne transcr. in B)","B minor","https://www.youtube.com/watch?v=example_bach_chaconne"
 """
-
-classical_df = pd.read_csv(StringIO(CLASSICAL_CSV))
+classical_df = pd.read_csv(StringIO(CLASSICAL_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
 # ---------------------------
 # Funções utilitárias musicais
@@ -60,7 +59,6 @@ def tonic_to_note(key: str) -> str:
         return ""
     base = key.split()[0]  # ex.: "C#", "D", "E♭", "C"
     base = base.replace('♯', '#').replace('♭', 'b')
-    # retorna apenas a letra base (C D E F G A B)
     return base[0].upper() if base[0].upper() in "CDEFGAB" else ""
 
 def get_youtube_id(u: str) -> str | None:
@@ -75,7 +73,6 @@ def get_youtube_id(u: str) -> str | None:
             qs = parse_qs(parsed.query)
             if 'v' in qs:
                 return qs['v'][0]
-            # casos como /embed/ID ou /v/ID
             path_parts = [p for p in parsed.path.split('/') if p]
             if path_parts and path_parts[-1]:
                 return path_parts[-1]
@@ -99,7 +96,6 @@ def render_video_from_url(url: str, width: int = 800, height: int = 450):
     st.markdown(f"- **Fonte:** [{url}]({url})")
     yt_id = get_youtube_id(url)
     try:
-        # st.video aceita URLs do YouTube diretamente
         st.video(url)
     except Exception:
         if yt_id:
@@ -127,19 +123,18 @@ NOTE_TO_PLANET_SHORT = {
 }
 
 # aplica transformação e mapeamento nas obras clássicas
+if 'Key' not in classical_df.columns:
+    classical_df['Key'] = ""
 classical_df['Tonic'] = classical_df['Key'].apply(tonic_to_note)
 classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT).fillna("—")
 
 # ---------------------------
 # Preparar tracks_df para concatenação
 # ---------------------------
-# garante colunas mínimas em tracks_df antes de concatenar
 for col in ['Título', 'Artista/Coleção', 'Categoria', 'Efeito', 'URL', 'Composer', 'Work', 'Key', 'Tonic', 'Planet']:
     if col not in tracks_df.columns:
         tracks_df[col] = ""
 
-# concatena obras clássicas ao catálogo de faixas
-# renomeia colunas de classical_df para casar com tracks_df quando necessário
 classical_df_renamed = classical_df.rename(columns={'URL': 'URL', 'Título': 'Título'})
 tracks_df = pd.concat([tracks_df, classical_df_renamed], ignore_index=True, sort=False)
 
@@ -175,15 +170,18 @@ PLANET_TO_TRACKS = {
 # Interface lateral: filtros
 # ---------------------------
 st.sidebar.header("Filtros")
-mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por nota musical", "Por intenção / uso", "Busca livre / tabela"])
+mode = st.sidebar.radio(
+    "Modo de consulta",
+    ["Por signo", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
+)
 
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_TRACKS.keys()))
     suggested = SIGN_TO_TRACKS.get(sign, [])
-elif mode == "Por planeta regente":
+elif mode == "Por planeta":
     planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(PLANET_TO_TRACKS.keys()))))
     suggested = PLANET_TO_TRACKS.get(planet, [])
-elif mode == "Por nota musical":
+elif mode == "Por nota":
     note = st.sidebar.selectbox("Escolha a nota (solfejo)", list(NOTE_TO_PLANET_SHORT.keys()))
     mapped_planet = NOTE_TO_PLANET_SHORT.get(note)
     suggested = PLANET_TO_TRACKS.get(mapped_planet, [])
@@ -192,26 +190,12 @@ elif mode == "Por intenção / uso":
 else:
     query = st.sidebar.text_input("Busca livre (título, compositor, categoria)")
 
-# filtros clássicos adicionais
-st.sidebar.markdown("---")
-st.sidebar.subheader("Filtros clássicos")
-composer_choices = sorted([c for c in tracks_df['Composer'].unique() if pd.notna(c) and c != ""])
-composer_choices = ["Todos"] + composer_choices
-composer_sel = st.sidebar.selectbox("Compositor", composer_choices)
-
-planet_choices = sorted([p for p in tracks_df['Planet'].unique() if pd.notna(p) and p != ""])
-planet_choices = ["Todos"] + planet_choices
-planet_sel = st.sidebar.selectbox("Planeta (via tônica)", planet_choices)
-
-tonic_choices = sorted([t for t in tracks_df['Tonic'].unique() if pd.notna(t) and t != ""])
-tonic_choices = ["Todos"] + tonic_choices
-tonic_sel = st.sidebar.selectbox("Tônica (nota)", tonic_choices)
+# Observação: filtros clássicos opcionais (se quiser reativar, descomente e ajuste)
+# composer_sel, planet_sel, tonic_sel podem não existir; usaremos guards abaixo.
 
 # ---------------------------
 # Painel principal
 # ---------------------------
-st.header("Faixas, obras e correspondências")
-
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -221,12 +205,12 @@ with col1:
         st.markdown("**Faixas sugeridas:**")
         for t in suggested:
             st.write(f"- {t}")
-    elif mode == "Por planeta regente":
+    elif mode == "Por planeta":
         st.markdown(f"**Planeta:** {planet}")
         st.markdown("**Faixas associadas:**")
         for t in suggested:
             st.write(f"- {t}")
-    elif mode == "Por nota musical":
+    elif mode == "Por nota":
         st.markdown(f"**Nota selecionada:** {note}")
         st.markdown(f"**Planeta correspondente:** {mapped_planet}")
         st.markdown("**Faixas sugeridas (pelo planeta):**")
@@ -249,15 +233,15 @@ with col1:
             st.write("Use os filtros laterais para refinar a lista.")
 
 with col2:
-    st.subheader("Catálogo de faixas e obras")
-    df_display = tracks_df.copy()
+    st.subheader("Sons e Músicas")
 
-    # aplicar filtros principais
+    # prepara df_display com filtros aplicados
+    df_display = tracks_df.copy()
     if mode == "Por signo" and suggested:
         df_display = df_display[df_display["Título"].isin(suggested)]
-    elif mode == "Por planeta regente" and suggested:
+    elif mode == "Por planeta" and suggested:
         df_display = df_display[df_display["Título"].isin(suggested)]
-    elif mode == "Por nota musical" and suggested:
+    elif mode == "Por nota" and suggested:
         df_display = df_display[df_display["Título"].isin(suggested)]
     elif mode == "Por intenção / uso":
         if intent == "Relaxamento":
@@ -274,30 +258,45 @@ with col2:
                 q in str(r.get("Composer","")).lower() or
                 q in str(r.get("Categoria","")).lower(), axis=1)]
 
-    # aplicar filtros clássicos adicionais
-    if composer_sel != "Todos":
+    # Se existirem filtros clássicos opcionais, aplique-os com guard
+    if 'composer_sel' in locals() and composer_sel != "Todos":
         df_display = df_display[df_display['Composer'] == composer_sel]
-    if planet_sel != "Todos":
+    if 'planet_sel' in locals() and planet_sel != "Todos":
         df_display = df_display[df_display['Planet'] == planet_sel]
-    if tonic_sel != "Todos":
+    if 'tonic_sel' in locals() and tonic_sel != "Todos":
         df_display = df_display[df_display['Tonic'] == tonic_sel]
 
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+    # ---------------------------
+    # "Sons e Músicas" dentro de expander (oculto por padrão)
+    # ---------------------------
+    with st.expander("Mostrar Sons e Músicas"):
+        st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+
+        st.markdown("### Player / Reprodução")
+        playable_tracks = df_display["Título"].tolist()
+        if playable_tracks:
+            play_sel = st.selectbox("Escolha uma faixa para tocar", [""] + playable_tracks, key="player_select")
+            if play_sel:
+                play_row = df_display[df_display["Título"] == play_sel].iloc[0]
+                play_url = play_row.get('URL', '')
+                # renderiza player com fallback
+                render_video_from_url(play_url)
+        else:
+            st.info("Nenhuma faixa disponível para reprodução com os filtros atuais.")
 
     # ---------------------------
-    # Detalhes da faixa com player embutido
+    # Detalhes da Nota (visível fora do expander)
     # ---------------------------
-    st.markdown("### Detalhes da faixa / obra")
+    st.markdown("### Detalhes da Nota")
     tracks = df_display["Título"].tolist()
     if tracks:
-        sel = st.selectbox("Escolha uma faixa/obra", [""] + tracks)
+        sel = st.selectbox("Escolha uma faixa/obra para ver detalhes", [""] + tracks, key="details_select")
         if sel:
             row = df_display[df_display["Título"] == sel].iloc[0]
             title = row.get('Título', '')
             artist = row.get('Artista/Coleção', '') or row.get('Composer', '')
             category = row.get('Categoria', '')
             effect = row.get('Efeito', '')
-            key = row.get('Key', '') or row.get('Key', '')
             tonic = row.get('Tonic', '')
             planet_for_piece = row.get('Planet', '')
 
@@ -306,8 +305,7 @@ with col2:
                 st.markdown(f"- **Categoria:** {category}")
             if effect:
                 st.markdown(f"- **Efeito:** {effect}")
-            if key:
-                st.markdown(f"- **Key:** {key}")
+            # OMITIR 'Key' e 'Fonte' conforme solicitado (não exibir Key nem URL aqui)
             if tonic:
                 st.markdown(f"- **Tônica (nota):** {tonic}")
             if planet_for_piece and planet_for_piece != "—":
@@ -315,18 +313,14 @@ with col2:
                 explanation = PLANET_MUSIC_EXPLANATIONS.get(planet_for_piece)
                 if explanation:
                     st.markdown(f"- **Resumo:** {explanation}")
-
-            url = row.get('URL', '')
-            # renderiza player (st.video) com fallback para iframe ou link
-            render_video_from_url(url)
     else:
         st.info("Nenhuma faixa encontrada com os filtros atuais.")
 
 # ---------------------------
-# Visualização nota -> planeta
+# Visualização nota -> planeta (visível fora do expander)
 # ---------------------------
 st.markdown("---")
-st.subheader("Correspondência Nota → Planeta (solfejo)")
+st.subheader("Correspondência Nota → Planeta")
 note_table = pd.DataFrame([
     {"Nota (solfejo)": f"{k} ({'Dó' if k=='C' else 'Ré' if k=='D' else 'Mi' if k=='E' else 'Fá' if k=='F' else 'Sol' if k=='G' else 'Lá' if k=='A' else 'Si'})", "Planeta": v}
     for k, v in NOTE_TO_PLANET_SHORT.items()
@@ -337,7 +331,6 @@ st.table(note_table)
 # Observações finais
 # ---------------------------
 st.markdown("---")
-#st.subheader("Sugestões práticas")
 st.markdown(
     "**Observações:**\n\n"
     "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"

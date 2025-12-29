@@ -128,7 +128,7 @@ with col1:
             st.write("Digite um termo na barra lateral para filtrar óleos.")
 
 with col2:
-    st.subheader("Lista de Óleos")
+    st.subheader("Fragrâncias")
     df_display = oils_df.copy()
     if mode == "Por signo" and suggested:
         df_display = df_display[df_display["Óleo"].isin(suggested)]
