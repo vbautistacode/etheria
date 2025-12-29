@@ -113,7 +113,7 @@ with col1:
         st.markdown("**Óleos associados:**")
         for o in suggested:
             st.write(f"- {o}")
-        st.markdown("**Perfumes/Notas sugeridas:**")
+        st.markdown("**Perfumes/Notas Olfativas:**")
         for p in suggested_perfumes:
             st.write(f"- {p}")
         if suggested_perfume_energy:
