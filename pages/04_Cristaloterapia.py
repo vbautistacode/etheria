@@ -16,7 +16,7 @@ st.markdown(
 
 # --- Dados CSV (tabela de referência) ---
 # CSV_DATA existente por esta versão ampliada (mais pedras comumente usadas)
-CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
+CSV_DATA = """ Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
 Turmalina Negra,Proteção,Escudo Energético,Bloqueia inveja e radiação de aparelhos.,Fumo/Terra,Sol/Terra
 Obsidiana,Proteção,Espelho da Alma,Revela verdades e corta laços negativos.,Água/Terra,Sol ou Lua
 Nuumita,Proteção,Pedra do Xamã,Bloqueia manipulação e protege a alma.,Fumo/Terra,Lua/Terra
@@ -42,8 +42,6 @@ Quartzo Vermelho,Vitalidade,Força de Vontade,Tira as ideias do papel e dá foco
 Jaspe,Vitalidade,Nutridor Supremo,Sustenta e estabiliza em longas jornadas.,Água/Sal,Terra ou Sol
 Esmeralda,Coração,Amor Sábio,Fortalece a lealdade e o amor maduro.,Fumo/Água,Lua
 Turquesa Verde,Coração,Sabedoria Ancestral,Proteção em viagens e autoexpressão.,Fumo apenas,Lua ou Terra
-
-# Pedras adicionais comumente consultadas no esoterismo
 Quartzo Cristal,Amplificador,Purificação e amplificação,Amplifica intenções e outros cristais.,Água/Sal,Sol ou Lua
 Quartzo Rosa,Coração,Amor e Cura Emocional,Promove amor próprio e cura de feridas emocionais.,Água/Sal,Lua
 Pedra da Lua (Moonstone),Intuição,Renovação Emocional,Estimula intuição e ciclos femininos.,Água/Lua,Lua
