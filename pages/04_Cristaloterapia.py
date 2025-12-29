@@ -240,14 +240,6 @@ with col1:
         else:
             st.write("Digite um termo na barra lateral para filtrar a tabela.")
 
-    st.markdown("---")
-    st.subheader("Como usar")
-    st.markdown(
-        "- Selecione um modo de consulta na barra lateral.\n"
-        "- Clique em uma linha da tabela para ver detalhes da pedra.\n"
-        "- Use a busca livre para localizar por nome, essência ou benefício."
-    )
-
 with col2:
     st.subheader("Tabela de referência")
     # aplica filtros
