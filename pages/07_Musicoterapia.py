@@ -28,7 +28,7 @@ tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
 # ---------------------------
 # Obras clássicas: metadados
 # ---------------------------
-CLASSICAL_CSV = """Título,Composer,Work,Key,URL
+CLASSICAL_CSV = """Título,Compositor,Obra,Nota,URL
 "Symphony No.5","Beethoven","Symphony No.5","C minor","https://www.youtube.com/watch?v=3ug835LFixU"
 "Symphony No.9","Beethoven","Symphony No.9 (Choral)","D minor","https://www.youtube.com/watch?v=fzyO3fLV5O0"
 "Symphony No.3 (Eroica)","Beethoven","Symphony No.3 (Eroica)","E♭ major","https://www.youtube.com/watch?v=your_beethoven3_link"
