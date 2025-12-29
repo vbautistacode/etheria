@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
+st.set_page_config(page_title="Cromoterapia", layout="wide")
 st.title("Cromoterapia 🌈")
 st.markdown(
     """
@@ -43,6 +44,23 @@ PLANET_TO_PALETTE = {
     "Netuno": "Calma", "Plutão": "Sono"
 }
 
+# --- Correspondência Planeta -> Cor (solicitada) ---
+# Lua: Violeta; Marte: Vermelho; Mercurio: Amarelo; Jupiter: Azul (Púrpura);
+# Venus: Índigo; Saturno: Verde; Sol: Laranja
+PLANET_TO_COLOR = {
+    "Lua": "Violeta",
+    "Marte": "Vermelho",
+    "Mercúrio": "Amarelo",
+    "Júpiter": "Azul (Púrpura)",
+    "Vênus": "Índigo",
+    "Saturno": "Verde",
+    "Sol": "Laranja",
+    # entradas adicionais para completude
+    "Urano": "Ciano",
+    "Netuno": "Azul Profundo",
+    "Plutão": "Bordô"
+}
+
 # --- Interface lateral ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por intenção / uso", "Busca livre"])
@@ -51,13 +69,17 @@ if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_PLANET.keys()))
     planet = SIGN_TO_PLANET.get(sign, "—")
     suggested_palette = SIGN_TO_PALETTE.get(sign)
+    suggested_color = PLANET_TO_COLOR.get(planet, "—")
 elif mode == "Por planeta regente":
     planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(SIGN_TO_PLANET.values()))))
     suggested_palette = PLANET_TO_PALETTE.get(planet)
+    suggested_color = PLANET_TO_COLOR.get(planet, "—")
 elif mode == "Por intenção / uso":
     intent = st.sidebar.selectbox("Escolha a intenção", palettes_df["Intenção"].tolist())
+    suggested_color = None
 else:
     query = st.sidebar.text_input("Busca livre (cor, intenção)")
+    suggested_color = None
 
 # --- Painel principal ---
 st.header("Paletas e recomendações")
@@ -70,9 +92,11 @@ with col1:
         st.markdown(f"**Signo:** {sign}")
         st.markdown(f"**Planeta regente:** {planet}")
         st.markdown(f"**Paleta sugerida:** {suggested_palette or '—'}")
+        st.markdown(f"**Cor associada ao planeta:** {suggested_color or '—'}")
     elif mode == "Por planeta regente":
         st.markdown(f"**Planeta:** {planet}")
         st.markdown(f"**Paleta sugerida:** {suggested_palette or '—'}")
+        st.markdown(f"**Cor associada:** {suggested_color or '—'}")
     elif mode == "Por intenção / uso":
         st.markdown(f"**Intenção:** {intent}")
     else:
@@ -121,8 +145,13 @@ with col2:
             st.markdown(f"- **Descrição:** {row['Descrição']}")
 
 st.markdown("---")
-st.subheader("Personalize as correspondências")
+st.subheader("Correspondência Planeta → Cor")
 st.markdown(
-    "Se quiser fornecer mapeamentos próprios (signo → paleta ou planeta → paleta), cole aqui no formato JSON "
-    "ou descreva as preferências; eu atualizo o código para usar seus dados."
+    "Referência rápida das cores associadas aos planetas (útil para exercícios tonais e visuais)."
 )
+planet_color_table = pd.DataFrame([
+    {"Planeta": p, "Cor associada": c} for p, c in sorted(PLANET_TO_COLOR.items())
+])
+st.table(planet_color_table)
+
+st.markdown("---")
