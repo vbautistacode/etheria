@@ -21,18 +21,95 @@ Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://example.com/energ
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
 
+# --- Obras clássicas: metadados e mapeamento nota->planeta ---
 CLASSICAL_CSV = """Título,Composer,Work,Key,URL
-Symphony No.5,Beethoven,Symphony No.5,C minor,https://youtu.be/...
-Symphony No.41,Mozart,Symphony No.41 (Jupiter),C major,https://youtu.be/...
-Toccata and Fugue,Bach,Toccata and Fugue in D minor,D minor,https://youtu.be/...
-Ride of the Valkyries,Wagner,Die Walküre - Ride,G major,https://youtu.be/...
+Symphony No.5,Beethoven,Symphony No.5,C minor,https://youtu.be/your_beethoven5_link
+Symphony No.9,Beethoven,Symphony No.9 (Choral),D minor,https://youtu.be/your_beethoven9_link
+Symphony No.3,Eroica,Beethoven,Symphony No.3,E♭ major,https://youtu.be/your_beethoven3_link
+Symphony No.41,Jupiter,Mozart,Symphony No.41,C major,https://youtu.be/your_mozart41_link
+Eine kleine Nachtmusik,Mozart,Serenade No.13,G major,https://youtu.be/your_mozart_nachtmusik_link
+Toccata and Fugue,Bach,Toccata and Fugue in D minor,D minor,https://youtu.be/your_bach_toccata_link
+Brandenburg Concerto No.3,Bach,Brandenburg Concerto No.3,G major,https://youtu.be/your_bach_brandenburg3_link
+Ride of the Valkyries,Wagner,Die Walküre - Ride,G major,https://youtu.be/your_wagner_ride_link
 """
+# carregar obras clássicas
 classical_df = pd.read_csv(StringIO(CLASSICAL_CSV))
-def tonic_to_note(key): return key.split()[0].replace('♯','#').replace('♭','b')[0].upper()
+
+# função para extrair a nota tônica base (C D E F G A B) de uma string Key
+def tonic_to_note(key):
+    if not isinstance(key, str) or key.strip() == "":
+        return ""
+    # pega a primeira "palavra" da key (ex.: "C#", "D", "E♭", "C")
+    base = key.split()[0]
+    # normaliza enarmônicos e símbolos
+    base = base.replace('♯', '#').replace('♭', 'b')
+    # retorna apenas a letra base (C D E F G A B)
+    return base[0].upper()
+
+# mapa curto nota -> planeta (letras)
+NOTE_TO_PLANET_SHORT = {
+    'C': 'Marte',
+    'D': 'Sol',
+    'E': 'Mercúrio',
+    'F': 'Saturno',
+    'G': 'Júpiter',
+    'A': 'Vênus',
+    'B': 'Lua'
+}
+
+# aplica transformação e mapeamento
 classical_df['Tonic'] = classical_df['Key'].apply(tonic_to_note)
-NOTE_TO_PLANET_SHORT = {'C':'Marte','D':'Sol','E':'Mercúrio','F':'Saturno','G':'Júpiter','A':'Vênus','B':'Lua'}
-classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT)
-tracks_df = pd.concat([tracks_df, classical_df], ignore_index=True)
+classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT).fillna("—")
+
+# padroniza colunas para concatenar com tracks_df
+# se tracks_df não tiver as colunas Composer/Work/Key, criá-las antes da concatenação
+for col in ['Composer','Work','Key','Tonic','Planet','URL','Título']:
+    if col not in tracks_df.columns:
+        tracks_df[col] = ""
+
+# concatena (mantém o catálogo original e adiciona as obras clássicas)
+tracks_df = pd.concat([tracks_df, classical_df.rename(columns={'Título':'Título'})], ignore_index=True, sort=False)
+
+# --- Explicações resumidas por planeta (para mostrar ao usuário) ---
+PLANET_MUSIC_EXPLANATIONS = {
+    'Marte': 'Marte (Dó) — energia de ação e vigor; obras em C tendem a ser percebidas como diretas e incisivas.',
+    'Sol': 'Sol (Ré) — presença e clareza; obras em D costumam transmitir brilho e afirmação.',
+    'Mercúrio': 'Mercúrio (Mi) — agilidade mental e comunicação; peças em E favorecem leveza e fluidez.',
+    'Saturno': 'Saturno (Fá) — estrutura e profundidade; obras em F trazem sensação de estabilidade.',
+    'Júpiter': 'Júpiter (Sol) — expansão e nobreza; obras em G costumam soar amplas e otimistas.',
+    'Vênus': 'Vênus (Lá) — harmonia e beleza; peças em A evocam suavidade e afeto.',
+    'Lua': 'Lua (Si) — sensibilidade e introspecção; obras em B podem soar etéreas ou contemplativas.'
+}
+
+# --- UI adicional: filtros por Composer / Planet / Tonic ---
+# (substitua ou acrescente aos controles laterais existentes)
+st.sidebar.markdown("---")
+st.sidebar.subheader("Filtros clássicos")
+composer_choices = sorted([c for c in tracks_df['Composer'].unique() if pd.notna(c) and c != ""])
+composer_choices = ["Todos"] + composer_choices
+composer_sel = st.sidebar.selectbox("Compositor", composer_choices)
+
+planet_choices = sorted([p for p in tracks_df['Planet'].unique() if pd.notna(p) and p != ""])
+planet_choices = ["Todos"] + planet_choices
+planet_sel = st.sidebar.selectbox("Planeta (via tônica)", planet_choices)
+
+tonic_choices = sorted([t for t in tracks_df['Tonic'].unique() if pd.notna(t) and t != ""])
+tonic_choices = ["Todos"] + tonic_choices
+tonic_sel = st.sidebar.selectbox("Tônica (nota)", tonic_choices)
+
+# aplica filtros no df_display (exemplo simples)
+def apply_classical_filters(df):
+    df2 = df.copy()
+    if composer_sel != "Todos":
+        df2 = df2[df2['Composer'] == composer_sel]
+    if planet_sel != "Todos":
+        df2 = df2[df2['Planet'] == planet_sel]
+    if tonic_sel != "Todos":
+        df2 = df2[df2['Tonic'] == tonic_sel]
+    return df2
+
+# quando exibir detalhes de uma faixa clássica, mostrar explicação do planeta
+# (integre isso no bloco que mostra detalhes da faixa/track)
 
 # --- Mapeamentos por signo/planeta (exemplos) ---
 SIGN_TO_TRACKS = {
