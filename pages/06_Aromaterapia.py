@@ -46,7 +46,6 @@ PLANET_TO_OILS = {
 }
 
 # --- Novas correspondências Perfume → Planeta (solicitadas) ---
-# Lua: Jasmim; Marte: Verbena; Mercurio: Gardênia; Jupiter: Flor de Maçã; Venus: Hortênsia; Saturno: Alecrim; Sol: Sândalo
 PLANET_TO_PERFUMES = {
     "Lua": ["Jasmim"],
     "Marte": ["Verbena"],
@@ -55,7 +54,6 @@ PLANET_TO_PERFUMES = {
     "Vênus": ["Hortênsia"],
     "Saturno": ["Alecrim"],
     "Sol": ["Sândalo"],
-    # complementar para outros planetas se necessário
     "Urano": ["Notas Cítricas"],
     "Netuno": ["Notas Marinhas"],
     "Plutão": ["Notas Amadeiradas"]
@@ -87,12 +85,7 @@ suggested_perfume_energy = None
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_OILS.keys()))
     suggested = SIGN_TO_OILS.get(sign, [])
-    # infer planet if desired (not shown in sidebar here)
-    # infer perfumes for display in resumo
-    # attempt to infer planet from a separate mapping if available
-    # (optional) if you have SIGN_TO_PLANET mapping, you can derive perfumes here
 elif mode == "Por planeta regente":
-    # combina chaves de óleos e perfumes para garantir lista completa
     planet_choices = sorted(list(set(list(PLANET_TO_OILS.keys()) + list(PLANET_TO_PERFUMES.keys()))))
     planet = st.sidebar.selectbox("Selecione o planeta", planet_choices)
     suggested = PLANET_TO_OILS.get(planet, [])
@@ -146,28 +139,28 @@ with col2:
             df_display = df_display[df_display["Principais Efeitos"].str.contains("Calmante|Relaxamento|Sono", case=False, na=False)]
         elif objective == "Foco":
             df_display = df_display[df_display["Principais Efeitos"].str.contains("Alerta|foco|clareza", case=False, na=False)]
-        # adicione mais regras conforme necessário
     else:
         if mode == "Busca livre" and query:
             q = query.strip().lower()
             df_display = df_display[df_display.apply(lambda r: q in str(r["Óleo"]).lower() or q in str(r["Principais Efeitos"]).lower(), axis=1)]
 
-    # exibe a lista de óleos dentro de um expander (oculta por padrão)
+    # exibe apenas a tabela dentro do expander (oculta por padrão)
     with st.expander("Mostrar lista de óleos"):
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-        st.markdown("### Detalhes do óleo")
-        oils = df_display["Óleo"].tolist()
-        if oils:
-            sel = st.selectbox("Escolha um óleo", [""] + oils)
-            if sel:
-                row = df_display[df_display["Óleo"] == sel].iloc[0]
-                st.markdown(f"**{row['Óleo']}** — *{row['Família']}*")
-                st.markdown(f"- **Principais efeitos:** {row['Principais Efeitos']}")
-                st.markdown(f"- **Modo de uso:** {row['Modo de Uso']}")
-                st.markdown(f"- **Contraindicações:** {row['Contraindicações']}")
-        else:
-            st.info("Nenhum óleo encontrado com os filtros atuais.")
+    # Detalhes do óleo ficam visíveis fora do expander (sempre acessíveis)
+    st.markdown("### Detalhes do óleo")
+    oils = df_display["Óleo"].tolist()
+    if oils:
+        sel = st.selectbox("Escolha um óleo", [""] + oils)
+        if sel:
+            row = df_display[df_display["Óleo"] == sel].iloc[0]
+            st.markdown(f"**{row['Óleo']}** — *{row['Família']}*")
+            st.markdown(f"- **Principais efeitos:** {row['Principais Efeitos']}")
+            st.markdown(f"- **Modo de uso:** {row['Modo de Uso']}")
+            st.markdown(f"- **Contraindicações:** {row['Contraindicações']}")
+    else:
+        st.info("Nenhum óleo encontrado com os filtros atuais.")
 
 st.markdown("---")
 
