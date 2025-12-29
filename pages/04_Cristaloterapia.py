@@ -16,7 +16,7 @@ st.markdown(
 
 # --- Dados CSV (tabela de referência) ---
 # CSV_DATA existente por esta versão ampliada (mais pedras comumente usadas)
-CSV_DATA = """ Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
+CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
 Turmalina Negra,Proteção,Escudo Energético,Bloqueia inveja e radiação de aparelhos.,Fumo/Terra,Sol/Terra
 Obsidiana,Proteção,Espelho da Alma,Revela verdades e corta laços negativos.,Água/Terra,Sol ou Lua
 Nuumita,Proteção,Pedra do Xamã,Bloqueia manipulação e protege a alma.,Fumo/Terra,Lua/Terra
