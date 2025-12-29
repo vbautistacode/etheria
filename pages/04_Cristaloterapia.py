@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
+st.set_page_config(page_title="Cristaloterapia", layout="wide")
 st.title("Cristaloterapia 💎")
 
 st.markdown(
@@ -89,7 +90,8 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 "Clear Quartz (Quartzo Cristal)","Amplificador","Purificação e Amplificação","Amplifica intenções e outros cristais.","Água/Sal","Sol ou Lua"
 """
 
-df = pd.read_csv(StringIO(CSV_DATA))
+# leitura tolerante e correta do CSV (campos entre aspas)
+df = pd.read_csv(StringIO(CSV_DATA), quotechar='"', skipinitialspace=True)
 
 # --- Mapeamentos básicos (exemplos) ---
 # Mapas simples de signo -> planeta regente e pedras sugeridas (personalizáveis)
@@ -154,12 +156,28 @@ PLANET_TO_STONES_UPDATE = {
 # Mescla as atualizações em PLANET_TO_STONES, preservando entradas existentes e adicionando as novas
 for planet, stones in PLANET_TO_STONES_UPDATE.items():
     existing = PLANET_TO_STONES.get(planet, [])
-    # cria lista única preservando ordem: novas pedras primeiro, depois as existentes que não duplicam
     merged = []
     for s in stones + existing:
         if s not in merged:
             merged.append(s)
     PLANET_TO_STONES[planet] = merged
+
+# --- Explicações resumidas para pedras associadas aos planetas ---
+PLANET_STONE_EXPLANATIONS = {
+    "Lua": "Ametista — favorece intuição, calma emocional e conexão com o mundo interior.",
+    "Marte": "Rubi — estimula coragem, vitalidade e força de vontade; ativa energia física.",
+    "Mercúrio": "Topázio — clareza mental e comunicação; auxilia expressão e raciocínio.",
+    "Júpiter": "Rubina — expande otimismo, prosperidade e crescimento pessoal.",
+    "Vênus": "Safira — harmonia, beleza e equilíbrio afetivo; favorece relacionamentos e sensibilidade estética.",
+    "Saturno": "Esmeralda — estabilidade, sabedoria prática e cura do coração; apoio em processos longos.",
+    "Sol": "Granada (Cárbunculo) — vigor, presença e autoestima; fortalece propósito e ação criativa."
+}
+
+# mapa inverso pedra -> planeta (para exibir explicação ao selecionar uma pedra)
+STONE_TO_PLANET = {}
+for p, stones in PLANET_TO_STONES.items():
+    for s in stones:
+        STONE_TO_PLANET[s] = p
 
 # --- Layout: filtros e busca ---
 st.sidebar.header("Filtros e buscas")
@@ -255,7 +273,7 @@ with col2:
     # exibe tabela interativa
     st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-    # seleção de pedra para detalhes
+    # seleção de pedra para detalhes (com explicação planetária quando aplicável)
     st.markdown("### Detalhes da pedra")
     stone_names = df_display["Pedra"].tolist()
     if stone_names:
@@ -267,10 +285,18 @@ with col2:
             st.markdown(f"**Principais benefícios:** {row['Principais Benefícios']}")
             st.markdown(f"**Limpeza recomendada:** {row['Limpeza']}")
             st.markdown(f"**Energização recomendada:** {row['Energização']}")
+            # se a pedra estiver mapeada para um planeta, mostrar a explicação resumida
+            planet_for_stone = STONE_TO_PLANET.get(selected)
+            if planet_for_stone:
+                explanation = PLANET_STONE_EXPLANATIONS.get(planet_for_stone)
+                st.markdown("---")
+                st.markdown(f"**Correspondência planetária:** {planet_for_stone}")
+                if explanation:
+                    st.markdown(f"**Resumo:** {explanation}")
     else:
         st.info("Nenhuma pedra encontrada com os filtros atuais.")
 
-# --- Correspondência planeta → pedra (nova seção) ---
+# --- Correspondência planeta → pedra (nova seção) com explicações ---
 st.markdown("---")
 st.subheader("Correspondência Planeta → Pedra")
 st.markdown(
@@ -278,17 +304,14 @@ st.markdown(
 )
 
 planet_table = pd.DataFrame([
-    {"Planeta": p, "Pedras (sugestões)": ", ".join(v)}
+    {
+        "Planeta": p,
+        "Pedras (sugestões)": ", ".join(v),
+        "Explicação resumida": PLANET_STONE_EXPLANATIONS.get(p, "")
+    }
     for p, v in sorted(PLANET_TO_STONES.items())
 ])
 st.table(planet_table)
-
-# --- Extras: exportar visualização (cópia para área de transferência) ---
-#st.markdown("---")
-#st.subheader("Exportar / copiar")
-#st.markdown("Você pode copiar a tabela filtrada e colar em uma planilha. Use o botão abaixo para gerar CSV na tela.")
-#csv = df_display.to_csv(index=False)
-#st.download_button("Baixar CSV (tabela filtrada)", csv, file_name="cristaloterapia_tabela.csv", mime="text/csv")
 
 # --- Observações e cuidados ---
 st.markdown("---")
