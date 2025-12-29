@@ -13,24 +13,30 @@ st.markdown(
 
 # --- Dados de faixas e categorias (exemplos) ---
 TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
-Ondas Suaves,Sons da Natureza,Relaxamento,Calmante,https://example.com/waves
-Batida Alfa,Ambiente,Foco,Estimula concentração,https://example.com/alpha
-Tonalidade Terra,Sons Amadeirados,Aterramento,Estabiliza,https://example.com/earth
-Cascata Noturna,Sons da Natureza,Sono,Induz relaxamento profundo,https://example.com/water
-Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://example.com/energy
+Ondas Suaves,Sons da Natureza,Relaxamento,Calmante,https://www.youtube.com/watch?v=VUnN0jILbmQ
+Batida Alfa,Ambiente,Foco,Estimula concentração,https://www.youtube.com/watch?v=p2_zDvtPQ-g
+Tonalidade Terra,Sons Amadeirados,Aterramento,Estabiliza,https://www.youtube.com/watch?v=MIo9jbjbO7o
+Cascata Noturna,Sons da Natureza,Sono,Induz relaxamento profundo,https://www.youtube.com/watch?v=V1RPi2MYptM
+Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://www.youtube.com/watch?v=Lju6h-C37hE
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
 
 # --- Obras clássicas: metadados e mapeamento nota->planeta ---
 CLASSICAL_CSV = """Título,Composer,Work,Key,URL
-Symphony No.5,Beethoven,Symphony No.5,C minor,https://youtu.be/your_beethoven5_link
-Symphony No.9,Beethoven,Symphony No.9 (Choral),D minor,https://youtu.be/your_beethoven9_link
+Symphony No.5,Beethoven,Symphony No.5,C minor,https://www.youtube.com/watch?v=3ug835LFixU
+Symphony No.9,Beethoven,Symphony No.9 (Choral),D minor,https://www.youtube.com/watch?v=fzyO3fLV5O0
 Symphony No.3,Eroica,Beethoven,Symphony No.3,E♭ major,https://youtu.be/your_beethoven3_link
-Symphony No.41,Jupiter,Mozart,Symphony No.41,C major,https://youtu.be/your_mozart41_link
-Eine kleine Nachtmusik,Mozart,Serenade No.13,G major,https://youtu.be/your_mozart_nachtmusik_link
-Toccata and Fugue,Bach,Toccata and Fugue in D minor,D minor,https://youtu.be/your_bach_toccata_link
-Brandenburg Concerto No.3,Bach,Brandenburg Concerto No.3,G major,https://youtu.be/your_bach_brandenburg3_link
-Ride of the Valkyries,Wagner,Die Walküre - Ride,G major,https://youtu.be/your_wagner_ride_link
+Symphony No.41,Jupiter,Mozart,Symphony No.41,C major,https://www.youtube.com/watch?v=0vfU4cmdx-s
+Eine kleine Nachtmusik,Mozart,Serenade No.13,G major,https://www.youtube.com/watch?v=rHZ0nkZatJk
+Toccata and Fugue,Bach,Toccata and Fugue in D minor,D minor,https://www.youtube.com/watch?v=erXG9vnN-GI
+Brandenburg Concerto No.3,Bach,Brandenburg Concerto No.3,G major,https://www.youtube.com/watch?v=Czsd13Mmcg0
+Ride of the Valkyries,Wagner,Die Walküre - Ride,G major,https://www.youtube.com/watch?v=hQM97_iNXhk
+Symphony No.6,Beethoven,Symphony No.6 (Pastoral),F major,https://www.youtube.com/watch?v=ZQcJLE57w0U
+Piano Concerto No.23,Mozart,Piano Concerto No.23 in A major,A major,https://www.youtube.com/watch?v=-s68kHOnpiE
+Prelude in B,Bach,Prelude in B (ex. WTC / organ),B minor,https://www.youtube.com/watch?v=ES7fN2lXWHU
+Mozart Violin Concerto no. 5 in A major,https://www.youtube.com/watch?v=iFnfPWLxVLw
+Bach - Cum Sancto Spiritu from Mass in B minor BWV 232,https://www.youtube.com/watch?v=4gZe5ZZsE9U
+Prelude in E minor,Bach,Prelude in E minor (Well-Tempered Clavier),E minor,https://www.youtube.com/watch?v=jDjJ8aL6JK0
 """
 # carregar obras clássicas
 classical_df = pd.read_csv(StringIO(CLASSICAL_CSV))
