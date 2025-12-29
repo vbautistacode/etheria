@@ -267,7 +267,7 @@ with col2:
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # seleção de pedra para detalhes (com explicação planetária quando aplicável)
-    st.markdown("### Detalhes da pedra")
+    st.markdown("### Detalhes")
     stone_names = df_display["Pedra"].tolist()
     if stone_names:
         selected = st.selectbox("Escolha uma pedra para ver detalhes", [""] + stone_names)

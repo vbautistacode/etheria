@@ -144,7 +144,7 @@ with col2:
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # Detalhes da paleta ficam visíveis fora do expander
-    st.markdown("### Detalhes da paleta")
+    st.markdown("### Detalhes")
     palettes = df_display["Intenção"].tolist()
     if palettes:
         sel = st.selectbox("Escolha uma paleta", [""] + palettes)

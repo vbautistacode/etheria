@@ -149,7 +149,7 @@ with col2:
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # Detalhes do óleo ficam visíveis fora do expander (sempre acessíveis)
-    st.markdown("### Detalhes do óleo")
+    st.markdown("### Detalhes")
     oils = df_display["Óleo"].tolist()
     if oils:
         sel = st.selectbox("Escolha um óleo", [""] + oils)

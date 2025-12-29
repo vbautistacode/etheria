@@ -259,12 +259,12 @@ with col2:
                 q in str(r.get("Categoria","")).lower(), axis=1)]
 
     # Se existirem filtros clássicos opcionais, aplique-os com guard
-    if 'composer_sel' in locals() and composer_sel != "Todos":
-        df_display = df_display[df_display['Composer'] == composer_sel]
-    if 'planet_sel' in locals() and planet_sel != "Todos":
-        df_display = df_display[df_display['Planet'] == planet_sel]
-    if 'tonic_sel' in locals() and tonic_sel != "Todos":
-        df_display = df_display[df_display['Tonic'] == tonic_sel]
+    if 'composer_sel' in locals() and composer_sel != "Todos": # type: ignore
+        df_display = df_display[df_display['Composer'] == composer_sel] # type: ignore
+    if 'planet_sel' in locals() and planet_sel != "Todos": # type: ignore
+        df_display = df_display[df_display['Planet'] == planet_sel] # type: ignore
+    if 'tonic_sel' in locals() and tonic_sel != "Todos": # type: ignore
+        df_display = df_display[df_display['Tonic'] == tonic_sel] # type: ignore
 
     # ---------------------------
     # "Sons e Músicas" dentro de expander (oculto por padrão)
@@ -287,7 +287,7 @@ with col2:
     # ---------------------------
     # Detalhes da Nota (visível fora do expander)
     # ---------------------------
-    st.markdown("### Detalhes da Nota")
+    st.markdown("### Detalhes")
     tracks = df_display["Título"].tolist()
     if tracks:
         sel = st.selectbox("Escolha uma faixa/obra para ver detalhes", [""] + tracks, key="details_select")
