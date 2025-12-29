@@ -127,14 +127,6 @@ with col1:
         else:
             st.write("Digite um termo na barra lateral para filtrar paletas.")
 
-    st.markdown("---")
-    st.subheader("Como usar")
-    st.markdown(
-        "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"
-        "- Experimente 3–5 minutos olhando para a cor primária em baixa intensidade.\n"
-        "- Combine com respiração lenta para melhores resultados."
-    )
-
 with col2:
     st.subheader("Paletas disponíveis")
     df_display = palettes_df.copy()
@@ -173,3 +165,13 @@ planet_color_table = pd.DataFrame([
     for p, c in sorted(PLANET_TO_COLOR.items())
 ])
 st.table(planet_color_table)
+
+# --- Observações e cuidados ---
+st.markdown("---")
+st.subheader("Como usar")
+st.markdown(
+    "**Observações:**\n\n"
+        "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"
+        "- Experimente 3–5 minutos olhando para a cor primária em baixa intensidade.\n"
+        "- Combine com respiração lenta para melhores resultados."
+)
