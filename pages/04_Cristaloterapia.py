@@ -90,7 +90,7 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 """
 
 # leitura tolerante e correta do CSV (campos entre aspas)
-df = pd.read_csv(StringIO(CSV_DATA), quotechar='"', skipinitialspace=True)
+df = pd.read_csv(StringIO(CSV_DATA), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
 # --- Mapeamentos básicos (exemplos) ---
 # Mapas simples de signo -> planeta regente e pedras sugeridas (personalizáveis)
@@ -261,8 +261,10 @@ with col2:
                 q in str(row["Pedra"]).lower() or
                 q in str(row["Essência (Significado)"]).lower() or
                 q in str(row["Principais Benefícios"]).lower(), axis=1)]
-    # exibe tabela interativa
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+
+    # exibe tabela interativa dentro de um expander (oculta por padrão)
+    with st.expander("Mostrar tabela de referência"):
+        st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # seleção de pedra para detalhes (com explicação planetária quando aplicável)
     st.markdown("### Detalhes da pedra")
@@ -287,22 +289,23 @@ with col2:
     else:
         st.info("Nenhuma pedra encontrada com os filtros atuais.")
 
-# --- Correspondência planeta → pedra (nova seção) com explicações ---
+# --- Correspondência planeta → pedra (nova seção) com explicações dentro de expander ---
 st.markdown("---")
-st.subheader("Correspondência Planeta → Pedra")
-st.markdown(
-    "Lista de correspondências clássicas e adicionais. Use como referência rápida ao escolher cristais por influência planetária."
-)
+with st.expander("Correspondência Planeta → Pedra"):
+    st.subheader("Correspondência Planeta → Pedra")
+    st.markdown(
+        "Lista de correspondências clássicas e adicionais. Use como referência rápida ao escolher cristais por influência planetária."
+    )
 
-planet_table = pd.DataFrame([
-    {
-        "Planeta": p,
-        "Pedras (sugestões)": ", ".join(v),
-        "Explicação resumida": PLANET_STONE_EXPLANATIONS.get(p, "")
-    }
-    for p, v in sorted(PLANET_TO_STONES.items())
-])
-st.table(planet_table)
+    planet_table = pd.DataFrame([
+        {
+            "Planeta": p,
+            "Pedras (sugestões)": ", ".join(v),
+            "Explicação resumida": PLANET_STONE_EXPLANATIONS.get(p, "")
+        }
+        for p, v in sorted(PLANET_TO_STONES.items())
+    ])
+    st.table(planet_table)
 
 # --- Observações e cuidados ---
 st.markdown("---")
