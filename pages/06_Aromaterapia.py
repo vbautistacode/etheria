@@ -129,14 +129,6 @@ with col1:
         else:
             st.write("Digite um termo na barra lateral para filtrar óleos.")
 
-    st.markdown("---")
-    st.subheader("Segurança rápida")
-    st.markdown(
-        "- Sempre dilua óleos essenciais antes do uso tópico (ex.: 1–3% para adultos).\n"
-        "- Evite uso em gestantes, bebês e pessoas com condições médicas sem orientação.\n"
-        "- Faça teste de sensibilidade antes do uso tópico."
-    )
-
 with col2:
     st.subheader("Lista de óleos")
     df_display = oils_df.copy()
@@ -181,3 +173,13 @@ planet_perfume_table = pd.DataFrame([
     for p, v in sorted(PLANET_TO_PERFUMES.items())
 ])
 st.table(planet_perfume_table)
+
+# --- Observações e cuidados ---
+st.markdown("---")
+st.subheader("Segurança rápida")
+st.markdown(
+    "**Observações:**\n\n"
+        "- Sempre dilua óleos essenciais antes do uso tópico (ex.: 1–3% para adultos).\n"
+        "- Evite uso em gestantes, bebês e pessoas com condições médicas sem orientação.\n"
+        "- Faça teste de sensibilidade antes do uso tópico."
+)
