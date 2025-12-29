@@ -168,7 +168,7 @@ st.table(planet_color_table)
 
 # --- Observações e cuidados ---
 st.markdown("---")
-st.subheader("Como usar")
+#st.subheader("Como usar")
 st.markdown(
     "**Observações:**\n\n"
         "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"

@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Cristaloterapia", layout="wide")
 st.title("Cristaloterapia 💎")
 
 st.markdown(

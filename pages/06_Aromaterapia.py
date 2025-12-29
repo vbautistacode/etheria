@@ -176,7 +176,7 @@ st.table(planet_perfume_table)
 
 # --- Observações e cuidados ---
 st.markdown("---")
-st.subheader("Como usar óleos essenciais com segurança")
+#st.subheader("Como usar óleos essenciais com segurança")
 st.markdown(
     "**Observações:**\n\n"
         "- Sempre dilua óleos essenciais antes do uso tópico (ex.: 1–3% para adultos).\n"
