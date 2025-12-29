@@ -337,7 +337,7 @@ st.table(note_table)
 # Observações finais
 # ---------------------------
 st.markdown("---")
-st.subheader("Sugestões práticas")
+#st.subheader("Sugestões práticas")
 st.markdown(
     "**Observações:**\n\n"
     "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
