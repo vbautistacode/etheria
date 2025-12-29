@@ -181,5 +181,3 @@ planet_perfume_table = pd.DataFrame([
     for p, v in sorted(PLANET_TO_PERFUMES.items())
 ])
 st.table(planet_perfume_table)
-
-st.markdown("---")

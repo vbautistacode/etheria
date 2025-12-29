@@ -173,5 +173,3 @@ planet_color_table = pd.DataFrame([
     for p, c in sorted(PLANET_TO_COLOR.items())
 ])
 st.table(planet_color_table)
-
-st.markdown("---")
