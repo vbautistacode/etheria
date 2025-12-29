@@ -177,7 +177,7 @@ st.markdown(
     "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
 )
 planet_perfume_table = pd.DataFrame([
-    {"Planeta": p, "Perfume / Nota sugerida": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
+    {"Planeta": p, "Nota Olfativa": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
     for p, v in sorted(PLANET_TO_PERFUMES.items())
 ])
 st.table(planet_perfume_table)
