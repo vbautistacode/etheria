@@ -240,7 +240,7 @@ with col1:
             st.write("Digite um termo na barra lateral para filtrar a tabela.")
 
 with col2:
-    st.subheader("Tabela de referência")
+    st.subheader("Tabela de Referência")
     # aplica filtros
     df_display = df.copy()
     if mode == "Por signo":

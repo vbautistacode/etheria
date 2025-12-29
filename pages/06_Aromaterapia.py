@@ -79,10 +79,18 @@ PLANET_PERFUME_ENERGY = {
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre"])
 
+# garantir variáveis usadas posteriormente
+suggested = []
+suggested_perfumes = []
+suggested_perfume_energy = None
+
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_OILS.keys()))
     suggested = SIGN_TO_OILS.get(sign, [])
     # infer planet if desired (not shown in sidebar here)
+    # infer perfumes for display in resumo
+    # attempt to infer planet from a separate mapping if available
+    # (optional) if you have SIGN_TO_PLANET mapping, you can derive perfumes here
 elif mode == "Por planeta regente":
     # combina chaves de óleos e perfumes para garantir lista completa
     planet_choices = sorted(list(set(list(PLANET_TO_OILS.keys()) + list(PLANET_TO_PERFUMES.keys()))))
@@ -94,11 +102,8 @@ elif mode == "Por objetivo / uso":
     objective = st.sidebar.selectbox("Escolha o objetivo", ["Relaxamento","Foco","Sono","Aterramento","Elevação de humor"])
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
-    suggested_perfume_energy = None
 
 # --- Painel principal ---
-st.header("Óleos essenciais, perfumes e recomendações")
-
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -130,7 +135,7 @@ with col1:
             st.write("Digite um termo na barra lateral para filtrar óleos.")
 
 with col2:
-    st.subheader("Lista de óleos")
+    st.subheader("Lista de Óleos")
     df_display = oils_df.copy()
     if mode == "Por signo" and suggested:
         df_display = df_display[df_display["Óleo"].isin(suggested)]
@@ -147,39 +152,42 @@ with col2:
             q = query.strip().lower()
             df_display = df_display[df_display.apply(lambda r: q in str(r["Óleo"]).lower() or q in str(r["Principais Efeitos"]).lower(), axis=1)]
 
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+    # exibe a lista de óleos dentro de um expander (oculta por padrão)
+    with st.expander("Mostrar lista de óleos"):
+        st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-    st.markdown("### Detalhes do óleo")
-    oils = df_display["Óleo"].tolist()
-    if oils:
-        sel = st.selectbox("Escolha um óleo", [""] + oils)
-        if sel:
-            row = df_display[df_display["Óleo"] == sel].iloc[0]
-            st.markdown(f"**{row['Óleo']}** — *{row['Família']}*")
-            st.markdown(f"- **Principais efeitos:** {row['Principais Efeitos']}")
-            st.markdown(f"- **Modo de uso:** {row['Modo de Uso']}")
-            st.markdown(f"- **Contraindicações:** {row['Contraindicações']}")
-    else:
-        st.info("Nenhum óleo encontrado com os filtros atuais.")
+        st.markdown("### Detalhes do óleo")
+        oils = df_display["Óleo"].tolist()
+        if oils:
+            sel = st.selectbox("Escolha um óleo", [""] + oils)
+            if sel:
+                row = df_display[df_display["Óleo"] == sel].iloc[0]
+                st.markdown(f"**{row['Óleo']}** — *{row['Família']}*")
+                st.markdown(f"- **Principais efeitos:** {row['Principais Efeitos']}")
+                st.markdown(f"- **Modo de uso:** {row['Modo de Uso']}")
+                st.markdown(f"- **Contraindicações:** {row['Contraindicações']}")
+        else:
+            st.info("Nenhum óleo encontrado com os filtros atuais.")
 
-# --- Correspondência Planeta → Perfume (nova seção) ---
 st.markdown("---")
-st.subheader("Correspondência Planeta → Perfume / Nota olfativa")
-st.markdown(
-    "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
-)
-planet_perfume_table = pd.DataFrame([
-    {"Planeta": p, "Nota Olfativa": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
-    for p, v in sorted(PLANET_TO_PERFUMES.items())
-])
-st.table(planet_perfume_table)
+
+# Correspondência Planeta → Perfume / Nota olfativa dentro de expander
+with st.expander("Correspondência Planeta → Perfume / Nota Olfativa"):
+    st.subheader("Correspondência Planeta → Perfume / Nota Olfativa")
+    st.markdown(
+        "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
+    )
+    planet_perfume_table = pd.DataFrame([
+        {"Planeta": p, "Nota Olfativa": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
+        for p, v in sorted(PLANET_TO_PERFUMES.items())
+    ])
+    st.table(planet_perfume_table)
 
 # --- Observações e cuidados ---
 st.markdown("---")
-#st.subheader("Como usar óleos essenciais com segurança")
 st.markdown(
     "**Observações:**\n\n"
-        "- Sempre dilua óleos essenciais antes do uso tópico (ex.: 1–3% para adultos).\n"
-        "- Evite uso em gestantes, bebês e pessoas com condições médicas sem orientação.\n"
-        "- Faça teste de sensibilidade antes do uso tópico."
+    "- Sempre dilua óleos essenciais antes do uso tópico (ex.: 1–3% para adultos).\n"
+    "- Evite uso em gestantes, bebês e pessoas com condições médicas sem orientação.\n"
+    "- Faça teste de sensibilidade antes do uso tópico."
 )

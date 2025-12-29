@@ -99,7 +99,7 @@ else:
     suggested_color_energy = None
 
 # --- Painel principal ---
-st.header("Paletas e recomendações")
+#st.header("Paletas e recomendações")
 
 col1, col2 = st.columns([1, 2])
 
@@ -128,7 +128,7 @@ with col1:
             st.write("Digite um termo na barra lateral para filtrar paletas.")
 
 with col2:
-    st.subheader("Paletas disponíveis")
+    st.subheader("Paletas")
     df_display = palettes_df.copy()
     if mode == "Por signo" and suggested_palette:
         df_display = df_display[df_display["Intenção"].str.contains(suggested_palette, case=False, na=False) | (df_display["Intenção"] == suggested_palette)]
@@ -141,37 +141,43 @@ with col2:
             q = query.strip().lower()
             df_display = df_display[df_display.apply(lambda r: q in str(r["Intenção"]).lower() or q in str(r["Descrição"]).lower(), axis=1)]
 
-    st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
+    # tabela e seleção dentro de expander (oculta por padrão)
+    with st.expander("Mostrar paletas disponíveis"):
+        st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-    st.markdown("### Detalhes da paleta")
-    palettes = df_display["Intenção"].tolist()
-    if palettes:
-        sel = st.selectbox("Escolha uma paleta", [""] + palettes)
-        if sel:
-            row = df_display[df_display["Intenção"] == sel].iloc[0]
-            st.markdown(f"**{row['Intenção']}**")
-            st.markdown(f"- **Cor primária:** {row['Cor Primária']}")
-            st.markdown(f"- **Cor secundária:** {row['Cor Secundária']}")
-            st.markdown(f"- **Tom de apoio:** {row['Tom de Apoio']}")
-            st.markdown(f"- **Descrição:** {row['Descrição']}")
+        st.markdown("### Detalhes da paleta")
+        palettes = df_display["Intenção"].tolist()
+        if palettes:
+            sel = st.selectbox("Escolha uma paleta", [""] + palettes)
+            if sel:
+                row = df_display[df_display["Intenção"] == sel].iloc[0]
+                st.markdown(f"**{row['Intenção']}**")
+                st.markdown(f"- **Cor primária:** {row['Cor Primária']}")
+                st.markdown(f"- **Cor secundária:** {row['Cor Secundária']}")
+                st.markdown(f"- **Tom de apoio:** {row['Tom de Apoio']}")
+                st.markdown(f"- **Descrição:** {row['Descrição']}")
+        else:
+            st.info("Nenhuma paleta encontrada com os filtros atuais.")
 
 st.markdown("---")
-st.subheader("Correspondência Planeta → Cor")
-st.markdown(
-    "Referência rápida das cores associadas aos planetas (útil para exercícios tonais e visuais)."
-)
-planet_color_table = pd.DataFrame([
-    {"Planeta": p, "Cor associada": c, "Energia resumida": PLANET_COLOR_ENERGY.get(p, "")}
-    for p, c in sorted(PLANET_TO_COLOR.items())
-])
-st.table(planet_color_table)
+
+# Correspondência Planeta → Cor dentro de expander
+with st.expander("Correspondência Planeta → Cor"):
+    st.subheader("Correspondência Planeta → Cor")
+    st.markdown(
+        "Referência rápida das cores associadas aos planetas (útil para exercícios tonais e visuais)."
+    )
+    planet_color_table = pd.DataFrame([
+        {"Planeta": p, "Cor associada": c, "Energia resumida": PLANET_COLOR_ENERGY.get(p, "")}
+        for p, c in sorted(PLANET_TO_COLOR.items())
+    ])
+    st.table(planet_color_table)
 
 # --- Observações e cuidados ---
 st.markdown("---")
-#st.subheader("Como usar")
 st.markdown(
     "**Observações:**\n\n"
-        "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"
-        "- Experimente 3–5 minutos olhando para a cor primária em baixa intensidade.\n"
-        "- Combine com respiração lenta para melhores resultados."
+    "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"
+    "- Experimente 3–5 minutos olhando para a cor primária em baixa intensidade.\n"
+    "- Combine com respiração lenta para melhores resultados."
 )
