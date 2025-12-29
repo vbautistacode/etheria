@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Cromoterapia", layout="wide")
 st.title("Cromoterapia 🌈")
 st.markdown(
     """
@@ -61,6 +60,20 @@ PLANET_TO_COLOR = {
     "Plutão": "Bordô"
 }
 
+# --- Explicação resumida da energia da cor por planeta ---
+PLANET_COLOR_ENERGY = {
+    "Lua": "Violeta — energia introspectiva e sutil; favorece intuição, calma emocional e conexão com o inconsciente.",
+    "Marte": "Vermelho — energia ativa e estimulante; aumenta vigor, coragem e impulso para ação.",
+    "Mercúrio": "Amarelo — energia mental e comunicativa; estimula clareza, raciocínio e expressão.",
+    "Júpiter": "Azul (Púrpura) — energia expansiva e inspiradora; amplia visão, otimismo e crescimento interior.",
+    "Vênus": "Índigo — energia de harmonia e relação; favorece beleza, afeto e equilíbrio nos vínculos.",
+    "Saturno": "Verde — energia estabilizadora e enraizada; promove disciplina, estrutura e aterramento.",
+    "Sol": "Laranja — energia vital e calorosa; estimula criatividade, autoestima e presença.",
+    "Urano": "Ciano — energia inovadora e libertadora; favorece originalidade e mudança.",
+    "Netuno": "Azul Profundo — energia contemplativa e sensível; facilita imaginação e estados meditativos.",
+    "Plutão": "Bordô — energia transformadora e profunda; auxilia processos de renascimento e liberação."
+}
+
 # --- Interface lateral ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por intenção / uso", "Busca livre"])
@@ -70,16 +83,20 @@ if mode == "Por signo":
     planet = SIGN_TO_PLANET.get(sign, "—")
     suggested_palette = SIGN_TO_PALETTE.get(sign)
     suggested_color = PLANET_TO_COLOR.get(planet, "—")
+    suggested_color_energy = PLANET_COLOR_ENERGY.get(planet, None)
 elif mode == "Por planeta regente":
     planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(SIGN_TO_PLANET.values()))))
     suggested_palette = PLANET_TO_PALETTE.get(planet)
     suggested_color = PLANET_TO_COLOR.get(planet, "—")
+    suggested_color_energy = PLANET_COLOR_ENERGY.get(planet, None)
 elif mode == "Por intenção / uso":
     intent = st.sidebar.selectbox("Escolha a intenção", palettes_df["Intenção"].tolist())
     suggested_color = None
+    suggested_color_energy = None
 else:
     query = st.sidebar.text_input("Busca livre (cor, intenção)")
     suggested_color = None
+    suggested_color_energy = None
 
 # --- Painel principal ---
 st.header("Paletas e recomendações")
@@ -93,10 +110,14 @@ with col1:
         st.markdown(f"**Planeta regente:** {planet}")
         st.markdown(f"**Paleta sugerida:** {suggested_palette or '—'}")
         st.markdown(f"**Cor associada ao planeta:** {suggested_color or '—'}")
+        if suggested_color_energy:
+            st.markdown(f"**Energia da cor:** {suggested_color_energy}")
     elif mode == "Por planeta regente":
         st.markdown(f"**Planeta:** {planet}")
         st.markdown(f"**Paleta sugerida:** {suggested_palette or '—'}")
         st.markdown(f"**Cor associada:** {suggested_color or '—'}")
+        if suggested_color_energy:
+            st.markdown(f"**Energia da cor:** {suggested_color_energy}")
     elif mode == "Por intenção / uso":
         st.markdown(f"**Intenção:** {intent}")
     else:
@@ -118,11 +139,9 @@ with col2:
     st.subheader("Paletas disponíveis")
     df_display = palettes_df.copy()
     if mode == "Por signo" and suggested_palette:
-        df_display = df_display[df_display["Intenção"].str.contains(suggested_palette, case=False, na=False) |
-                                 (df_display["Intenção"] == suggested_palette)]
+        df_display = df_display[df_display["Intenção"].str.contains(suggested_palette, case=False, na=False) | (df_display["Intenção"] == suggested_palette)]
     elif mode == "Por planeta regente" and suggested_palette:
-        df_display = df_display[df_display["Intenção"].str.contains(suggested_palette, case=False, na=False) |
-                                 (df_display["Intenção"] == suggested_palette)]
+        df_display = df_display[df_display["Intenção"].str.contains(suggested_palette, case=False, na=False) | (df_display["Intenção"] == suggested_palette)]
     elif mode == "Por intenção / uso":
         df_display = df_display[df_display["Intenção"] == intent]
     else:
@@ -150,7 +169,8 @@ st.markdown(
     "Referência rápida das cores associadas aos planetas (útil para exercícios tonais e visuais)."
 )
 planet_color_table = pd.DataFrame([
-    {"Planeta": p, "Cor associada": c} for p, c in sorted(PLANET_TO_COLOR.items())
+    {"Planeta": p, "Cor associada": c, "Energia resumida": PLANET_COLOR_ENERGY.get(p, "")}
+    for p, c in sorted(PLANET_TO_COLOR.items())
 ])
 st.table(planet_color_table)
 

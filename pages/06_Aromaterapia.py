@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 from io import StringIO
 
-st.set_page_config(page_title="Aromaterapia", layout="wide")
 st.title("Aromaterapia 🌿")
 st.markdown(
     """
@@ -62,6 +61,20 @@ PLANET_TO_PERFUMES = {
     "Plutão": ["Notas Amadeiradas"]
 }
 
+# --- Explicação resumida da energia aromática por planeta ---
+PLANET_PERFUME_ENERGY = {
+    "Lua": "Jasmim — aroma suave e envolvente; favorece introspecção, sensibilidade emocional e conexão com o feminino interior.",
+    "Marte": "Verbena — nota cítrica-herbal estimulante; desperta coragem, ação e clareza energética para iniciar tarefas.",
+    "Mercúrio": "Gardênia — fragrância clara e comunicativa; auxilia expressão, foco mental e fluidez nas ideias.",
+    "Júpiter": "Flor de Maçã — aroma leve e expansivo; inspira otimismo, abertura e sensação de abundância interior.",
+    "Vênus": "Hortênsia — nota floral harmonizadora; promove afeto, suavidade nas relações e equilíbrio afetivo.",
+    "Saturno": "Alecrim — aroma amadeirado-herbal, enraizante; favorece disciplina, memória, estrutura e foco prático.",
+    "Sol": "Sândalo — nota quente e resinosa; fortalece vitalidade, presença, autoestima e clareza de propósito.",
+    "Urano": "Notas Cítricas — estimulam inovação e leveza.",
+    "Netuno": "Notas Marinhas — evocam imaginação e estados contemplativos.",
+    "Plutão": "Notas Amadeiradas — apoiam transformação profunda e aterramento."
+}
+
 # --- Interface lateral ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre"])
@@ -71,13 +84,17 @@ if mode == "Por signo":
     suggested = SIGN_TO_OILS.get(sign, [])
     # infer planet if desired (not shown in sidebar here)
 elif mode == "Por planeta regente":
-    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(list(PLANET_TO_OILS.keys()) + list(PLANET_TO_PERFUMES.keys())))))
+    # combina chaves de óleos e perfumes para garantir lista completa
+    planet_choices = sorted(list(set(list(PLANET_TO_OILS.keys()) + list(PLANET_TO_PERFUMES.keys()))))
+    planet = st.sidebar.selectbox("Selecione o planeta", planet_choices)
     suggested = PLANET_TO_OILS.get(planet, [])
     suggested_perfumes = PLANET_TO_PERFUMES.get(planet, [])
+    suggested_perfume_energy = PLANET_PERFUME_ENERGY.get(planet)
 elif mode == "Por objetivo / uso":
     objective = st.sidebar.selectbox("Escolha o objetivo", ["Relaxamento","Foco","Sono","Aterramento","Elevação de humor"])
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
+    suggested_perfume_energy = None
 
 # --- Painel principal ---
 st.header("Óleos essenciais, perfumes e recomendações")
@@ -99,6 +116,10 @@ with col1:
         st.markdown("**Perfumes/Notas sugeridas:**")
         for p in suggested_perfumes:
             st.write(f"- {p}")
+        if suggested_perfume_energy:
+            st.markdown("---")
+            st.subheader("Energia aromática resumida")
+            st.markdown(suggested_perfume_energy)
     elif mode == "Por objetivo / uso":
         st.markdown(f"**Objetivo:** {objective}")
     else:
@@ -156,7 +177,7 @@ st.markdown(
     "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
 )
 planet_perfume_table = pd.DataFrame([
-    {"Planeta": p, "Perfume / Nota sugerida": ", ".join(v)}
+    {"Planeta": p, "Perfume / Nota sugerida": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
     for p, v in sorted(PLANET_TO_PERFUMES.items())
 ])
 st.table(planet_perfume_table)
