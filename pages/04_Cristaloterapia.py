@@ -212,7 +212,7 @@ else:
     query = st.sidebar.text_input("Busca livre (nome, essência, benefício)")
 
 # --- Painel principal ---
-st.header("Consulta rápida")
+#st.header("Consulta rápida")
 
 col1, col2 = st.columns([1, 2])
 
