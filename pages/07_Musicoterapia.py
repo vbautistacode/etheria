@@ -21,6 +21,19 @@ Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://example.com/energ
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
 
+CLASSICAL_CSV = """Título,Composer,Work,Key,URL
+Symphony No.5,Beethoven,Symphony No.5,C minor,https://youtu.be/...
+Symphony No.41,Mozart,Symphony No.41 (Jupiter),C major,https://youtu.be/...
+Toccata and Fugue,Bach,Toccata and Fugue in D minor,D minor,https://youtu.be/...
+Ride of the Valkyries,Wagner,Die Walküre - Ride,G major,https://youtu.be/...
+"""
+classical_df = pd.read_csv(StringIO(CLASSICAL_CSV))
+def tonic_to_note(key): return key.split()[0].replace('♯','#').replace('♭','b')[0].upper()
+classical_df['Tonic'] = classical_df['Key'].apply(tonic_to_note)
+NOTE_TO_PLANET_SHORT = {'C':'Marte','D':'Sol','E':'Mercúrio','F':'Saturno','G':'Júpiter','A':'Vênus','B':'Lua'}
+classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT)
+tracks_df = pd.concat([tracks_df, classical_df], ignore_index=True)
+
 # --- Mapeamentos por signo/planeta (exemplos) ---
 SIGN_TO_TRACKS = {
     "Áries": ["Ritmo Vital"], "Touro": ["Tonalidade Terra"], "Gêmeos": ["Batida Alfa"],
@@ -157,7 +170,3 @@ note_table = pd.DataFrame([
     {"Nota (solfejo)": k, "Planeta": v} for k, v in NOTE_TO_PLANET.items()
 ])
 st.table(note_table)
-
-st.markdown("---")
-st.subheader("Personalize as correspondências")
-st.markdown("Se quiser fornecer listas próprias de faixas, notas ou mapeamentos signo→faixas, cole aqui e eu adapto o código.")
