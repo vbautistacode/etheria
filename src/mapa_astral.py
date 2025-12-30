@@ -1245,6 +1245,7 @@ def main():
 # ---------------------------
 # Helpers: parsing de hora, geocoding e timezone
 # ---------------------------
+import logging
 logger = logging.getLogger(__name__) # type: ignore
 
 def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
