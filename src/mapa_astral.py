@@ -1,4 +1,5 @@
 from __future__ import annotations
+from time import time
 
 """pages/mapa_astral.py — Mapa astral (corrigido: imports e PROJECT_ROOT no topo)."""
 
