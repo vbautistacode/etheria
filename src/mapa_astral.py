@@ -1298,7 +1298,7 @@ def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
             if ampm == "am" and h == 12:
                 h = 0
             if 0 <= h < 24 and 0 <= m < 60:
-                return dt_time(hour=h, minute=m)
+                return dt_time(hour=h, minute=m) # type: ignore
         digits = "".join(ch for ch in low if ch.isdigit())
         if digits:
             if len(digits) <= 2:
@@ -1311,47 +1311,47 @@ def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
                 h = int(digits[:-2])
                 m = int(digits[-2:])
             if 0 <= h < 24 and 0 <= m < 60:
-                return dt_time(hour=h, minute=m)
+                return dt_time(hour=h, minute=m) # type: ignore
     except Exception:
         pass
 
     return None
 
-@st.cache_data(show_spinner=False)
-def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
+@st.cache_data(show_spinner=False) # type: ignore
+def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]: # type: ignore
     """
     Tenta usar um provedor 'seguro' (ex.: Google) se houver API key configurada.
     Retorna (lat, lon, tz_name, address) ou (None, None, None, None) em caso de falha.
     """
     api_key = None
     try:
-        api_key = st.secrets.get("GEOCODE_API_KEY") if hasattr(st, "secrets") else None
+        api_key = st.secrets.get("GEOCODE_API_KEY") if hasattr(st, "secrets") else None # type: ignore
     except Exception:
         api_key = None
     if not api_key:
-        api_key = os.environ.get("GEOCODE_API_KEY")
+        api_key = os.environ.get("GEOCODE_API_KEY") # type: ignore
 
     if not api_key:
         return None, None, None, None
 
     try:
         geolocator = GoogleV3(api_key=api_key, timeout=10)
-        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=0.2)
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=0.2) # type: ignore
         loc = geocode(place_text)
         if not loc:
             return None, None, None, None
         lat = float(loc.latitude)
         lon = float(loc.longitude)
         address = loc.address
-        tf = TimezoneFinder()
+        tf = TimezoneFinder() # type: ignore
         tz_name = tf.timezone_at(lng=lon, lat=lat)
         return lat, lon, tz_name, address
     except Exception as e:
         logger.warning("geocode_place_safe exception: %s", e)
         return None, None, None, None
 
-@st.cache_data(show_spinner=False)
-def geocode_place_nominatim(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+@st.cache_data(show_spinner=False) # type: ignore
+def geocode_place_nominatim(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str]]: # type: ignore
     """
     Usa Nominatim (OpenStreetMap) para geocoding.
     Retorna (lat, lon, address) ou (None, None, None) em caso de falha.
@@ -1359,8 +1359,8 @@ def geocode_place_nominatim(place_text: str) -> Tuple[Optional[float], Optional[
     if not place_text or not str(place_text).strip():
         return None, None, None
     try:
-        geolocator = Nominatim(user_agent="mapa_astral_app")
-        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+        geolocator = Nominatim(user_agent="mapa_astral_app") # type: ignore
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1) # type: ignore
         loc = geocode(place_text, addressdetails=True, language="pt")
         if not loc:
             return None, None, None
@@ -1372,27 +1372,27 @@ def geocode_place_nominatim(place_text: str) -> Tuple[Optional[float], Optional[
         logger.warning("geocode_place_nominatim exception: %s", e)
         return None, None, None
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False) # type: ignore
 def tz_from_latlon(lat: float, lon: float) -> Optional[str]:
     """
     Retorna o nome IANA do timezone a partir de lat/lon usando timezonefinder.
     """
     try:
-        tf = TimezoneFinder()
+        tf = TimezoneFinder() # type: ignore
         tz = tf.timezone_at(lng=lon, lat=lat)
         return tz
     except Exception as e:
         logger.warning("tz_from_latlon exception: %s", e)
         return None
 
-def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
+def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]: # type: ignore
     """
     Tenta resolver lat/lon/timezone/address usando múltiplos provedores.
     Retorna (lat, lon, tz_name, address). Pode retornar None para cada item se não resolvido.
     """
-    lat_manual = st.session_state.get("lat_manual")
-    lon_manual = st.session_state.get("lon_manual")
-    tz_manual = st.session_state.get("tz_manual")
+    lat_manual = st.session_state.get("lat_manual") # type: ignore
+    lon_manual = st.session_state.get("lon_manual") # type: ignore
+    tz_manual = st.session_state.get("tz_manual") # type: ignore
     address = None
 
     if not place or not str(place).strip():
@@ -1417,21 +1417,21 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 
     return lat_manual, lon_manual, tz_manual, None
 
-def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]:
+def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]: # type: ignore
     """
     Constrói um datetime timezone-aware a partir de date, time e tz_name (IANA).
     Retorna None se não for possível.
     """
-    if not isinstance(bdate, date) or not isinstance(btime, dt_time):
+    if not isinstance(bdate, date) or not isinstance(btime, dt_time): # type: ignore
         return None
     if not tz_name:
         return None
     try:
-        tz = ZoneInfo(tz_name)
+        tz = ZoneInfo(tz_name) # type: ignore
     except Exception as e:
         logger.warning("ZoneInfo falhou para %s: %s", tz_name, e)
         return None
-    dt_naive = datetime.combine(bdate, btime)
+    dt_naive = datetime.combine(bdate, btime) # type: ignore
     dt_local = dt_naive.replace(tzinfo=tz)
     return dt_local
 
