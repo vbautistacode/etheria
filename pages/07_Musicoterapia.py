@@ -149,15 +149,37 @@ def make_label(row):
 tracks_df['_label'] = tracks_df.apply(make_label, axis=1)
 
 # ---------------------------
-# Elementos e mapeamentos astrológicos
+# Mapeamentos por signo/planeta (mantidos)
 # ---------------------------
-SIGN_TO_ELEMENT = {
-    "Áries": "Fogo", "Leão": "Fogo", "Sagitário": "Fogo",
-    "Touro": "Terra", "Virgem": "Terra", "Capricórnio": "Terra",
-    "Gêmeos": "Ar", "Libra": "Ar", "Aquário": "Ar",
-    "Câncer": "Água", "Escorpião": "Água", "Peixes": "Água"
+SIGN_TO_TRACKS = {
+    "Áries": ["Ritmo Vital", "Toccata and Fugue"],
+    "Touro": ["Tonalidade Terra", "Piano Concerto No.23"],
+    "Gêmeos": ["Batida Alfa", "Brandenburg Concerto No.3"],
+    "Câncer": ["Cascata Noturna", "Ondas Suaves"],
+    "Leão": ["Ritmo Vital", "Symphony No.9"],
+    "Virgem": ["Batida Alfa", "Prelude in B"],
+    "Libra": ["Tonalidade Terra", "Violin Concerto No.5"],
+    "Escorpião": ["Symphony No.5", "Chaconne (Partita No.2)"],
+    "Sagitário": ["Ritmo Vital", "Symphony No.41 (Jupiter)"],
+    "Capricórnio": ["Tonalidade Terra", "Brandenburg Concerto No.3"],
+    "Aquário": ["Batida Alfa", "Ride of the Valkyries"],
+    "Peixes": ["Ondas Suaves", "Prelude in E minor"]
 }
 
+PLANET_TO_TRACKS = {
+    "Sol": ["Ritmo Vital", "Symphony No.9", "Piano Concerto No.23"],
+    "Lua": ["Cascata Noturna", "Ondas Suaves", "Prelude in E minor"],
+    "Marte": ["Ritmo Vital", "Toccata and Fugue", "Symphony No.5"],
+    "Vênus": ["Tonalidade Terra", "Violin Concerto No.5", "Piano Concerto No.23"],
+    "Mercúrio": ["Batida Alfa", "Brandenburg Concerto No.3", "Symphony No.3 (Eroica)"],
+    "Júpiter": ["Symphony No.41 (Jupiter)", "Ondas Suaves", "Symphony No.6 (Pastoral)"],
+    "Saturno": ["Brandenburg Concerto No.3", "Tonalidade Terra", "Chaconne (Partita No.2)"],
+    "Netuno": ["Ondas Suaves", "Chaconne (Partita No.2)"],
+    "Urano": ["Ride of the Valkyries", "Batida Alfa"],
+    "Plutão": ["Symphony No.5", "Chaconne (Partita No.2)"]
+}
+
+# explicações por elemento (mantidas apenas como referência interna)
 ELEMENT_EXPLANATIONS = {
     "Água": "Água — introspecção, sensibilidade e acolhimento; sons fluidos, texturas suaves e ambientes imersivos.",
     "Fogo": "Fogo — ação, vigor e presença; ritmos dinâmicos, percussão e linhas ascendentes que ativam.",
@@ -179,25 +201,24 @@ PLANET_MUSIC_EXPLANATIONS = {
 }
 
 # ---------------------------
-# Interface lateral: filtros (inclui elemento)
+# Interface lateral: filtros (removido filtro por elemento)
 # ---------------------------
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio(
     "Modo de consulta",
-    ["Por signo", "Por elemento", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
+    ["Por signo", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
 )
 
 # variáveis de controle
-sign = planet = element = note = mapped_planet = intent = query = None
+sign = planet = note = mapped_planet = intent = query = None
 suggested = []
 
 if mode == "Por signo":
-    sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_ELEMENT.keys()))
-    element = SIGN_TO_ELEMENT.get(sign)
-elif mode == "Por elemento":
-    element = st.sidebar.selectbox("Selecione o elemento", ["Água", "Fogo", "Terra", "Ar"])
+    sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_TRACKS.keys()))
+    suggested = SIGN_TO_TRACKS.get(sign, [])
 elif mode == "Por planeta":
-    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(PLANET_MUSIC_EXPLANATIONS.keys())))
+    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(PLANET_TO_TRACKS.keys())))
+    # suggested will be derived from planet mapping when needed
 elif mode == "Por nota":
     note = st.sidebar.selectbox("Escolha a nota (solfejo)", list(NOTE_TO_PLANET_SHORT.keys()))
     mapped_planet = NOTE_TO_PLANET_SHORT.get(note)
@@ -207,21 +228,19 @@ else:
     query = st.sidebar.text_input("Busca livre (título, compositor, categoria)")
 
 # ---------------------------
-# Prepara df_display com filtros aplicados (agora por elemento/signo)
+# Prepara df_display com filtros aplicados
 # ---------------------------
 df_display = tracks_df.copy()
 
-if mode == "Por signo" and element:
-    df_display = df_display[df_display["Categoria"] == element]
-elif mode == "Por elemento" and element:
-    df_display = df_display[df_display["Categoria"] == element]
+if mode == "Por signo" and suggested:
+    # filtra por títulos sugeridos para o signo
+    df_display = df_display[df_display["Título"].isin(suggested)]
 elif mode == "Por planeta" and planet:
-    # usa PLANET_MUSIC_EXPLANATIONS keys como lista de planetas; tenta mapear títulos por planeta se houver
-    # aqui mantemos filtro por títulos associados a planetas (se desejar, pode mapear PLANET_TO_TRACKS)
-    df_display = df_display  # sem filtro específico por planeta no catálogo elemental
+    # filtra apenas obras cuja coluna 'Planet' corresponde ao planeta selecionado
+    df_display = df_display[df_display["Planet"] == planet]
 elif mode == "Por nota" and mapped_planet:
-    # tenta usar classical_df mapeado por tônica/planeta (se houver)
-    df_display = df_display  # manter catálogo; planetas clássicos aparecem nas obras concatenadas
+    # mostra obras cujo Planet corresponde ao planeta mapeado pela nota
+    df_display = df_display[df_display["Planet"] == mapped_planet]
 elif mode == "Por intenção / uso":
     if intent == "Relaxamento":
         df_display = df_display[df_display["Categoria"].str.contains("Água|Relaxamento|Natureza|Sono", case=False, na=False)]
@@ -246,34 +265,22 @@ with col1:
     st.subheader("Resumo")
     if mode == "Por signo":
         st.markdown(f"**Signo:** {sign}")
-        st.markdown(f"**Elemento (quadruplicidade):** {element}")
-        st.markdown("**Faixas sugeridas (por elemento):**")
+        st.markdown("**Faixas sugeridas (por signo):**")
         for t in df_display["Título"].unique().tolist():
             st.write(f"- {t}")
-        if element:
-            expl = ELEMENT_EXPLANATIONS.get(element)
-            if expl:
-                st.markdown("---")
-                st.markdown(f"**Sobre o elemento {element}:**")
-                st.markdown(expl)
-    elif mode == "Por elemento":
-        st.markdown(f"**Elemento:** {element}")
-        st.markdown("**Faixas na categoria:**")
-        for t in df_display["Título"].unique().tolist():
-            st.write(f"- {t}")
-        if element:
-            expl = ELEMENT_EXPLANATIONS.get(element)
-            if expl:
-                st.markdown("---")
-                st.markdown(f"**Sobre o elemento {element}:**")
-                st.markdown(expl)
     elif mode == "Por planeta":
         st.markdown(f"**Planeta:** {planet}")
-        st.markdown("**Observação:** selecione obras na tabela à direita; obras clássicas têm mapeamento tônica→planeta.")
+        st.markdown("**Faixas cuja tônica corresponde ao planeta selecionado:**")
+        for t in df_display["Título"].unique().tolist():
+            st.write(f"- {t}")
+        st.markdown("---")
+        st.markdown("**Observação:** obras clássicas têm tônica mapeada para planetas; aqui exibimos apenas as correspondentes.")
     elif mode == "Por nota":
         st.markdown(f"**Nota selecionada:** {note}")
         st.markdown(f"**Planeta correspondente:** {mapped_planet}")
-        st.markdown("**Observação:** obras clássicas concatenadas podem exibir tônica/planeta.")
+        st.markdown("**Faixas cuja tônica corresponde ao planeta da nota:**")
+        for t in df_display["Título"].unique().tolist():
+            st.write(f"- {t}")
     elif mode == "Por intenção / uso":
         st.markdown(f"**Intenção:** {intent}")
     else:
@@ -320,7 +327,7 @@ with col2:
                 else:
                     eff_text = eff if eff.endswith('.') else (eff + '.') if eff else ""
                 if cat:
-                    return f"**Categoria (Elemento):** {cat}\n\n**Efeito:** {eff_text}"
+                    return f"**Categoria:** {cat}\n\n**Efeito:** {eff_text}"
                 else:
                     return f"**Efeito:** {eff_text}" if eff_text else ""
 
@@ -334,7 +341,7 @@ with col2:
 
             st.markdown(f"**{title}** — *{artist}*")
 
-            # mostra categoria (elemento) e efeito enriquecido como bloco de texto
+            # mostra categoria e efeito enriquecido como bloco de texto
             effect_block = format_effect_text(category, effect)
             if effect_block:
                 st.markdown(effect_block)
