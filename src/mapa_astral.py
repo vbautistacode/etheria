@@ -1,5 +1,6 @@
 # pages/mapa_astral.py
 from __future__ import annotations
+from ast import Dict
 import logging
 import importlib, os, sys, traceback
 import json
@@ -9,7 +10,9 @@ import streamlit as st
 from datetime import datetime, date, time as dt_time
 from datetime import datetime, date, time as dtime
 from typing import Optional
+from etheria import astrology
 from etheria.astrology import SIGNS
+from etheria.services.generator_service import generate_analysis
 
 def main():
 
@@ -149,6 +152,11 @@ def main():
     if generator_service:
         generate_analysis = getattr(generator_service, "generate_analysis", None)
         generate_ai_text_from_chart = getattr(generator_service, "generate_ai_text_from_chart", None)
+    
+    # fallback: se generator_service não tem generate_analysis, usar função dummy
+    if generate_analysis is None:
+        def generate_analysis(*args, **kwargs):
+            return {"error": "generate_analysis não disponível"}
 
     # Exportar o que for necessário
     __all__ = [
@@ -1477,6 +1485,27 @@ with st.sidebar: # type: ignore
 
         submitted = st.form_submit_button("Gerar Mapa")
 
+def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
+    raise NotImplementedError
+
+def natal_positions(dt_local, lat, lon, house_system="P"):
+    raise NotImplementedError
+
+def positions_table(planets):
+    raise NotImplementedError
+
+def compute_aspects(planets):
+    raise NotImplementedError
+
+def generate_chart_summary(planets, name, bdate):
+    raise NotImplementedError
+
+def enrich_summary_with_astrology(summary):
+    raise NotImplementedError
+
+def render_wheel_plotly(planets, cusps):
+    raise NotImplementedError
+
 # -------------------------
 # Processamento após submit
 # -------------------------
@@ -1757,6 +1786,18 @@ with left_col:
         key="planet_selectbox",
         on_change=_on_select_planet
     )
+
+def get_reading(summary, sel_planet):
+    raise NotImplementedError
+
+def normalize_degree_sign(reading):
+    raise NotImplementedError
+
+def resolve_house(reading, summary, canonical, sel_planet):
+    raise NotImplementedError
+
+def ensure_aspects(summary):
+    raise NotImplementedError
     
 # CENTER: mapa + IA + interpretação
 with center_col:
@@ -1993,8 +2034,10 @@ if use_ai:
                 # chamada ao serviço (defensiva)
                 try:
                     with st.spinner("Gerando sua interpretação personalizada com IA Etheria"):
+                        # usar generate_analysis local se disponível, senão fallback
+                        gen_func = generate_analysis if generate_analysis else lambda *a, **k: {"error": "Gerador não disponível"}
                         if hasattr(gs, "generate_interpretation_from_summary"):
-                            res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                            res = gs.generate_interpretation_from_summary(summary, gen_func, timeout_seconds=60)
                         elif hasattr(gs, "generate_analysis"):
                             res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash")
                         else:
