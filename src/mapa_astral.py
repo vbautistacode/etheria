@@ -1639,221 +1639,165 @@ with st.sidebar:
 
         submitted = st.form_submit_button("Gerar Mapa")
 
-from datetime import time
-from typing import Optional
-
-def parse_time_string(time_string: Optional[str]) -> Optional[time]:
+# ---------- Helpers de compatibilidade / wrappers ----------
+def resolve_place_and_tz(place: str):
     """
-    Converte uma string em datetime.time.
-    Aceita formatos: HH:MM ou HH:MM:SS.
-    Retorna None se a string for vazia ou inválida.
+    Retorna (lat, lon, tz_name, address).
+    Primeiro tenta CITY_MAP, depois geocode_place_safe como fallback.
     """
-    if not time_string:
-        return None
-    s = str(time_string).strip()
-    try:
-        parts = [int(p) for p in s.split(":")]
-    except Exception:
-        return None
-    if len(parts) == 2:
-        h, m = parts
-        sec = 0
-    elif len(parts) == 3:
-        h, m, sec = parts
-    else:
-        return None
-    if not (0 <= h < 24 and 0 <= m < 60 and 0 <= sec < 60):
-        return None
-    return time(hour=h, minute=m, second=sec)
+    lat = lon = None
+    tz_name = None
+    address = None
+    if place:
+        meta = CITY_MAP.get(place)
+        if meta:
+            lat = meta.get("lat")
+            lon = meta.get("lon")
+            tz_name = meta.get("tz")
+        # fallback geocoding se necessário
+        if (lat is None or lon is None or not tz_name):
+            try:
+                lat_g, lon_g, tz_guess, address = geocode_place_safe(place)
+                lat = lat or lat_g
+                lon = lon or lon_g
+                tz_name = tz_name or tz_guess
+            except Exception:
+                # geocoding falhou; manter None e deixar UI avisar
+                pass
+    return lat, lon, tz_name, address
 
-# após o form_submit_button
-if submitted:
-    # preferir tz do CITY_MAP, se houver
-    meta = CITY_MAP.get(place_choice, {}) if 'place_choice' in locals() else {}
-    tz_candidate = meta.get("tz") or (st.session_state.get("tz_name") if st.session_state.get("tz_name") else None)
-
-    # permitir override manual via campo de texto (se você tiver um input para isso)
-    # tz_user_input = st.text_input("Timezone (IANA)", value=st.session_state.get("tz_name",""))
-    # tz_candidate = tz_user_input.strip() or tz_candidate
-
-    tz_ok = normalize_tz_name(tz_candidate)
+def to_local_datetime_wrapper(bdate, btime_obj, tz_name):
+    """
+    Wrapper que tenta criar datetime timezone-aware usando normalize_tz_name + make_datetime_with_tz.
+    Retorna (dt_local, tz_ok) onde tz_ok é o nome IANA validado (ou None).
+    """
+    tz_ok = normalize_tz_name(tz_name)
     if not tz_ok:
-        # oferecer seleção rápida de timezones comuns
-        tz_choice = st.selectbox("Timezone inválido. Escolha um IANA válido", options=[
-            "America/Sao_Paulo", "America/Fortaleza", "America/Recife", "America/Manaus", "UTC"
-        ], index=0)
-        tz_ok = normalize_tz_name(tz_choice)
+        return None, None
+    dt_local = make_datetime_with_tz(bdate, btime_obj, tz_ok)
+    return dt_local, tz_ok
 
-    # parse da hora
-    btime_obj = parse_time_string(btime_free or st.session_state.get("btime_text", ""))
-    if btime_free and btime_obj is None:
-        st.warning("Hora inválida. Use o formato HH:MM ou HH:MM:SS. Exemplo: 14:30")
-    # se hora ausente, você pode assumir meia-noite ou pedir confirmação; aqui deixamos como None
-    if btime_obj is None:
-        st.info("Hora não informada ou inválida. Cálculos precisarão de hora exata para máxima precisão.")
-
-    # tentar criar datetime timezone-aware
-    dt_local = None
-    if btime_obj:
-        dt_local = make_datetime_with_tz(bdate, btime_obj, tz_ok)
-
-    if dt_local is None and btime_obj:
-        st.error("Falha ao aplicar o timezone. Verifique o IANA timezone ou escolha manualmente.")
-    elif dt_local:
-        st.success(f"Datetime local: {dt_local.isoformat()}")
-
-    # fallback geocoding se lat/lon ausentes
-    if (lat is None or lon is None) and place:
-        try:
-            lat_g, lon_g, tz_guess, address = geocode_place_safe(place)
-            lat = lat or lat_g
-            lon = lon or lon_g
-            tz_ok = tz_ok or normalize_tz_name(tz_guess)
-        except Exception:
-            st.warning("Não foi possível resolver coordenadas automaticamente para esse local.")
-
-    # salvar no session_state para uso posterior (mesmo que dt_local seja None)
-    st.session_state["place_input"] = place
-    st.session_state["lat"] = lat
-    st.session_state["lon"] = lon
-    st.session_state["tz_name"] = tz_ok
-    st.session_state["bdate"] = bdate
-    st.session_state["btime_text"] = btime_free
-    st.session_state["dt_local"] = dt_local
-
+# stubs seguros (não lançam NotImplementedError)
 def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
-    raise NotImplementedError
+    return {"planets": {}, "cusps": []}
 
 def natal_positions(dt_local, lat, lon, house_system="P"):
-    raise NotImplementedError
+    return {"planets": {}, "cusps": []}
 
 def positions_table(planets):
-    raise NotImplementedError
+    return []
 
 def compute_aspects(planets):
-    raise NotImplementedError
+    return []
 
 def generate_chart_summary(planets, name, bdate):
-    raise NotImplementedError
+    return {"planets": planets}
 
 def enrich_summary_with_astrology(summary):
-    raise NotImplementedError
+    return summary
 
 def render_wheel_plotly(planets, cusps):
-    raise NotImplementedError
+    return None
 
-# -------------------------
-# Processamento após submit
-# -------------------------
+# ---------- Fluxo único após submit ----------
 if submitted:
-    st.sidebar.success("Mapa gerado com sucesso!")
-    # 1) Normalizar e validar hora (obrigatória)
-    parsed_time = _parse_time_string(btime_free)
+    # 1) parse da hora (unifica nomes)
+    parsed_time = parse_time_string(btime_free or st.session_state.get("btime_text", ""))
     if parsed_time is None:
-        st.error("Hora de nascimento inválida ou não informada. Por favor informe no formato 'HH:MM' ou '2:30 PM'.")
+        st.error("Hora de nascimento inválida ou não informada. Por favor informe no formato 'HH:MM' ou 'HH:MM:SS'.")
+        # salvar estado parcial e abortar processamento pesado
+        st.session_state["btime_text"] = btime_free
+        st.session_state["map_ready"] = False
     else:
-        btime = parsed_time  # datetime.time
+        btime = parsed_time
 
-        # 2) Resolver local/coords/timezone
-        lat, lon, tz_name, address = _resolve_place_and_tz(place)
-        # salvar valores resolvidos na sessão para reutilização
-        if lat is not None:
-            st.session_state["lat"] = lat
-        if lon is not None:
-            st.session_state["lon"] = lon
-        if tz_name:
-            st.session_state["tz_name"] = tz_name
-        if address:
-            st.session_state["address"] = address
+        # 2) resolver local/coords/timezone (usa CITY_MAP + geocode fallback)
+        lat, lon, tz_name_candidate, address = resolve_place_and_tz(place)
 
-        # 3) Validar lat/lon
+        # 3) validar lat/lon
         if lat is None or lon is None:
             st.warning("Latitude/Longitude não resolvidas automaticamente. Informe manualmente ou corrija o local.")
-            # não prosseguir com cálculo local; permitir que usuário corrija
+            st.session_state.update({"lat": lat, "lon": lon, "tz_name": tz_name_candidate, "address": address, "btime_text": btime_free})
+            st.session_state["map_ready"] = False
         elif not (-90 <= lat <= 90 and -180 <= lon <= 180):
             st.error("Latitude/Longitude inválidas. Corrija os valores antes de gerar o mapa.")
+            st.session_state["map_ready"] = False
         else:
-            # 4) Construir datetime local (timezone-aware preferencialmente)
-            try:
-                dt_local = to_local_datetime(bdate, btime, tz_name)
-                if dt_local is None:
-                    raise ValueError("to_local_datetime retornou None")
-            except Exception as e:
-                logger.warning("to_local_datetime falhou: %s", e)
-                st.warning(f"Falha ao aplicar timezone '{tz_name}'. Verifique o timezone. Não será possível calcular posições precisas sem timezone.")
-                dt_local = None
+            # 4) construir datetime timezone-aware
+            dt_local, tz_ok = to_local_datetime_wrapper(bdate, btime, tz_name_candidate)
+            # se tz inválido, oferecer seleção rápida
+            if dt_local is None and tz_ok is None:
+                st.warning("Timezone inválido ou ausente. Escolha um timezone IANA válido.")
+                tz_choice = st.selectbox("Escolha um timezone", options=[
+                    "America/Sao_Paulo", "America/Fortaleza", "America/Recife", "America/Manaus", "UTC"
+                ], index=0)
+                tz_ok = normalize_tz_name(tz_choice)
+                if tz_ok:
+                    dt_local = make_datetime_with_tz(bdate, btime, tz_ok)
 
-            # 5) Obter posições (swisseph ou API)
-            planets = {}
-            cusps = []
-            data = None
-            try:
-                if source == "api":
-                    if dt_local is None:
-                        st.error("Não é possível usar a fonte 'api' sem um datetime local válido com timezone.")
-                    else:
+            # persistir tz e dt_local
+            st.session_state["tz_name"] = tz_ok
+            st.session_state["dt_local"] = dt_local
+            st.session_state["lat"] = lat
+            st.session_state["lon"] = lon
+            st.session_state["address"] = address
+            st.session_state["btime_text"] = btime_free
+
+            if dt_local is None:
+                st.error("Não foi possível criar um datetime timezone-aware. Verifique o timezone e a hora.")
+                st.session_state["map_ready"] = False
+            else:
+                st.success(f"Datetime local: {dt_local.isoformat()} (tz: {tz_ok})")
+
+                # 5) obter posições (api ou local)
+                planets = {}
+                cusps = []
+                try:
+                    if source == "api":
                         with st.spinner("Buscando mapa via API..."):
-                            data = fetch_natal_chart(name, dt_local, lat, lon, tz_name)
+                            data = fetch_natal_chart(name, dt_local, lat, lon, tz_ok)
                             planets = data.get("planets") or {}
                             cusps = data.get("cusps") or []
-                else:
-                    if dt_local is None:
-                        st.error("Não é possível calcular localmente sem datetime timezone-aware. Ajuste o timezone.")
                     else:
                         with st.spinner("Calculando mapa local (swisseph)..."):
                             data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
                             planets = data.get("planets", {})
                             cusps = data.get("cusps", [])
-            except Exception as e:
-                logger.exception("Erro ao obter posições natales: %s", e)
-                st.error("Erro ao calcular posições natales. Verifique dependências (pyswisseph) ou tente a opção 'api'.")
-
-            # 6) Se obtivemos planets, gerar summary e enriquecer
-            if planets:
-                try:
-                    table = positions_table(planets)
-                    aspects = compute_aspects(planets)
-                    summary = generate_chart_summary(planets, name or "Consulente", bdate)
-                    summary["table"] = table
-                    summary["cusps"] = cusps
-                    summary["aspects"] = aspects
-                    # preencher campos úteis no summary
-                    summary.setdefault("place", place)
-                    summary.setdefault("bdate", bdate)
-                    summary.setdefault("btime", btime)
-                    summary.setdefault("lat", lat)
-                    summary.setdefault("lon", lon)
-                    summary.setdefault("timezone", tz_name)
-                    # enriquecer leituras se necessário
-                    summary = enrich_summary_with_astrology(summary)
                 except Exception as e:
-                    logger.exception("Erro ao gerar summary: %s", e)
-                    st.error("Erro ao processar dados astrológicos.")
-                    summary = None
+                    logger.exception("Erro ao obter posições natales: %s", e)
+                    st.error("Erro ao calcular posições natales. Verifique dependências ou tente a opção 'api'.")
+                    st.session_state["map_ready"] = False
+                    planets = {}
 
-                # 7) Renderizar figura e salvar em session_state
-                if summary:
+                # 6) processar summary se houver planets
+                if planets:
                     try:
+                        table = positions_table(planets)
+                        aspects = compute_aspects(planets)
+                        summary = generate_chart_summary(planets, name or "Consulente", bdate)
+                        summary["table"] = table
+                        summary["cusps"] = cusps
+                        summary["aspects"] = aspects
+                        summary.setdefault("place", place)
+                        summary.setdefault("bdate", bdate)
+                        summary.setdefault("btime", btime)
+                        summary.setdefault("lat", lat)
+                        summary.setdefault("lon", lon)
+                        summary.setdefault("timezone", tz_ok)
+                        summary = enrich_summary_with_astrology(summary)
+                        # 7) renderizar figura
                         fig = render_wheel_plotly(summary.get("planets", {}), [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else [])
                         st.session_state["map_fig"] = fig
                         st.session_state["map_summary"] = summary
                         st.session_state["map_ready"] = True
-                        
+                        st.sidebar.success("Mapa gerado com sucesso!")
                     except Exception as e:
-                        logger.exception("Erro ao renderizar figura: %s", e)
-                        st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")
+                        logger.exception("Erro ao gerar summary/figura: %s", e)
+                        st.error("Erro ao processar dados astrológicos.")
                         st.session_state["map_ready"] = False
-                        st.session_state["map_fig"] = None
-
-# --- Substituir chamadas automáticas por preparação e delegação ao botão de IA ---
-# após salvar st.session_state["map_summary"] e st.session_state["map_ready"] = True
-# NÃO chamar generate_analysis aqui. Apenas preparar e salvar summary.
-
-# preparar preview_positions para o sidebar (usar normalize do generator_service)
-try:
-    from etheria.services import generator_service as gs
-except Exception:
-    gs = None
+                else:
+                    st.warning("Não foi possível obter posições natales. Verifique as entradas e tente novamente.")
+                    st.session_state["map_ready"] = False
 
     # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
     if st.sidebar.button("Gerar interpretação IA"):
