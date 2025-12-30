@@ -1334,12 +1334,12 @@ def main():
             )
             bdate = st.date_input(
                 "Data de nascimento",
-                value=date(1990, 4, 25),
+                value=date(2026, 1, 1),
                 min_value=date(1900, 1, 1),
                 max_value=date(2100, 12, 31)
             )
             btime_free = st.text_input(
-                "Hora de nascimento (ex.: 14:30)",
+                "Hora de nascimento (ex.: 00:00)",
                 value=""
             )
             source = "swisseph"
