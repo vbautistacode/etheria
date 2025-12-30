@@ -294,23 +294,6 @@ def main():
     from etheria.astrology import positions_table, compute_aspects
     from components.chart_svg import render_wheel_svg
 
-    #------------------------------Headers-----------------------------------------------------------------------
-    st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
-    st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
-
-    st.markdown(
-        """
-        A Astrologia em *Etheria* é vista como a linguagem silenciosa do cosmos que pulsa em sintonia com nossa 
-        própria existência. Mais do que previsões, os astros oferecem um **mapa de potencialidades**: a posição 
-        dos planetas no momento do seu nascimento atua como uma bússola vibracional, influenciando temperamentos, 
-        desafios e o florescer de talentos únicos.
-
-        Ao compreender as energias arquetípicas que regem seu mapa, você deixa de apenas reagir ao destino e passa 
-        a **cocriar com o universo**. Cada trânsito e aspecto é um convite para o autoconhecimento, revelando que 
-        o que está em cima, nos céus, reflete diretamente o que vibra dentro de você.
-        """
-    )
-
     # -------------------- Helpers --------------------
 
     def _get_canonical_and_label(sel: str) -> Tuple[Optional[str], Optional[str]]:
@@ -1677,6 +1660,23 @@ except Exception:
                     st.info("Nenhuma interpretação retornada pelo serviço.")
 
 # -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
+
+#------------------------------Headers-----------------------------------------------------------------------
+    st.markdown("<h1 style='text-align:left'>Astrologia ♎ </h1>", unsafe_allow_html=True)
+    st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
+
+    st.markdown(
+        """
+        A Astrologia em *Etheria* é vista como a linguagem silenciosa do cosmos que pulsa em sintonia com nossa 
+        própria existência. Mais do que previsões, os astros oferecem um **mapa de potencialidades**: a posição 
+        dos planetas no momento do seu nascimento atua como uma bússola vibracional, influenciando temperamentos, 
+        desafios e o florescer de talentos únicos.
+
+        Ao compreender as energias arquetípicas que regem seu mapa, você deixa de apenas reagir ao destino e passa 
+        a **cocriar com o universo**. Cada trânsito e aspecto é um convite para o autoconhecimento, revelando que 
+        o que está em cima, nos céus, reflete diretamente o que vibra dentro de você.
+        """
+    )
 
 # Recuperar summary e fig da sessão
 summary = st.session_state.get("map_summary")
