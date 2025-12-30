@@ -3,6 +3,7 @@ from __future__ import annotations
 """pages/mapa_astral.py — Mapa astral (corrigido: imports e PROJECT_ROOT no topo)."""
 
 import logging
+import csv
 import os
 import sys
 import importlib
@@ -295,6 +296,29 @@ def main():
     from components.chart_svg import render_wheel_svg
 
     # -------------------- Helpers --------------------
+    @st.cache_data
+    def load_city_map_csv(path: str = "data/cities.csv") -> Dict[str, dict]:
+        city_map = {}
+        p = Path(path)
+        if not p.exists():
+            return city_map
+        with p.open(newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                name = r.get("name") or r.get("city")
+                if not name:
+                    continue
+                try:
+                    lat = float(r.get("lat")) if r.get("lat") else None
+                    lon = float(r.get("lon")) if r.get("lon") else None
+                except Exception:
+                    lat = lon = None
+                tz = r.get("tz") or None
+                city_map[name] = {"lat": lat, "lon": lon, "tz": tz}
+        # garantir opção "Outra"
+        if "Outra (digitar...)" not in city_map:
+            city_map["Outra (digitar...)"] = {}
+        return city_map
 
     def _get_canonical_and_label(sel: str) -> Tuple[Optional[str], Optional[str]]:
         try:
@@ -1471,42 +1495,112 @@ def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Op
     dt_local = dt_naive.replace(tzinfo=tz)
     return dt_local
 
+@st.cache_data
+def load_city_map(path: str = "data/cities.csv"):
+    city_map = {}
+    p = Path(path)
+    if p.exists():
+        with p.open(newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                name = (r.get("name") or r.get("city") or "").strip()
+                if not name:
+                    continue
+                try:
+                    lat = float(r.get("lat")) if r.get("lat") else None
+                    lon = float(r.get("lon")) if r.get("lon") else None
+                except Exception:
+                    lat = lon = None
+                tz = (r.get("tz") or "").strip() or None
+                city_map[name] = {"lat": lat, "lon": lon, "tz": tz}
+    # garantir opção "Outra"
+    city_map.setdefault("Outra (digitar...)", {})
+    return city_map
+
+CITY_MAP = load_city_map("data/cities.csv") or {
+    "São Paulo, SP, Brasil": {"lat": -23.550520, "lon": -46.633308, "tz": "America/Sao_Paulo"},
+    "Outra (digitar...)": {}
+}
+
 # -------------------------
 # UI: formulário lateral
 # -------------------------
-PAGE_ID = "mapa_astral"  # identifique a página; troque se necessário
+PAGE_ID = "mapa_astral"
 
-st.sidebar.header("Entrada do Consulente") # type: ignore
-with st.sidebar: # type: ignore
+st.sidebar.header("Entrada do Consulente")
+with st.sidebar:
     form_key = f"birth_form_sidebar_{PAGE_ID}"
     with st.form(key=form_key, border=False):
         name = st.text_input("Nome", value="")
-        place = st.text_input(
-            "Local de nascimento",
-            value="São Paulo, São Paulo, Brasil"
-        )
+
+        # selectbox com metadados
+        place_choice = st.selectbox("Local de nascimento", options=list(CITY_MAP.keys()), index=0)
+        if place_choice == "Outra (digitar...)":
+            place = st.text_input("Digite o local (cidade, estado, país)", value="")
+            # permitir correção manual de coords/tz
+            manual_coords = st.checkbox("Informar latitude/longitude manualmente?", value=False)
+            if manual_coords:
+                lat_manual = st.number_input("Latitude", value=float(st.session_state.get("lat_manual", -23.6636)), format="%.6f")
+                lon_manual = st.number_input("Longitude", value=float(st.session_state.get("lon_manual", -46.5381)), format="%.6f")
+            else:
+                lat_manual = None
+                lon_manual = None
+            manual_tz = st.checkbox("Escolher timezone manualmente?", value=False)
+            if manual_tz:
+                tz_manual = st.text_input("Timezone (IANA)", value=st.session_state.get("tz_manual", ""))
+            else:
+                tz_manual = None
+            lat = lat_manual
+            lon = lon_manual
+            tz_name = tz_manual
+        else:
+            place = place_choice
+            meta = CITY_MAP.get(place_choice, {})
+            lat = meta.get("lat")
+            lon = meta.get("lon")
+            tz_name = meta.get("tz")
+
         bdate = st.date_input(
             "Data de nascimento",
-            value=date(2026, 1, 1), # type: ignore
+            value=st.session_state.get("bdate", date(2026, 1, 1)),
             min_value=date(1900, 1, 1),
             max_value=date(2100, 12, 31)
         )
-        btime_free = st.text_input(
-            "Hora de nascimento (ex.: 00:00)",
-            value=""
-        )
+        btime_free = st.text_input("Hora de nascimento (ex.: 00:00)", value=st.session_state.get("btime_text", ""))
+
         source = "swisseph"
-        # Sistema de casas fixo: Placidus (código P)
-        st.session_state["house_system"] = "P"
+        st.session_state["house_system"] = st.session_state.get("house_system", "P")
 
         st.caption("### Controles")
         use_ai = st.checkbox(
             "Usar IA para interpretações?",
-            value=False,
+            value=st.session_state.get("use_ai", False),
             help="Gera interpretações astrológicas via IA generativa proprietária."
         )
+        st.session_state["use_ai"] = use_ai
 
         submitted = st.form_submit_button("Gerar Mapa")
+
+# processamento após submit (mantido no seu fluxo)
+if submitted:
+    # se metadados ausentes, tentar geocoding
+    if (lat is None or lon is None) and place:
+        try:
+            lat_g, lon_g, tz_guess, address = geocode_place_safe(place)
+            lat = lat or lat_g
+            lon = lon or lon_g
+            tz_name = tz_name or tz_guess
+        except Exception:
+            st.warning("Não foi possível resolver coordenadas automaticamente para esse local.")
+
+    # salvar no session_state para uso posterior
+    st.session_state["place_input"] = place
+    st.session_state["address_resolved"] = st.session_state.get("address_resolved", "")
+    st.session_state["lat"] = lat
+    st.session_state["lon"] = lon
+    st.session_state["tz_name"] = tz_name
+    st.session_state["bdate"] = bdate
+    st.session_state["btime_text"] = btime_free
 
 def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
     raise NotImplementedError
@@ -1685,7 +1779,6 @@ map_ready = st.session_state.get("map_ready", False)
 
 from etheria import rules, interpretations, influences
 from etheria.utils import safe_filename
-from typing import Optional
 
 def _canonical_and_label(name: Optional[str]):
     """
