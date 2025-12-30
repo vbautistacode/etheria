@@ -357,6 +357,8 @@ with col2:
     else:
         st.info("Nenhuma faixa encontrada com os filtros atuais.")
 
+st.markdown("---")
+
 # ---------------------------
 # Visualização nota -> planeta (dentro de expander)
 # ---------------------------
