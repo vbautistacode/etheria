@@ -39,7 +39,7 @@ def load_classical_csv():
 "Symphony No.5","Beethoven","Symphony No.5","C minor","https://www.youtube.com/watch?v=3ug835LFixU"
 "Symphony No.9","Beethoven","Symphony No.9 (Choral)","D minor","https://www.youtube.com/watch?v=fzyO3fLV5O0"
 "Symphony No.3 (Eroica)","Beethoven","Symphony No.3 (Eroica)","E♭ major","https://www.youtube.com/watch?v=your_beethoven3_link"
-"Symphony No.41 (Jupiter)","Mozart","Symphony No.41 (Jupiter)","C major","https://www.youtube.com/watch?v=0vfU4cmdx-s"
+"Symphony No.41 (Jupiter)","Mozart","Symphony No.41","C major","https://www.youtube.com/watch?v=0vfU4cmdx-s"
 "Eine kleine Nachtmusik","Mozart","Serenade No.13","G major","https://www.youtube.com/watch?v=rHZ0nkZatJk"
 "Toccata and Fugue","Bach","Toccata and Fugue in D minor","D minor","https://www.youtube.com/watch?v=erXG9vnN-GI"
 "Brandenburg Concerto No.3","Bach","Brandenburg Concerto No.3","G major","https://www.youtube.com/watch?v=Czsd13Mmcg0"
@@ -149,21 +149,21 @@ def make_label(row):
 tracks_df['_label'] = tracks_df.apply(make_label, axis=1)
 
 # ---------------------------
-# Mapeamentos por signo/planeta (mantidos)
+# Mapeamentos por signo/planeta
 # ---------------------------
 SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital", "Toccata and Fugue"],
-    "Touro": ["Tonalidade Terra", "Piano Concerto No.23"],
-    "Gêmeos": ["Batida Alfa", "Brandenburg Concerto No.3"],
-    "Câncer": ["Cascata Noturna", "Ondas Suaves"],
-    "Leão": ["Ritmo Vital", "Symphony No.9"],
-    "Virgem": ["Batida Alfa", "Prelude in B"],
-    "Libra": ["Tonalidade Terra", "Violin Concerto No.5"],
-    "Escorpião": ["Symphony No.5", "Chaconne (Partita No.2)"],
-    "Sagitário": ["Ritmo Vital", "Symphony No.41 (Jupiter)"],
-    "Capricórnio": ["Tonalidade Terra", "Brandenburg Concerto No.3"],
-    "Aquário": ["Batida Alfa", "Ride of the Valkyries"],
-    "Peixes": ["Ondas Suaves", "Prelude in E minor"]
+    "Áries": ["Ritmo Vital"],
+    "Touro": ["Tonalidade Terra"],
+    "Gêmeos": ["Batida Alfa"],
+    "Câncer": ["Cascata Noturna"],
+    "Leão": ["Ritmo Vital"],
+    "Virgem": ["Batida Alfa"],
+    "Libra": ["Tonalidade Terra"],
+    "Escorpião": ["Symphony No.5"],
+    "Sagitário": ["Ritmo Vital"],
+    "Capricórnio": ["Tonalidade Terra"],
+    "Aquário": ["Batida Alfa",],
+    "Peixes": ["Ondas Suaves"]
 }
 
 PLANET_TO_TRACKS = {
@@ -270,11 +270,9 @@ with col1:
             st.write(f"- {t}")
     elif mode == "Por planeta":
         st.markdown(f"**Planeta:** {planet}")
-        st.markdown("**Faixas cuja tônica corresponde ao planeta selecionado:**")
         for t in df_display["Título"].unique().tolist():
             st.write(f"- {t}")
         st.markdown("---")
-        st.markdown("**Observação:** obras clássicas têm tônica mapeada para planetas; aqui exibimos apenas as correspondentes.")
     elif mode == "Por nota":
         st.markdown(f"**Nota selecionada:** {note}")
         st.markdown(f"**Planeta correspondente:** {mapped_planet}")
@@ -291,7 +289,7 @@ with col1:
             st.write("Use os filtros laterais para refinar a lista.")
 
 with col2:
-    st.subheader("Sons e Músicas")
+    st.subheader("Músicas")
 
     # exibe tabela dentro de expander (oculta por padrão)
     with st.expander("Mostrar Sons e Músicas"):
