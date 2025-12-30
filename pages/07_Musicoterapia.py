@@ -5,6 +5,8 @@ from io import StringIO
 import streamlit.components.v1 as components
 from urllib.parse import urlparse, parse_qs
 
+# --- Configuração da página (deve vir antes de qualquer saída) ---
+st.set_page_config(page_title="Musicoterapia", layout="wide")
 st.title("Musicoterapia 🪉")
 st.markdown(
     """
@@ -14,21 +16,22 @@ st.markdown(
 )
 
 # ---------------------------
-# Dados iniciais de faixas (textos de efeito enriquecidos)
+# Helpers e carregamento (com cache)
 # ---------------------------
-TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
+@st.cache_data
+def load_tracks_csv():
+    TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
 Ondas Suaves,Sons da Natureza,Relaxamento,"Calmante; ondas contínuas e texturas suaves que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
 Batida Alfa,Ambiente,Foco,"Estimula concentração; batidas regulares e frequências alfa que ajudam a sincronizar atenção e reduzir distrações",https://www.youtube.com/watch?v=p2_zDvtPQ-g
-Tonalidade Terra,Sons Amadeirados,Aterramento,"Estabiliza; timbres graves, harmônicos terrosos e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
+Tonalidade Terra,Sons Terrosos,Aterramento,"Estabiliza; timbres graves, harmônicos terrosos e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
 Cascata Noturna,Sons da Natureza,Sono,"Induz relaxamento profundo; camadas sonoras suaves e ruído branco filtrado que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
 Ritmo Vital,Trilhas Energéticas,Energia,"Aumenta vigor; ritmos ascendentes, percussão leve e linhas melódicas que ativam corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
 """
-tracks_df = pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
+    return pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
-# ---------------------------
-# Obras clássicas: metadados (CSV bem formado)
-# ---------------------------
-CLASSICAL_CSV = """Título,Composer,Work,Key,URL
+@st.cache_data
+def load_classical_csv():
+    CLASSICAL_CSV = """Título,Composer,Work,Key,URL
 "Symphony No.5","Beethoven","Symphony No.5","C minor","https://www.youtube.com/watch?v=3ug835LFixU"
 "Symphony No.9","Beethoven","Symphony No.9 (Choral)","D minor","https://www.youtube.com/watch?v=fzyO3fLV5O0"
 "Symphony No.3 (Eroica)","Beethoven","Symphony No.3 (Eroica)","E♭ major","https://www.youtube.com/watch?v=your_beethoven3_link"
@@ -45,13 +48,9 @@ CLASSICAL_CSV = """Título,Composer,Work,Key,URL
 "Prelude in E minor","Bach","Prelude in E minor (WTC)","E minor","https://www.youtube.com/watch?v=jDjJ8aL6JK0"
 "Chaconne (Partita No.2)","Bach","Partita No.2 in D minor (Chaconne transcr. in B)","B minor","https://www.youtube.com/watch?v=example_bach_chaconne"
 """
-classical_df = pd.read_csv(StringIO(CLASSICAL_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
+    return pd.read_csv(StringIO(CLASSICAL_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
-# ---------------------------
-# Funções utilitárias musicais
-# ---------------------------
 def tonic_to_note(key: str) -> str:
-    """Extrai a letra base da tônica (C D E F G A B) a partir de uma string Key."""
     if not isinstance(key, str) or key.strip() == "":
         return ""
     base = key.split()[0]
@@ -59,7 +58,6 @@ def tonic_to_note(key: str) -> str:
     return base[0].upper() if base[0].upper() in "CDEFGAB" else ""
 
 def get_youtube_id(u: str) -> str | None:
-    """Extrai o ID do YouTube de uma URL (youtube.com/watch?v=, youtu.be/, embed)."""
     try:
         parsed = urlparse(u)
         netloc = parsed.netloc.lower()
@@ -77,16 +75,9 @@ def get_youtube_id(u: str) -> str | None:
     return None
 
 def render_video_from_url(url: str, width: int = 800, height: int = 450):
-    """
-    Tenta renderizar o vídeo no app:
-    1) usa st.video(url) (suporta YouTube),
-    2) se falhar, tenta renderizar iframe com o ID do YouTube,
-    3) se não for YouTube ou falhar, exibe link clicável.
-    """
     if not url or pd.isna(url) or str(url).strip() == "":
         st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
         return
-
     yt_id = get_youtube_id(url)
     try:
         st.video(url)
@@ -103,6 +94,12 @@ def render_video_from_url(url: str, width: int = 800, height: int = 450):
             st.markdown(f"[Abrir no YouTube]({url})")
 
 # ---------------------------
+# Carrega dados
+# ---------------------------
+tracks_df = load_tracks_csv()
+classical_df = load_classical_csv()
+
+# ---------------------------
 # Mapeamento nota -> planeta
 # ---------------------------
 NOTE_TO_PLANET_SHORT = {
@@ -115,14 +112,14 @@ NOTE_TO_PLANET_SHORT = {
     'B': 'Lua'
 }
 
-# aplica transformação e mapeamento nas obras clássicas (garante coluna Key)
+# garante coluna Key e extrai tônica/planeta nas obras clássicas
 if 'Key' not in classical_df.columns:
     classical_df['Key'] = ""
 classical_df['Tonic'] = classical_df['Key'].apply(tonic_to_note)
 classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT).fillna("—")
 
 # ---------------------------
-# Preparar tracks_df para concatenação
+# Normalização de colunas e concatenação
 # ---------------------------
 required_cols = ['Título', 'Artista/Coleção', 'Categoria', 'Efeito', 'URL', 'Composer', 'Work', 'Key', 'Tonic', 'Planet']
 for col in required_cols:
@@ -135,9 +132,17 @@ for col in required_cols:
         classical_df[col] = ""
     classical_df[col] = classical_df[col].fillna("")
 
-# concatena obras clássicas ao catálogo de faixas (mantendo colunas consistentes)
-tracks_df = pd.concat([tracks_df, classical_df[list(classical_df.columns.intersection(tracks_df.columns))]], ignore_index=True, sort=False)
+# concatena mantendo colunas consistentes
+common_cols = list(classical_df.columns.intersection(tracks_df.columns))
+tracks_df = pd.concat([tracks_df, classical_df[common_cols]], ignore_index=True, sort=False)
 tracks_df = tracks_df.fillna("")
+
+# cria rótulo único para selectbox (título — artista/composer) para evitar ambiguidade
+def make_label(row):
+    artist = row.get('Artista/Coleção') or row.get('Composer') or ""
+    return f"{row.get('Título','').strip()} — {artist.strip()}" if artist else row.get('Título','').strip()
+
+tracks_df['_label'] = tracks_df.apply(make_label, axis=1)
 
 # ---------------------------
 # Explicações resumidas por planeta (para UI)
@@ -156,41 +161,31 @@ PLANET_MUSIC_EXPLANATIONS = {
 # Mapeamentos por signo/planeta (conteúdo melhorado)
 # ---------------------------
 SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital"],# ação, coragem, impulso
-    "Touro": ["Tonalidade Terra"],# estabilidade, conforto, beleza sensorial
-    "Gêmeos": ["Batida Alfa"],# agilidade mental, leveza e movimento
-    "Câncer": ["Cascata Noturna"],# acolhimento, segurança emocional
-    "Leão": ["Ritmo Vital"],# presença, brilho, expressão
-    "Virgem": ["Batida Alfa"],# foco prático, ordem e clareza
-    "Libra": ["Tonalidade Terra"],# harmonia, equilíbrio estético
-    "Escorpião": ["Symphony No.5"],# profundidade, intensidade transformadora
-    "Sagitário": ["Ritmo Vital"],# expansão, aventura e otimismo
-    "Capricórnio": ["Tonalidade Terra"],# disciplina, estrutura
-    "Aquário": ["Batida Alfa"],# inovação, surpresa e movimento coletivo
-    "Peixes": ["Ondas Suaves"]# sensibilidade, imaginação e sonho
+    "Áries": ["Ritmo Vital"],
+    "Touro": ["Tonalidade Terra"],
+    "Gêmeos": ["Batida Alfa"],
+    "Câncer": ["Cascata Noturna"],
+    "Leão": ["Ritmo Vital"],
+    "Virgem": ["Batida Alfa"],
+    "Libra": ["Tonalidade Terra"],
+    "Escorpião": ["Symphony No.5"],
+    "Sagitário": ["Ritmo Vital"],
+    "Capricórnio": ["Tonalidade Terra"],
+    "Aquário": ["Batida Alfa"],
+    "Peixes": ["Ondas Suaves"]
 }
 
-# Planet_To_Tracks agora reflete categorias/regentes de cada signo
+# Planet_To_Tracks reflete categorias/regentes de cada signo
 PLANET_TO_TRACKS = {
-    # Sol (regente de Leão) -> energia, presença, obras brilhantes
     "Sol": ["Ritmo Vital", "Symphony No.9", "Piano Concerto No.23"],
-    # Lua (regente de Câncer) -> introspecção, sono, acolhimento
     "Lua": ["Cascata Noturna", "Ondas Suaves", "Prelude in E minor"],
-    # Marte (regente de Áries) -> ação, intensidade
     "Marte": ["Ritmo Vital", "Toccata and Fugue", "Symphony No.5"],
-    # Vênus (regente de Touro/Libra) -> harmonia, beleza, peças líricas
     "Vênus": ["Tonalidade Terra", "Violin Concerto No.5", "Piano Concerto No.23"],
-    # Mercúrio (regente de Gêmeos/Virgem) -> agilidade mental, foco
     "Mercúrio": ["Batida Alfa", "Brandenburg Concerto No.3", "Symphony No.3 (Eroica)"],
-    # Júpiter (regente de Sagitário/Peixes) -> expansão, nobreza
     "Júpiter": ["Symphony No.41 (Jupiter)", "Ondas Suaves", "Symphony No.6 (Pastoral)"],
-    # Saturno (regente de Capricórnio/Aquário) -> estrutura, profundidade
     "Saturno": ["Brandenburg Concerto No.3", "Tonalidade Terra", "Chaconne (Partita No.2)"],
-    # Netuno (regente moderno de Peixes) -> sonho, atmosfera
     "Netuno": ["Ondas Suaves", "Chaconne (Partita No.2)"],
-    # Urano (regente moderno de Aquário) -> inovação, surpresa
     "Urano": ["Ride of the Valkyries", "Batida Alfa"],
-    # Plutão (regente moderno de Escorpião) -> transformação, intensidade
     "Plutão": ["Symphony No.5", "Chaconne (Partita No.2)"]
 }
 
@@ -295,14 +290,15 @@ with col2:
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # ---------------------------
-    # Seletor unificado: player + detalhes
+    # Seletor unificado: player + detalhes (usa rótulos unívocos)
     # ---------------------------
     st.markdown("### Player e Detalhes")
-    tracks = df_display["Título"].tolist()
-    if tracks:
-        sel = st.selectbox("Escolha uma faixa/obra", [""] + tracks, key="track_select")
-        if sel:
-            row = df_display[df_display["Título"] == sel].iloc[0]
+    labels = df_display['_label'].tolist()
+    if labels:
+        sel_label = st.selectbox("Escolha uma faixa/obra", [""] + labels, key="track_select")
+        if sel_label:
+            # encontra a primeira linha que corresponde ao rótulo selecionado
+            row = df_display[df_display['_label'] == sel_label].iloc[0]
 
             # Player (renderiza se houver URL)
             play_url = row.get('URL', '')
@@ -316,11 +312,6 @@ with col2:
             # Detalhes (omitindo 'Key' e 'Fonte') com fallbacks para Categoria/Efeito
             # ---------------------------
             def format_effect_text(category: str, effect: str) -> str:
-                """
-                Retorna um texto enriquecido combinando categoria e efeito.
-                - category: rótulo curto (ex.: 'Energia', 'Relaxamento')
-                - effect: descrição mais longa (pode conter ponto-e-vírgula para separar frases)
-                """
                 cat = (category or "").strip()
                 eff = (effect or "").strip()
                 if ';' in eff:
