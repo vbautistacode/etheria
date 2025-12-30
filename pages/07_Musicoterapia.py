@@ -373,7 +373,7 @@ with st.expander("Correspondência Nota → Planeta"):
 st.markdown("---")
 st.markdown(
     "**Observações:**\n\n"
-    "- As faixas agora usam apenas as quatro categorias elementares (Água, Fogo, Terra, Ar).\n"
-    "- Ao escolher um signo, o app infere o elemento correspondente e filtra as faixas por essa categoria.\n"
-    "- Se quiser, posso: (a) mapear obras clássicas automaticamente para elementos; (b) adicionar subcategorias (ex.: 'clássico', 'ambiente') dentro de cada elemento; (c) gerar rótulos unívocos que incluam o elemento no selectbox."
+    "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
+    "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
+    "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
 )
