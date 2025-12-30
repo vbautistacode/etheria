@@ -350,7 +350,7 @@ with col2:
             if show_if(tonic):
                 st.markdown(f"- **Tônica (nota):** {tonic}")
             if show_if(planet_for_piece) and planet_for_piece != "—":
-                st.markdown(f"- **Planeta (via tônica):** {planet_for_piece}")
+                st.markdown(f"- **Planeta (tônica):** {planet_for_piece}")
                 explanation = PLANET_MUSIC_EXPLANATIONS.get(planet_for_piece)
                 if explanation:
                     st.markdown(f"- **Resumo:** {explanation}")
