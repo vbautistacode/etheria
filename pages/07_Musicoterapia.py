@@ -292,7 +292,7 @@ with col2:
     st.subheader("Músicas")
 
     # exibe tabela dentro de expander (oculta por padrão)
-    with st.expander("Mostrar Sons e Músicas"):
+    with st.expander("Mostrar Músicas"):
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
     # ---------------------------
