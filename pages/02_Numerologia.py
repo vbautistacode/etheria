@@ -18,6 +18,8 @@ from typing import Optional, Dict, List, Any
 from etheria.personal_year import analyze_personal_year_from_dob
 from dotenv import load_dotenv
 
+st.set_page_config(page_title="Numerologia", layout="wide")
+
 # Import loaders and cycles (assume pacote local etheria)
 from etheria.loaders import (
     read_matrix_csv,
@@ -84,7 +86,7 @@ def _sync_sidebar_dob_to_tab():
 
 dob = st.sidebar.date_input(
     "Data de nascimento",
-    value=st.session_state.get("dob", date(1990,4,25)),
+    value=st.session_state.get("dob", date(2026,1,1)),
     key="dob",
     on_change=_sync_sidebar_dob_to_tab,
     min_value=date(1900, 1, 1),
@@ -92,7 +94,7 @@ dob = st.sidebar.date_input(
 )
 
 # inicializa antes de criar o widget
-st.session_state.setdefault("birth_time_influences", "07:55")
+st.session_state.setdefault("birth_time_influences", "00:00")
 
 # cria o widget uma única vez (sempre)
 birth_time = st.sidebar.text_input(
