@@ -78,29 +78,46 @@ full_name = st.sidebar.text_input(
     on_change=_sync_sidebar_to_tab
 )
 
-# data de nascimento no sidebar (mesma ideia)
+# data de nascimento no sidebar
 def _sync_sidebar_dob_to_tab():
-    st.session_state["num_dob"] = st.session_state.get("dob", st.session_state.get("num_dob", date(1990,4,25)))
+    dob_val = st.session_state.get("dob")
+    if isinstance(dob_val, date):
+        st.session_state["num_dob"] = dob_val
+    else:
+        # mantém valor anterior ou None
+        st.session_state["num_dob"] = st.session_state.get("num_dob", None)
 
-dob = st.sidebar.date_input(
-    "Data de nascimento",
-    value=st.session_state.get("dob", date(1990,4,25)),
-    key="dob",
-    on_change=_sync_sidebar_dob_to_tab,
-    min_value=date(1900, 1, 1),
-    max_value=date(2100, 12, 31)
-)
+# opção para não informar a data
+st.sidebar.markdown("**Data de nascimento**")
+no_dob = st.sidebar.checkbox("Prefiro não informar a data", key="no_dob")
 
-# inicializa antes de criar o widget
-st.session_state.setdefault("birth_time_influences", "07:55")
+if not no_dob:
+    # inicializa com um valor padrão somente se não existir
+    default_dob = st.session_state.get("dob", date(1990, 4, 25))
+    dob = st.sidebar.date_input(
+        "Data de nascimento",
+        value=default_dob,
+        key="dob",
+        on_change=_sync_sidebar_dob_to_tab,
+        min_value=date(1900, 1, 1),
+        max_value=date(2100, 12, 31)
+    )
+else:
+    # garante que não haja valor inválido em session_state
+    st.session_state.pop("dob", None)
+    st.session_state["num_dob"] = None
 
-# cria o widget uma única vez (sempre)
+# inicializa antes de criar o widget (permite string vazia)
+st.session_state.setdefault("birth_time_influences", "")
+
 birth_time = st.sidebar.text_input(
-    "Hora de nascimento (HH:MM)",
+    "Hora de nascimento (HH:MM) — opcional",
     value=st.session_state["birth_time_influences"],
-    key="birth_time_influences"
+    key="birth_time_influences",
+    help="O horário de nascimento ajuda a refinar as análises planetárias.",
 )
 
+# botão
 generate_btn = st.sidebar.button("Gerar Leitura")
 
 # -------------------------
