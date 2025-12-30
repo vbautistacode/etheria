@@ -156,18 +156,18 @@ PLANET_MUSIC_EXPLANATIONS = {
 # Mapeamentos por signo/planeta (conteúdo melhorado)
 # ---------------------------
 SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital"],            # ação, coragem, impulso
-    "Touro": ["Tonalidade Terra"],   # estabilidade, conforto, beleza sensorial
-    "Gêmeos": ["Batida Alfa"],  # agilidade mental, leveza e movimento
-    "Câncer": ["Cascata Noturna"],          # acolhimento, segurança emocional
-    "Leão": ["Ritmo Vital"],               # presença, brilho, expressão
-    "Virgem": ["Batida Alfa"],              # foco prático, ordem e clareza
-    "Libra": ["Tonalidade Terra"],  # harmonia, equilíbrio estético
-    "Escorpião": ["Symphony No.5"], # profundidade, intensidade transformadora
-    "Sagitário": ["Ritmo Vital"], # expansão, aventura e otimismo
-    "Capricórnio": ["Tonalidade Terra"], # disciplina, estrutura
-    "Aquário": ["Batida Alfa"],    # inovação, surpresa e movimento coletivo
-    "Peixes": ["Ondas Suaves"]        # sensibilidade, imaginação e sonho
+    "Áries": ["Ritmo Vital"],# ação, coragem, impulso
+    "Touro": ["Tonalidade Terra"],# estabilidade, conforto, beleza sensorial
+    "Gêmeos": ["Batida Alfa"],# agilidade mental, leveza e movimento
+    "Câncer": ["Cascata Noturna"],# acolhimento, segurança emocional
+    "Leão": ["Ritmo Vital"],# presença, brilho, expressão
+    "Virgem": ["Batida Alfa"],# foco prático, ordem e clareza
+    "Libra": ["Tonalidade Terra"],# harmonia, equilíbrio estético
+    "Escorpião": ["Symphony No.5"],# profundidade, intensidade transformadora
+    "Sagitário": ["Ritmo Vital"],# expansão, aventura e otimismo
+    "Capricórnio": ["Tonalidade Terra"],# disciplina, estrutura
+    "Aquário": ["Batida Alfa"],# inovação, surpresa e movimento coletivo
+    "Peixes": ["Ondas Suaves"]# sensibilidade, imaginação e sonho
 }
 
 # Planet_To_Tracks agora reflete categorias/regentes de cada signo
