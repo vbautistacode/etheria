@@ -30,6 +30,7 @@ def main():
         "default": "#888888"
     }
     
+    from geopy.geocoders import GoogleV3
     from datetime import datetime, date, time as dtime
     from typing import Tuple, Optional, Dict, Any, List
     from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
@@ -1245,8 +1246,6 @@ def main():
 # ---------------------------
 # Helpers: parsing de hora, geocoding e timezone
 # ---------------------------
-from geopy.geocoders import GoogleV3
-
 logger = logging.getLogger(__name__) # type: ignore
 
 def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
