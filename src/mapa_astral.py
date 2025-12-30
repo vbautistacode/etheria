@@ -1,19 +1,18 @@
 # pages/mapa_astral.py
+import os
+import sys
+import logging
+import importlib
+import traceback
+import json
+import pytz
+import plotly.graph_objects as go
+import streamlit as st
 from typing import Optional
 from etheria.astrology import SIGNS
 
 
 def main():
-
-    import os
-    import sys
-    import logging
-    import importlib
-    import traceback
-    import json
-    import pytz
-    import plotly.graph_objects as go
-    import streamlit as st
 
     # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
     GROUP_COLORS = globals().get("GROUP_COLORS") or {
@@ -1440,8 +1439,8 @@ def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Op
 # -------------------------
 PAGE_ID = "mapa_astral"  # identifique a página; troque se necessário
 
-st.sidebar.header("Entrada do Consulente")
-with st.sidebar:
+st.sidebar.header("Entrada do Consulente") # type: ignore
+with st.sidebar: # type: ignore
     form_key = f"birth_form_sidebar_{PAGE_ID}"
     with st.form(key=form_key, border=False):
         name = st.text_input("Nome", value="")
@@ -1451,7 +1450,7 @@ with st.sidebar:
         )
         bdate = st.date_input(
             "Data de nascimento",
-            value=date(2026, 1, 1),
+            value=date(2026, 1, 1), # type: ignore
             min_value=date(1900, 1, 1),
             max_value=date(2100, 12, 31)
         )
