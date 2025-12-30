@@ -30,7 +30,6 @@ def main():
         "default": "#888888"
     }
     
-    from geopy.geocoders import GoogleV3
     from datetime import datetime, date, time as dtime
     from typing import Tuple, Optional, Dict, Any, List
     from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
@@ -1316,6 +1315,7 @@ def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
 
     return None
 
+from geopy.geocoders import GoogleV3
 @st.cache_data(show_spinner=False) # type: ignore
 def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]: # type: ignore
     """
@@ -1414,7 +1414,7 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
     except Exception as e:
         logger.warning("geocode_place_nominatim falhou: %s", e)
 
-    return lat_manual, lon_manual, tz_manual, None
+        return lat_manual, lon_manual, tz_manual, None
 
 def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]: # type: ignore
     """
