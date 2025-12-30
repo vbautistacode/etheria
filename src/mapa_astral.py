@@ -1,4 +1,5 @@
 # pages/mapa_astral.py
+from __future__ import annotations
 import os
 import sys
 import logging
@@ -8,7 +9,6 @@ import json
 import pytz
 import plotly.graph_objects as go
 import streamlit as st
-from __future__ import annotations
 from datetime import datetime, date, time as dt_time
 from datetime import datetime, date, time as dtime
 from typing import Optional
