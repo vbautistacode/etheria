@@ -1244,6 +1244,14 @@ def main():
 # ---------------------------
 # Helpers: parsing de hora, geocoding e timezone
 # ---------------------------
+from datetime import time as dt_time
+from datetime import datetime
+from typing import Optional, Tuple
+from dateutil import parser as dateutil_parser  # type: ignore
+from timezonefinder import TimezoneFinder  # type: ignore
+from geopy.geocoders import Nominatim  # type: ignore
+from geopy.extra.rate_limiter import RateLimiter  # type: ignore
+import os
 import logging
 logger = logging.getLogger(__name__) # type: ignore
 
