@@ -1425,7 +1425,7 @@ def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float],
 
         return lat_manual, lon_manual, tz_manual, None
 
-def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]: # type: ignore
+def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]:
     """
     Constrói um datetime timezone-aware a partir de date, time e tz_name (IANA).
     Retorna None se não for possível.
