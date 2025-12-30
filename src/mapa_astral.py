@@ -8,6 +8,9 @@ import json
 import pytz
 import plotly.graph_objects as go
 import streamlit as st
+from __future__ import annotations
+from datetime import datetime, date, time as dt_time
+from datetime import datetime, date, time as dtime
 from typing import Optional
 from etheria.astrology import SIGNS
 
@@ -27,9 +30,7 @@ def main():
         "Pluto": "#ff0000",
         "default": "#888888"
     }
-
-    from datetime import datetime, date, time as dt_time
-    from datetime import datetime, date, time as dtime
+ 
     from typing import Tuple, Optional, Dict, Any, List
     from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
     from pathlib import Path
