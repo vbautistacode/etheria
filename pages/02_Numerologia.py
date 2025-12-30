@@ -575,17 +575,14 @@ with tab_num:
 
     # garantir session_state básicos (uma única vez)
     st.session_state.setdefault("full_name", "")
-    st.session_state.setdefault("dob", date(1990, 4, 25))
+    st.session_state.setdefault("dob", date(2026, 1, 1))
     st.session_state.setdefault("num_keep_masters", True)
 
     # chaves locais para inputs visíveis nesta aba (evitam conflito com sidebar)
     st.session_state.setdefault("num_full_name", st.session_state.get("full_name", ""))
-    st.session_state.setdefault("num_dob", st.session_state.get("dob", date(1990, 4, 25)))
+    st.session_state.setdefault("num_dob", st.session_state.get("dob", date(2026, 1, 1)))
 
     # Input visível (opcional). Se preferir oculto, comente estas linhas.
-    # full_name_input = st.text_input("Nome completo", value=st.session_state.get("num_full_name", ""), key="num_full_name_input")
-    # dob_input = st.date_input("Data de nascimento", value=st.session_state.get("num_dob", date(1990, 4, 25)), key="num_dob_input")
-
     # checkbox (usar chave única)
     keep_masters = st.checkbox(
         "Preservar números mestres (11,22,33,...)",
