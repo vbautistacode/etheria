@@ -1639,6 +1639,9 @@ with st.sidebar:
 
         submitted = st.form_submit_button("Gerar Mapa")
 
+from datetime import time
+from typing import Optional
+
 def parse_time_string(time_string: Optional[str]) -> Optional[time]:
     """
     Converte uma string em datetime.time.
@@ -1661,7 +1664,7 @@ def parse_time_string(time_string: Optional[str]) -> Optional[time]:
         return None
     if not (0 <= h < 24 and 0 <= m < 60 and 0 <= sec < 60):
         return None
-    return datetime.time(hour=h, minute=m, second=sec)
+    return time(hour=h, minute=m, second=sec)
 
 # após o form_submit_button
 if submitted:
