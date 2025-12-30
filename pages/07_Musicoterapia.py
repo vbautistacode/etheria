@@ -12,17 +12,16 @@ st.markdown(
     relaxamento ou foco. Sugestões de playlists, obras clássicas e sessões guiadas.
     """
 )
-st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # ---------------------------
 # Dados iniciais de faixas (textos de efeito enriquecidos)
 # ---------------------------
 TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
-Ondas Suaves,Sons da Natureza,Relaxamento,"Calmante; ondas contínuas que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
-Batida Alfa,Ambiente,Foco,"Estimula concentração; batidas regulares que ajudam a sincronizar atenção e reduzir distrações",https://www.youtube.com/watch?v=p2_zDvtPQ-g
-Tonalidade Terra,Sons Amadeirados,Aterramento,"Estabiliza; timbres graves e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
-Cascata Noturna,Sons da Natureza,Sono,"Induz relaxamento profundo; camadas sonoras suaves que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
-Ritmo Vital,Trilhas Energéticas,Energia,"Aumenta vigor; ritmos ascendentes e percussão leve para ativar corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
+Ondas Suaves,Sons da Natureza,Relaxamento,"Calmante; ondas contínuas e texturas suaves que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
+Batida Alfa,Ambiente,Foco,"Estimula concentração; batidas regulares e frequências alfa que ajudam a sincronizar atenção e reduzir distrações",https://www.youtube.com/watch?v=p2_zDvtPQ-g
+Tonalidade Terra,Sons Amadeirados,Aterramento,"Estabiliza; timbres graves, harmônicos terrosos e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
+Cascata Noturna,Sons da Natureza,Sono,"Induz relaxamento profundo; camadas sonoras suaves e ruído branco filtrado que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
+Ritmo Vital,Trilhas Energéticas,Energia,"Aumenta vigor; ritmos ascendentes, percussão leve e linhas melódicas que ativam corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
@@ -157,18 +156,18 @@ PLANET_MUSIC_EXPLANATIONS = {
 # Mapeamentos por signo/planeta (conteúdo melhorado)
 # ---------------------------
 SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital", "Toccata and Fugue"],            # ação, coragem, impulso
-    "Touro": ["Tonalidade Terra", "Piano Concerto No.23"],   # estabilidade, conforto, beleza sensorial
-    "Gêmeos": ["Batida Alfa", "Brandenburg Concerto No.3"],  # agilidade mental, leveza e movimento
-    "Câncer": ["Cascata Noturna", "Ondas Suaves"],          # acolhimento, segurança emocional
-    "Leão": ["Ritmo Vital", "Symphony No.9"],               # presença, brilho, expressão
-    "Virgem": ["Batida Alfa", "Prelude in B"],              # foco prático, ordem e clareza
-    "Libra": ["Tonalidade Terra", "Violin Concerto No.5"],  # harmonia, equilíbrio estético
-    "Escorpião": ["Symphony No.5", "Chaconne (Partita No.2)"], # profundidade, intensidade transformadora
-    "Sagitário": ["Ritmo Vital", "Symphony No.41 (Jupiter)"], # expansão, aventura e otimismo
-    "Capricórnio": ["Tonalidade Terra", "Brandenburg Concerto No.3"], # disciplina, estrutura
-    "Aquário": ["Batida Alfa", "Ride of the Valkyries"],    # inovação, surpresa e movimento coletivo
-    "Peixes": ["Ondas Suaves", "Prelude in E minor"]        # sensibilidade, imaginação e sonho
+    "Áries": ["Ritmo Vital"],            # ação, coragem, impulso
+    "Touro": ["Tonalidade Terra"],   # estabilidade, conforto, beleza sensorial
+    "Gêmeos": ["Batida Alfa"],  # agilidade mental, leveza e movimento
+    "Câncer": ["Cascata Noturna"],          # acolhimento, segurança emocional
+    "Leão": ["Ritmo Vital"],               # presença, brilho, expressão
+    "Virgem": ["Batida Alfa"],              # foco prático, ordem e clareza
+    "Libra": ["Tonalidade Terra"],  # harmonia, equilíbrio estético
+    "Escorpião": ["Symphony No.5"], # profundidade, intensidade transformadora
+    "Sagitário": ["Ritmo Vital"], # expansão, aventura e otimismo
+    "Capricórnio": ["Tonalidade Terra"], # disciplina, estrutura
+    "Aquário": ["Batida Alfa"],    # inovação, surpresa e movimento coletivo
+    "Peixes": ["Ondas Suaves"]        # sensibilidade, imaginação e sonho
 }
 
 # Planet_To_Tracks agora reflete categorias/regentes de cada signo
@@ -313,23 +312,45 @@ with col2:
             else:
                 st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
 
+            # ---------------------------
             # Detalhes (omitindo 'Key' e 'Fonte') com fallbacks para Categoria/Efeito
+            # ---------------------------
+            def format_effect_text(category: str, effect: str) -> str:
+                """
+                Retorna um texto enriquecido combinando categoria e efeito.
+                - category: rótulo curto (ex.: 'Energia', 'Relaxamento')
+                - effect: descrição mais longa (pode conter ponto-e-vírgula para separar frases)
+                """
+                cat = (category or "").strip()
+                eff = (effect or "").strip()
+                if ';' in eff:
+                    parts = [p.strip().capitalize() for p in eff.split(';') if p.strip()]
+                    eff_text = " ".join(p if p.endswith('.') else p + '.' for p in parts)
+                else:
+                    eff_text = eff if eff.endswith('.') else (eff + '.') if eff else ""
+                if cat:
+                    return f"**Categoria:** {cat}\n\n**Efeito:** {eff_text}"
+                else:
+                    return f"**Efeito:** {eff_text}" if eff_text else ""
+
             st.markdown("**Detalhes da faixa**")
             title = (row.get('Título') or "").strip()
             artist = (row.get('Artista/Coleção') or row.get('Composer') or "").strip()
-            category = (row.get('Categoria') or row.get('Composer') or row.get('Work') or "").strip()
-            effect = (row.get('Efeito') or row.get('Work') or "").strip()
+            category = (row.get('Categoria') or "").strip()
+            effect = (row.get('Efeito') or "").strip()
             tonic = (row.get('Tonic') or "").strip()
             planet_for_piece = (row.get('Planet') or "").strip()
+
+            st.markdown(f"**{title}** — *{artist}*")
+
+            # mostra categoria e efeito enriquecido como bloco de texto
+            effect_block = format_effect_text(category, effect)
+            if effect_block:
+                st.markdown(effect_block)
 
             def show_if(value):
                 return value is not None and str(value).strip() != "" and str(value).strip().lower() != "nan"
 
-            st.markdown(f"**{title}** — *{artist}*")
-            if show_if(category):
-                st.markdown(f"- **Categoria:** {category}")
-            if show_if(effect):
-                st.markdown(f"- **Efeito:** {effect}")
             if show_if(tonic):
                 st.markdown(f"- **Tônica (nota):** {tonic}")
             if show_if(planet_for_piece) and planet_for_piece != "—":
