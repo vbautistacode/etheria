@@ -1,44 +1,84 @@
-# pages/mapa_astral.py
 from __future__ import annotations
-from ast import Dict
+
+"""pages/mapa_astral.py — Mapa astral (corrigido: imports e PROJECT_ROOT no topo)."""
+
 import logging
-import importlib, os, sys, traceback
+import os
+import sys
+import importlib
+import traceback
 import json
-import pytz
-import plotly.graph_objects as go
-import streamlit as st
+from pathlib import Path
 from datetime import datetime, date, time as dt_time
-from datetime import datetime, date, time as dtime
-from typing import Optional
-from etheria import astrology
-from etheria.astrology import SIGNS
-from etheria.services.generator_service import generate_analysis
+from typing import Optional, Tuple, Dict, Any, List
+
+import streamlit as st
+
+# Optional third-party libs (guarded)
+try:
+    import pytz  # type: ignore
+except Exception:
+    pytz = None  # type: ignore
+
+# Project root and sys.path (definidos no nível do módulo)
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Logger no nível do módulo
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Imports do projeto (tente importar no topo; use fallbacks se necessário)
+try:
+    from etheria import astrology, influences, rules, interpretations  # type: ignore
+    from etheria.astrology import SIGNS, positions_table, compute_aspects  # type: ignore
+except Exception:
+    # placeholders para evitar NameError; funções reais podem ser importadas com fallback
+    astrology = influences = rules = interpretations = None  # type: ignore
+    SIGNS = []
+    positions_table = compute_aspects = None  # type: ignore
+
+# Tentativa robusta de importar serviços opcionais
+try:
+    from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart  # type: ignore
+except Exception:
+    generate_analysis = generate_ai_text_from_chart = None
+
+try:
+    from services.swisseph_client import natal_positions  # type: ignore
+except Exception:
+    natal_positions = None
+
+# Geocoding/timezone libs detection (guarded)
+try:
+    from geopy.geocoders import Nominatim  # type: ignore
+    from geopy.extra.rate_limiter import RateLimiter  # type: ignore
+    GEOCODE_AVAILABLE = True
+except Exception:
+    GEOCODE_AVAILABLE = False
 
 def main():
+    # variáveis de fallback e session_state
+    st.session_state.setdefault("house_system", "P")
+    st.session_state.setdefault("map_ready", False)
+    st.session_state.setdefault("lat_manual", -23.6636)
+    st.session_state.setdefault("lon_manual", -46.5381)
+    st.session_state.setdefault("tz_manual", "America/Sao_Paulo")
 
-    PROJECT_ROOT = Path(__file__).resolve().parents[1]
-    if str(PROJECT_ROOT) not in sys.path:
-        sys.path.insert(0, str(PROJECT_ROOT))
-
-    # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
+    # cores por grupo / planeta
     GROUP_COLORS = globals().get("GROUP_COLORS") or {
-        "Sun": "#FF8800",
-        "Moon": "#3e54d4",
-        "Mercury": "#e7d912",
-        "Venus": "#2fbdf5",
-        "Mars": "#d62728",
-        "Jupiter": "#9467bd",
-        "Saturn": "#53c232",
-        "Uranus": "#ffd900",
-        "Neptune": "#00a2ff",
-        "Pluto": "#ff0000",
-        "default": "#888888"
+        "Sun": "#FF8800", "Moon": "#3e54d4", "Mercury": "#e7d912",
+        "Venus": "#2fbdf5", "Mars": "#d62728", "Jupiter": "#9467bd",
+        "Saturn": "#53c232", "Uranus": "#ffd900", "Neptune": "#00a2ff",
+        "Pluto": "#ff0000", "default": "#888888"
     }
- 
-    from typing import Tuple, Optional, Dict, Any, List
-    from etheria.services.generator_service import generate_ai_text_from_chart as generate_interpretation
-    from pathlib import Path
-    from etheria import influences
+
+    # imports locais opcionais (se realmente necessários)
+    try:
+        from etheria.services.astro_service import geocode_place, get_timezone_from_coords  # type: ignore
+    except Exception:
+        geocode_place = get_timezone_from_coords = None
 
     try:
         summary  # type: ignore
