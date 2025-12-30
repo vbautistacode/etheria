@@ -16,6 +16,10 @@ from etheria.services.generator_service import generate_analysis
 
 def main():
 
+    PROJECT_ROOT = Path(__file__).resolve().parents[1]
+    if str(PROJECT_ROOT) not in sys.path:
+        sys.path.insert(0, str(PROJECT_ROOT))
+
     # cores por grupo / planeta (chaves em canonical EN ou nomes usados no código)
     GROUP_COLORS = globals().get("GROUP_COLORS") or {
         "Sun": "#FF8800",
@@ -81,11 +85,6 @@ def main():
     except Exception:
         # fallback seguro: usar gname cru
         key = gname
-
-    # Ajuste: pages/mapa_astral.py -> parents[1] aponta para a pasta 'etheria' que contém 'services'
-    PROJECT_ROOT = Path(__file__).resolve().parents[1]
-    if str(PROJECT_ROOT) not in sys.path:
-        sys.path.insert(0, str(PROJECT_ROOT))
     
     from datetime import datetime, date, time as dt_time
     from typing import Optional, Tuple, Dict, Any
