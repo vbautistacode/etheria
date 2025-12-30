@@ -269,7 +269,6 @@ def main():
 
     # Importações do projeto (ajuste conforme sua estrutura)
     from services.swisseph_client import natal_positions
-    import importlib, os, sys, traceback
 
     fetch_natal_chart = None
     APIClientError = None
