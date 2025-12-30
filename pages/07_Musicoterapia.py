@@ -20,12 +20,16 @@ st.markdown(
 # ---------------------------
 @st.cache_data
 def load_tracks_csv():
+    # TRACKS_CSV com apenas 4 categorias (elementos): Água, Fogo, Terra, Ar
     TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
-Ondas Suaves,Sons da Natureza,Relaxamento,"Calmante; ondas contínuas e texturas suaves que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
-Batida Alfa,Ambiente,Foco,"Estimula concentração; batidas regulares e frequências alfa que ajudam a sincronizar atenção e reduzir distrações",https://www.youtube.com/watch?v=p2_zDvtPQ-g
-Tonalidade Terra,Sons Terrosos,Aterramento,"Estabiliza; timbres graves, harmônicos terrosos e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
-Cascata Noturna,Sons da Natureza,Sono,"Induz relaxamento profundo; camadas sonoras suaves e ruído branco filtrado que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
-Ritmo Vital,Trilhas Energéticas,Energia,"Aumenta vigor; ritmos ascendentes, percussão leve e linhas melódicas que ativam corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
+Ondas Suaves,Sons da Natureza,Água,"Calmante; texturas aquáticas e camadas suaves que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
+Cascata Noturna,Sons da Natureza,Água,"Induz relaxamento profundo; ruído branco filtrado e camadas suaves que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
+Batida Alfa,Ambiente,Fogo,"Estimula concentração; batidas regulares e frequências que aumentam energia e foco",https://www.youtube.com/watch?v=p2_zDvtPQ-g
+Ritmo Vital,Trilhas Energéticas,Fogo,"Aumenta vigor; ritmos ascendentes e percussão leve para ativar corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
+Tonalidade Terra,Sons Terrosos,Terra,"Aterramento; timbres graves e harmônicos terrosos que promovem sensação de estabilidade",https://www.youtube.com/watch?v=MIo9jbjbO7o
+Sons do Solo,Sons Terrosos,Terra,"Apoia aterramento; texturas orgânicas e graves que ajudam a estabilizar o sistema nervoso",https://www.youtube.com/watch?v=NHUJ4upi6Q8
+Brisa Leve,Sons Atmosféricos,Ar,"Clareza mental; pads leves e texturas arejadas que facilitam circulação de ideias",https://www.youtube.com/watch?v=--h6buReAvw
+Vento Claro,Sons Atmosféricos,Ar,"Estimula criatividade; texturas cintilantes e movimentos rítmicos que clareiam o pensamento",https://www.youtube.com/watch?v=CYpl431hPGk
 """
     return pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
@@ -145,6 +149,23 @@ def make_label(row):
 tracks_df['_label'] = tracks_df.apply(make_label, axis=1)
 
 # ---------------------------
+# Elementos e mapeamentos astrológicos
+# ---------------------------
+SIGN_TO_ELEMENT = {
+    "Áries": "Fogo", "Leão": "Fogo", "Sagitário": "Fogo",
+    "Touro": "Terra", "Virgem": "Terra", "Capricórnio": "Terra",
+    "Gêmeos": "Ar", "Libra": "Ar", "Aquário": "Ar",
+    "Câncer": "Água", "Escorpião": "Água", "Peixes": "Água"
+}
+
+ELEMENT_EXPLANATIONS = {
+    "Água": "Água — introspecção, sensibilidade e acolhimento; sons fluidos, texturas suaves e ambientes imersivos.",
+    "Fogo": "Fogo — ação, vigor e presença; ritmos dinâmicos, percussão e linhas ascendentes que ativam.",
+    "Terra": "Terra — estabilidade, enraizamento e segurança; timbres graves, texturas orgânicas e harmônicos terrosos.",
+    "Ar": "Ar — clareza mental, comunicação e leveza; pads arejados, texturas cintilantes e movimentos rítmicos leves."
+}
+
+# ---------------------------
 # Explicações resumidas por planeta (para UI)
 # ---------------------------
 PLANET_MUSIC_EXPLANATIONS = {
@@ -158,83 +179,56 @@ PLANET_MUSIC_EXPLANATIONS = {
 }
 
 # ---------------------------
-# Mapeamentos por signo/planeta (conteúdo melhorado)
-# ---------------------------
-SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital"],
-    "Touro": ["Tonalidade Terra"],
-    "Gêmeos": ["Batida Alfa"],
-    "Câncer": ["Cascata Noturna"],
-    "Leão": ["Ritmo Vital"],
-    "Virgem": ["Batida Alfa"],
-    "Libra": ["Tonalidade Terra"],
-    "Escorpião": ["Symphony No.5"],
-    "Sagitário": ["Ritmo Vital"],
-    "Capricórnio": ["Tonalidade Terra"],
-    "Aquário": ["Batida Alfa"],
-    "Peixes": ["Ondas Suaves"]
-}
-
-# Planet_To_Tracks reflete categorias/regentes de cada signo
-PLANET_TO_TRACKS = {
-    "Sol": ["Ritmo Vital", "Symphony No.9", "Piano Concerto No.23"],
-    "Lua": ["Cascata Noturna", "Ondas Suaves", "Prelude in E minor"],
-    "Marte": ["Ritmo Vital", "Toccata and Fugue", "Symphony No.5"],
-    "Vênus": ["Tonalidade Terra", "Violin Concerto No.5", "Piano Concerto No.23"],
-    "Mercúrio": ["Batida Alfa", "Brandenburg Concerto No.3", "Symphony No.3 (Eroica)"],
-    "Júpiter": ["Symphony No.41 (Jupiter)", "Ondas Suaves", "Symphony No.6 (Pastoral)"],
-    "Saturno": ["Brandenburg Concerto No.3", "Tonalidade Terra", "Chaconne (Partita No.2)"],
-    "Netuno": ["Ondas Suaves", "Chaconne (Partita No.2)"],
-    "Urano": ["Ride of the Valkyries", "Batida Alfa"],
-    "Plutão": ["Symphony No.5", "Chaconne (Partita No.2)"]
-}
-
-# ---------------------------
-# Interface lateral: filtros
+# Interface lateral: filtros (inclui elemento)
 # ---------------------------
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio(
     "Modo de consulta",
-    ["Por signo", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
+    ["Por signo", "Por elemento", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
 )
 
 # variáveis de controle
-sign = planet = note = mapped_planet = intent = query = None
+sign = planet = element = note = mapped_planet = intent = query = None
 suggested = []
 
 if mode == "Por signo":
-    sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_TRACKS.keys()))
-    suggested = SIGN_TO_TRACKS.get(sign, [])
+    sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_ELEMENT.keys()))
+    element = SIGN_TO_ELEMENT.get(sign)
+elif mode == "Por elemento":
+    element = st.sidebar.selectbox("Selecione o elemento", ["Água", "Fogo", "Terra", "Ar"])
 elif mode == "Por planeta":
-    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(set(PLANET_TO_TRACKS.keys()))))
-    suggested = PLANET_TO_TRACKS.get(planet, [])
+    planet = st.sidebar.selectbox("Selecione o planeta", sorted(list(PLANET_MUSIC_EXPLANATIONS.keys())))
 elif mode == "Por nota":
     note = st.sidebar.selectbox("Escolha a nota (solfejo)", list(NOTE_TO_PLANET_SHORT.keys()))
     mapped_planet = NOTE_TO_PLANET_SHORT.get(note)
-    suggested = PLANET_TO_TRACKS.get(mapped_planet, [])
 elif mode == "Por intenção / uso":
     intent = st.sidebar.selectbox("Escolha a intenção", ["Relaxamento","Foco","Sono","Aterramento","Energia"])
 else:
     query = st.sidebar.text_input("Busca livre (título, compositor, categoria)")
 
 # ---------------------------
-# Prepara df_display com filtros aplicados
+# Prepara df_display com filtros aplicados (agora por elemento/signo)
 # ---------------------------
 df_display = tracks_df.copy()
 
-if mode == "Por signo" and suggested:
-    df_display = df_display[df_display["Título"].isin(suggested)]
-elif mode == "Por planeta" and suggested:
-    df_display = df_display[df_display["Título"].isin(suggested)]
-elif mode == "Por nota" and suggested:
-    df_display = df_display[df_display["Título"].isin(suggested)]
+if mode == "Por signo" and element:
+    df_display = df_display[df_display["Categoria"] == element]
+elif mode == "Por elemento" and element:
+    df_display = df_display[df_display["Categoria"] == element]
+elif mode == "Por planeta" and planet:
+    # usa PLANET_MUSIC_EXPLANATIONS keys como lista de planetas; tenta mapear títulos por planeta se houver
+    # aqui mantemos filtro por títulos associados a planetas (se desejar, pode mapear PLANET_TO_TRACKS)
+    df_display = df_display  # sem filtro específico por planeta no catálogo elemental
+elif mode == "Por nota" and mapped_planet:
+    # tenta usar classical_df mapeado por tônica/planeta (se houver)
+    df_display = df_display  # manter catálogo; planetas clássicos aparecem nas obras concatenadas
 elif mode == "Por intenção / uso":
     if intent == "Relaxamento":
-        df_display = df_display[df_display["Categoria"].str.contains("Relaxamento|Natureza|Sono", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Água|Relaxamento|Natureza|Sono", case=False, na=False)]
     elif intent == "Foco":
-        df_display = df_display[df_display["Categoria"].str.contains("Foco|Ambiente|Concentração", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Fogo|Foco|Ambiente|Concentração", case=False, na=False)]
     elif intent == "Sono":
-        df_display = df_display[df_display["Categoria"].str.contains("Sono|Relaxamento", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Água|Sono|Relaxamento", case=False, na=False)]
 else:
     if mode == "Busca livre / tabela" and query:
         q = query.strip().lower()
@@ -252,27 +246,34 @@ with col1:
     st.subheader("Resumo")
     if mode == "Por signo":
         st.markdown(f"**Signo:** {sign}")
-        st.markdown("**Faixas sugeridas:**")
-        for t in suggested:
+        st.markdown(f"**Elemento (quadruplicidade):** {element}")
+        st.markdown("**Faixas sugeridas (por elemento):**")
+        for t in df_display["Título"].unique().tolist():
             st.write(f"- {t}")
+        if element:
+            expl = ELEMENT_EXPLANATIONS.get(element)
+            if expl:
+                st.markdown("---")
+                st.markdown(f"**Sobre o elemento {element}:**")
+                st.markdown(expl)
+    elif mode == "Por elemento":
+        st.markdown(f"**Elemento:** {element}")
+        st.markdown("**Faixas na categoria:**")
+        for t in df_display["Título"].unique().tolist():
+            st.write(f"- {t}")
+        if element:
+            expl = ELEMENT_EXPLANATIONS.get(element)
+            if expl:
+                st.markdown("---")
+                st.markdown(f"**Sobre o elemento {element}:**")
+                st.markdown(expl)
     elif mode == "Por planeta":
         st.markdown(f"**Planeta:** {planet}")
-        st.markdown("**Faixas associadas:**")
-        for t in suggested:
-            st.write(f"- {t}")
+        st.markdown("**Observação:** selecione obras na tabela à direita; obras clássicas têm mapeamento tônica→planeta.")
     elif mode == "Por nota":
         st.markdown(f"**Nota selecionada:** {note}")
         st.markdown(f"**Planeta correspondente:** {mapped_planet}")
-        st.markdown("**Faixas sugeridas (pelo planeta):**")
-        for t in suggested:
-            st.write(f"- {t}")
-        st.markdown("---")
-        st.markdown("**Como usar a correspondência nota→planeta**")
-        st.markdown(
-            "- Use a nota correspondente ao planeta para criar exercícios tonais curtos.\n"
-            "- Por exemplo, tocar ou ouvir faixas centradas em Dó (Marte) para vigor e ação.\n"
-            "- Combine com intenção (foco, relaxamento) para modular o efeito."
-        )
+        st.markdown("**Observação:** obras clássicas concatenadas podem exibir tônica/planeta.")
     elif mode == "Por intenção / uso":
         st.markdown(f"**Intenção:** {intent}")
     else:
@@ -297,7 +298,6 @@ with col2:
     if labels:
         sel_label = st.selectbox("Escolha uma faixa/obra", [""] + labels, key="track_select")
         if sel_label:
-            # encontra a primeira linha que corresponde ao rótulo selecionado
             row = df_display[df_display['_label'] == sel_label].iloc[0]
 
             # Player (renderiza se houver URL)
@@ -320,7 +320,7 @@ with col2:
                 else:
                     eff_text = eff if eff.endswith('.') else (eff + '.') if eff else ""
                 if cat:
-                    return f"**Categoria:** {cat}\n\n**Efeito:** {eff_text}"
+                    return f"**Categoria (Elemento):** {cat}\n\n**Efeito:** {eff_text}"
                 else:
                     return f"**Efeito:** {eff_text}" if eff_text else ""
 
@@ -334,7 +334,7 @@ with col2:
 
             st.markdown(f"**{title}** — *{artist}*")
 
-            # mostra categoria e efeito enriquecido como bloco de texto
+            # mostra categoria (elemento) e efeito enriquecido como bloco de texto
             effect_block = format_effect_text(category, effect)
             if effect_block:
                 st.markdown(effect_block)
@@ -373,7 +373,7 @@ with st.expander("Correspondência Nota → Planeta"):
 st.markdown("---")
 st.markdown(
     "**Observações:**\n\n"
-    "- Para foco: experimente faixas em tonalidades com notas associadas a Mercúrio (Mi) ou Sol (Ré).\n"
-    "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
-    "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
+    "- As faixas agora usam apenas as quatro categorias elementares (Água, Fogo, Terra, Ar).\n"
+    "- Ao escolher um signo, o app infere o elemento correspondente e filtra as faixas por essa categoria.\n"
+    "- Se quiser, posso: (a) mapear obras clássicas automaticamente para elementos; (b) adicionar subcategorias (ex.: 'clássico', 'ambiente') dentro de cada elemento; (c) gerar rótulos unívocos que incluam o elemento no selectbox."
 )
