@@ -1636,8 +1636,29 @@ with st.sidebar:
 
         submitted = st.form_submit_button("Gerar Mapa")
 
-def parse_time_string(time_string):
-    raise NotImplementedError
+def parse_time_string(time_string: Optional[str]) -> Optional[time]:
+    """
+    Converte uma string em datetime.time.
+    Aceita formatos: HH:MM ou HH:MM:SS.
+    Retorna None se a string for vazia ou inválida.
+    """
+    if not time_string:
+        return None
+    s = str(time_string).strip()
+    try:
+        parts = [int(p) for p in s.split(":")]
+    except Exception:
+        return None
+    if len(parts) == 2:
+        h, m = parts
+        sec = 0
+    elif len(parts) == 3:
+        h, m, sec = parts
+    else:
+        return None
+    if not (0 <= h < 24 and 0 <= m < 60 and 0 <= sec < 60):
+        return None
+    return time(hour=h, minute=m, second=sec)
 
 # após o form_submit_button
 if submitted:
