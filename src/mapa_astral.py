@@ -1434,734 +1434,734 @@ def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Op
     dt_local = dt_naive.replace(tzinfo=tz)
     return dt_local
 
-    # -------------------------
-    # UI: formulário lateral
-    # -------------------------
-    PAGE_ID = "mapa_astral"  # identifique a página; troque se necessário
+# -------------------------
+# UI: formulário lateral
+# -------------------------
+PAGE_ID = "mapa_astral"  # identifique a página; troque se necessário
 
-    st.sidebar.header("Entrada do Consulente")
-    with st.sidebar:
-        form_key = f"birth_form_sidebar_{PAGE_ID}"
-        with st.form(key=form_key, border=False):
-            name = st.text_input("Nome", value="")
-            place = st.text_input(
-                "Local de nascimento",
-                value="São Paulo, São Paulo, Brasil"
-            )
-            bdate = st.date_input(
-                "Data de nascimento",
-                value=date(2026, 1, 1),
-                min_value=date(1900, 1, 1),
-                max_value=date(2100, 12, 31)
-            )
-            btime_free = st.text_input(
-                "Hora de nascimento (ex.: 00:00)",
-                value=""
-            )
-            source = "swisseph"
-            # Sistema de casas fixo: Placidus (código P)
-            st.session_state["house_system"] = "P"
+st.sidebar.header("Entrada do Consulente")
+with st.sidebar:
+    form_key = f"birth_form_sidebar_{PAGE_ID}"
+    with st.form(key=form_key, border=False):
+        name = st.text_input("Nome", value="")
+        place = st.text_input(
+            "Local de nascimento",
+            value="São Paulo, São Paulo, Brasil"
+        )
+        bdate = st.date_input(
+            "Data de nascimento",
+            value=date(2026, 1, 1),
+            min_value=date(1900, 1, 1),
+            max_value=date(2100, 12, 31)
+        )
+        btime_free = st.text_input(
+            "Hora de nascimento (ex.: 00:00)",
+            value=""
+        )
+        source = "swisseph"
+        # Sistema de casas fixo: Placidus (código P)
+        st.session_state["house_system"] = "P"
 
-            st.caption("### Controles")
-            use_ai = st.checkbox(
-                "Usar IA para interpretações?",
-                value=False,
-                help="Gera interpretações astrológicas via IA generativa proprietária."
-            )
+        st.caption("### Controles")
+        use_ai = st.checkbox(
+            "Usar IA para interpretações?",
+            value=False,
+            help="Gera interpretações astrológicas via IA generativa proprietária."
+        )
 
-            submitted = st.form_submit_button("Gerar Mapa")
+        submitted = st.form_submit_button("Gerar Mapa")
 
-    # -------------------------
-    # Processamento após submit
-    # -------------------------
-    if submitted:
-        st.sidebar.success("Mapa gerado com sucesso!")
-        # 1) Normalizar e validar hora (obrigatória)
-        parsed_time = _parse_time_string(btime_free)
-        if parsed_time is None:
-            st.error("Hora de nascimento inválida ou não informada. Por favor informe no formato 'HH:MM' ou '2:30 PM'.")
+# -------------------------
+# Processamento após submit
+# -------------------------
+if submitted:
+    st.sidebar.success("Mapa gerado com sucesso!")
+    # 1) Normalizar e validar hora (obrigatória)
+    parsed_time = _parse_time_string(btime_free)
+    if parsed_time is None:
+        st.error("Hora de nascimento inválida ou não informada. Por favor informe no formato 'HH:MM' ou '2:30 PM'.")
+    else:
+        btime = parsed_time  # datetime.time
+
+        # 2) Resolver local/coords/timezone
+        lat, lon, tz_name, address = _resolve_place_and_tz(place)
+        # salvar valores resolvidos na sessão para reutilização
+        if lat is not None:
+            st.session_state["lat"] = lat
+        if lon is not None:
+            st.session_state["lon"] = lon
+        if tz_name:
+            st.session_state["tz_name"] = tz_name
+        if address:
+            st.session_state["address"] = address
+
+        # 3) Validar lat/lon
+        if lat is None or lon is None:
+            st.warning("Latitude/Longitude não resolvidas automaticamente. Informe manualmente ou corrija o local.")
+            # não prosseguir com cálculo local; permitir que usuário corrija
+        elif not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            st.error("Latitude/Longitude inválidas. Corrija os valores antes de gerar o mapa.")
         else:
-            btime = parsed_time  # datetime.time
+            # 4) Construir datetime local (timezone-aware preferencialmente)
+            try:
+                dt_local = to_local_datetime(bdate, btime, tz_name)
+                if dt_local is None:
+                    raise ValueError("to_local_datetime retornou None")
+            except Exception as e:
+                logger.warning("to_local_datetime falhou: %s", e)
+                st.warning(f"Falha ao aplicar timezone '{tz_name}'. Verifique o timezone. Não será possível calcular posições precisas sem timezone.")
+                dt_local = None
 
-            # 2) Resolver local/coords/timezone
-            lat, lon, tz_name, address = _resolve_place_and_tz(place)
-            # salvar valores resolvidos na sessão para reutilização
-            if lat is not None:
-                st.session_state["lat"] = lat
-            if lon is not None:
-                st.session_state["lon"] = lon
-            if tz_name:
-                st.session_state["tz_name"] = tz_name
-            if address:
-                st.session_state["address"] = address
-
-            # 3) Validar lat/lon
-            if lat is None or lon is None:
-                st.warning("Latitude/Longitude não resolvidas automaticamente. Informe manualmente ou corrija o local.")
-                # não prosseguir com cálculo local; permitir que usuário corrija
-            elif not (-90 <= lat <= 90 and -180 <= lon <= 180):
-                st.error("Latitude/Longitude inválidas. Corrija os valores antes de gerar o mapa.")
-            else:
-                # 4) Construir datetime local (timezone-aware preferencialmente)
-                try:
-                    dt_local = to_local_datetime(bdate, btime, tz_name)
+            # 5) Obter posições (swisseph ou API)
+            planets = {}
+            cusps = []
+            data = None
+            try:
+                if source == "api":
                     if dt_local is None:
-                        raise ValueError("to_local_datetime retornou None")
-                except Exception as e:
-                    logger.warning("to_local_datetime falhou: %s", e)
-                    st.warning(f"Falha ao aplicar timezone '{tz_name}'. Verifique o timezone. Não será possível calcular posições precisas sem timezone.")
-                    dt_local = None
-
-                # 5) Obter posições (swisseph ou API)
-                planets = {}
-                cusps = []
-                data = None
-                try:
-                    if source == "api":
-                        if dt_local is None:
-                            st.error("Não é possível usar a fonte 'api' sem um datetime local válido com timezone.")
-                        else:
-                            with st.spinner("Buscando mapa via API..."):
-                                data = fetch_natal_chart(name, dt_local, lat, lon, tz_name)
-                                planets = data.get("planets") or {}
-                                cusps = data.get("cusps") or []
+                        st.error("Não é possível usar a fonte 'api' sem um datetime local válido com timezone.")
                     else:
-                        if dt_local is None:
-                            st.error("Não é possível calcular localmente sem datetime timezone-aware. Ajuste o timezone.")
-                        else:
-                            with st.spinner("Calculando mapa local (swisseph)..."):
-                                data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
-                                planets = data.get("planets", {})
-                                cusps = data.get("cusps", [])
+                        with st.spinner("Buscando mapa via API..."):
+                            data = fetch_natal_chart(name, dt_local, lat, lon, tz_name)
+                            planets = data.get("planets") or {}
+                            cusps = data.get("cusps") or []
+                else:
+                    if dt_local is None:
+                        st.error("Não é possível calcular localmente sem datetime timezone-aware. Ajuste o timezone.")
+                    else:
+                        with st.spinner("Calculando mapa local (swisseph)..."):
+                            data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
+                            planets = data.get("planets", {})
+                            cusps = data.get("cusps", [])
+            except Exception as e:
+                logger.exception("Erro ao obter posições natales: %s", e)
+                st.error("Erro ao calcular posições natales. Verifique dependências (pyswisseph) ou tente a opção 'api'.")
+
+            # 6) Se obtivemos planets, gerar summary e enriquecer
+            if planets:
+                try:
+                    table = positions_table(planets)
+                    aspects = compute_aspects(planets)
+                    summary = generate_chart_summary(planets, name or "Consulente", bdate)
+                    summary["table"] = table
+                    summary["cusps"] = cusps
+                    summary["aspects"] = aspects
+                    # preencher campos úteis no summary
+                    summary.setdefault("place", place)
+                    summary.setdefault("bdate", bdate)
+                    summary.setdefault("btime", btime)
+                    summary.setdefault("lat", lat)
+                    summary.setdefault("lon", lon)
+                    summary.setdefault("timezone", tz_name)
+                    # enriquecer leituras se necessário
+                    summary = enrich_summary_with_astrology(summary)
                 except Exception as e:
-                    logger.exception("Erro ao obter posições natales: %s", e)
-                    st.error("Erro ao calcular posições natales. Verifique dependências (pyswisseph) ou tente a opção 'api'.")
+                    logger.exception("Erro ao gerar summary: %s", e)
+                    st.error("Erro ao processar dados astrológicos.")
+                    summary = None
 
-                # 6) Se obtivemos planets, gerar summary e enriquecer
-                if planets:
+                # 7) Renderizar figura e salvar em session_state
+                if summary:
                     try:
-                        table = positions_table(planets)
-                        aspects = compute_aspects(planets)
-                        summary = generate_chart_summary(planets, name or "Consulente", bdate)
-                        summary["table"] = table
-                        summary["cusps"] = cusps
-                        summary["aspects"] = aspects
-                        # preencher campos úteis no summary
-                        summary.setdefault("place", place)
-                        summary.setdefault("bdate", bdate)
-                        summary.setdefault("btime", btime)
-                        summary.setdefault("lat", lat)
-                        summary.setdefault("lon", lon)
-                        summary.setdefault("timezone", tz_name)
-                        # enriquecer leituras se necessário
-                        summary = enrich_summary_with_astrology(summary)
+                        fig = render_wheel_plotly(summary.get("planets", {}), [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else [])
+                        st.session_state["map_fig"] = fig
+                        st.session_state["map_summary"] = summary
+                        st.session_state["map_ready"] = True
+                        
                     except Exception as e:
-                        logger.exception("Erro ao gerar summary: %s", e)
-                        st.error("Erro ao processar dados astrológicos.")
-                        summary = None
+                        logger.exception("Erro ao renderizar figura: %s", e)
+                        st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")
+                        st.session_state["map_ready"] = False
+                        st.session_state["map_fig"] = None
 
-                    # 7) Renderizar figura e salvar em session_state
-                    if summary:
-                        try:
-                            fig = render_wheel_plotly(summary.get("planets", {}), [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else [])
-                            st.session_state["map_fig"] = fig
-                            st.session_state["map_summary"] = summary
-                            st.session_state["map_ready"] = True
-                            
-                        except Exception as e:
-                            logger.exception("Erro ao renderizar figura: %s", e)
-                            st.error("Falha ao desenhar o mapa. Verifique se o Plotly está disponível.")
-                            st.session_state["map_ready"] = False
-                            st.session_state["map_fig"] = None
+# --- Substituir chamadas automáticas por preparação e delegação ao botão de IA ---
+# após salvar st.session_state["map_summary"] e st.session_state["map_ready"] = True
+# NÃO chamar generate_analysis aqui. Apenas preparar e salvar summary.
 
-    # --- Substituir chamadas automáticas por preparação e delegação ao botão de IA ---
-    # após salvar st.session_state["map_summary"] e st.session_state["map_ready"] = True
-    # NÃO chamar generate_analysis aqui. Apenas preparar e salvar summary.
+# preparar preview_positions para o sidebar (usar normalize do generator_service)
+try:
+    from etheria.services import generator_service as gs
+except Exception:
+    gs = None
 
-    # preparar preview_positions para o sidebar (usar normalize do generator_service)
+    # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
+    if st.sidebar.button("Gerar interpretação IA"):
+        if not gs or not hasattr(gs, "generate_interpretation_from_summary"):
+            st.error("Serviço de geração não disponível. Verifique generator_service.")
+        else:
+            # chamar rotina que normaliza, valida, mostra prompt preview e executa com timeout
+            res = gs.generate_interpretation_from_summary(st.session_state["map_summary"], generate_analysis, timeout_seconds=60)
+            if res.get("error"):
+                st.error(res["error"])
+            else:
+                analysis_text = res.get("analysis_text") or res.get("text") or ""
+                if analysis_text:
+                    st.markdown("### Interpretação gerada")
+                    st.markdown(analysis_text)
+                else:
+                    st.info("Nenhuma interpretação retornada pelo serviço.")
+
+# -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
+
+# Recuperar summary e fig da sessão
+summary = st.session_state.get("map_summary")
+fig_saved = st.session_state.get("map_fig")
+map_ready = st.session_state.get("map_ready", False)
+
+from etheria import rules, interpretations, influences
+from etheria.utils import safe_filename
+from typing import Optional
+
+def _canonical_and_label(name: Optional[str]):
+    """
+    Retorna (canonical_name, label_pt).
+    Aceita 'Lua' ou 'Moon' e devolve ('Moon', 'Lua').
+    """
+    canonical = influences._to_canonical(name)
+    label_pt = influences.CANONICAL_TO_PT.get(canonical, canonical)
+    return canonical, label_pt
+
+# CENTER / LEFT / RIGHT layout (após geração)
+left_col, center_col,  right_col = st.columns([0.7, 2.0, 0.8])
+
+# LEFT: controles e tabela (se houver summary)
+with left_col:
+    st.markdown("### Posições")
+    import pandas as _pd
+
+    # preparar DataFrame e coluna de exibição (rótulos PT)
+    if summary:
+        df = _pd.DataFrame(summary.get("table", []))
+        if not df.empty and "planet" in df.columns:
+            df_display = df.copy()
+
+            # planet_label (PT)
+            def _planet_label_for_display(p):
+                try:
+                    return influences.planet_label_pt(influences._to_canonical(p)) if hasattr(influences, "planet_label_pt") else (influences._to_canonical(p) or p)
+                except Exception:
+                    return p or "—"
+            df_display["planet_label"] = df_display["planet"].apply(_planet_label_for_display)
+
+            # sign_label (PT) se houver coluna 'sign'
+            if "sign" in df_display.columns:
+                def _sign_label_for_display(s):
+                    try:
+                        can = influences.sign_to_canonical(s) if hasattr(influences, "sign_to_canonical") else s
+                        return influences.sign_label_pt(can) if hasattr(influences, "sign_label_pt") else (can or s or "—")
+                    except Exception:
+                        return s or "—"
+                df_display["sign_label"] = df_display["sign"].apply(_sign_label_for_display)
+        else:
+            df = _pd.DataFrame([]) if df is None else df
+            df_display = df.copy()
+            if "planet" in df_display.columns and "planet_label" not in df_display.columns:
+                df_display["planet_label"] = df_display["planet"]
+            if "sign" in df_display.columns and "sign_label" not in df_display.columns:
+                df_display["sign_label"] = df_display["sign"]
+    else:
+        df = _pd.DataFrame([])
+        df_display = df
+
+    if df_display.empty:
+        st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
+    else:
+        # montar df_to_show: esconder raw 'planet' e 'sign', mostrar labels PT
+        df_to_show = df_display.copy()
+
+        # preferir planet_label e sign_label para exibição
+        if "planet_label" in df_to_show.columns:
+            df_to_show = df_to_show.drop(columns=["planet"], errors="ignore")
+            df_to_show = df_to_show.rename(columns={"planet_label": "Planeta"})
+        if "sign_label" in df_to_show.columns:
+            df_to_show = df_to_show.drop(columns=["sign"], errors="ignore")
+            df_to_show = df_to_show.rename(columns={"sign_label": "Signo"})
+
+        # normalizar nomes de colunas internas para exibição consistente
+        # Degree <- degree, House <- house
+        if "degree" in df_to_show.columns and "Graus" not in df_to_show.columns:
+            df_to_show = df_to_show.rename(columns={"degree": "Graus"})
+        if "house" in df_to_show.columns and "Casa" not in df_to_show.columns:
+            df_to_show = df_to_show.rename(columns={"house": "Casa"})
+
+        # selecionar apenas as colunas que queremos mostrar no expander, na ordem desejada
+        cols_to_show = []
+        for c in ["Planeta", "Signo", "Casa", "Graus"]:
+            if c in df_to_show.columns:
+                cols_to_show.append(c)
+
+        # se nenhuma das colunas esperadas existir, mostrar o dataframe completo como fallback
+        if not cols_to_show:
+            df_exp = df_to_show.copy()
+        else:
+            df_exp = df_to_show[cols_to_show].copy()
+
+        # colocar dentro de um expander para esconder/mostrar
+        with st.expander("Tabela de posições", expanded=False):
+            st.dataframe(df_exp, use_container_width=True, height=300)
+
+    # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
+    label_list = []
+    label_to_raw = {}
+
+    if not df_display.empty and "planet_label" in df_display.columns:
+        raw_planets = list(df_display["planet"].values)
+        planet_labels = list(df_display["planet_label"].values)
+
+        for raw, plab in zip(raw_planets, planet_labels):
+            lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
+            label_list.append(lab)
+            label_to_raw[lab] = raw
+    elif not df_display.empty and "planet" in df_display.columns:
+        # fallback: usar raw como label
+        label_list = list(df_display["planet"].values)
+        label_to_raw = {lab: lab for lab in label_list}
+    else:
+        label_list = []
+        label_to_raw = {}
+
+    # garantir inicialização consistente do estado do selectbox e do valor interno
+    if label_list:
+        # inicializar selected_planet com o primeiro raw se não existir
+        if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
+            st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
+
+        # garantir que planet_selectbox mostre o label correspondente ao selected_planet
+        if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
+            current_internal = st.session_state.get("selected_planet")
+            current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
+            st.session_state["planet_selectbox"] = current_label or label_list[0]
+    else:
+        # limpar estados se não houver opções
+        st.session_state.setdefault("selected_planet", None)
+        st.session_state.setdefault("planet_selectbox", None)
+
+    # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
+    def _on_select_planet():
+        sel_label = st.session_state.get("planet_selectbox")
+        sel_raw = label_to_raw.get(sel_label, sel_label)
+        st.session_state["selected_planet"] = sel_raw
+        st.session_state["planet_selectbox"] = sel_label
+
+    # selectbox usando label_list (rótulos em PT)
+    st.selectbox(
+        "Selecionar planeta",
+        label_list,
+        index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
+        key="planet_selectbox",
+        on_change=_on_select_planet
+    )
+    
+# CENTER: mapa + IA + interpretação
+with center_col:
+    st.subheader("Mapa Astral")
+    if not map_ready or fig_saved is None:
+        st.info("Nenhum mapa gerado. Preencha os parâmetros e clique em 'Gerar Mapa'.")
+    else:
+        try:
+            fig_dict = fig_saved.to_dict()
+            fig = go.Figure(fig_dict)
+        except Exception:
+            fig = fig_saved
+
+        # destacar seleção no mapa
+        sel_name = st.session_state.get("selected_planet")
+        if sel_name and summary:
+            try:
+                sel_lon = None
+                canonical_sel = influences._to_canonical(sel_name)
+                if summary.get("planets", {}).get(canonical_sel):
+                    sel_lon = summary["planets"][canonical_sel].get("longitude")
+                elif summary.get("planets", {}).get(sel_name):
+                    sel_lon = summary["planets"][sel_name].get("longitude")
+                if sel_lon is not None:
+                    theta_sel = (360.0 - float(sel_lon)) % 360.0
+                    fig.add_trace(go.Scatterpolar(
+                        r=[1.0],
+                        theta=[theta_sel],
+                        mode="markers+text",
+                        marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
+                        text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name)],
+                        textfont=dict(size=12, color="#000"),
+                        hoverinfo="none",
+                        showlegend=False
+                    ))
+            except Exception:
+                pass
+
+        # plot e captura de clique
+        try:
+            from streamlit_plotly_events import plotly_events
+            plotly_events_available = True
+        except Exception:
+            plotly_events_available = False
+
+        clicked_planet = None
+        if plotly_events_available:
+            events = plotly_events(fig, click_event=True, hover_event=False, select_event=False, key="plotly_events")
+            if events:
+                ev = events[0]
+                cd = ev.get("customdata")
+                if isinstance(cd, (list, tuple)) and len(cd) > 0:
+                    clicked_planet = cd[0]
+                elif isinstance(cd, str):
+                    clicked_planet = cd
+                if not clicked_planet:
+                    clicked_planet = ev.get("text") or ev.get("pointNumber")
+        else:
+            st.plotly_chart(fig, use_container_width=True)
+
+        if clicked_planet:
+            clicked_planet = str(clicked_planet)
+            canonical_clicked = influences._to_canonical(clicked_planet)
+            if st.session_state.get("selected_planet") != canonical_clicked:
+                st.session_state["selected_planet"] = canonical_clicked
+        
+    # -------------------------
+    # Leitura Sintética
+    # -------------------------
+    st.markdown("#### Leitura Sintética")
+
+    sel_planet = st.session_state.get("selected_planet")
+    if not sel_planet or not summary:
+        st.info("Selecione um planeta na tabela para ver a leitura sintética.")
+    else:
+        # obter leitura e rótulos (get_reading deve aceitar raw/canonical)
+        canonical, label, reading = get_reading(summary, sel_planet)
+        if not reading:
+            st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
+        else:
+            # extrair signo bruto e grau (preserva compatibilidade com normalize_degree_sign)
+            raw_sign, degree = normalize_degree_sign(reading)
+
+            # importar influences defensivamente (já deve estar importado globalmente)
+            try:
+                from etheria import influences
+            except Exception:
+                influences = None
+
+            # --- normalizar sign para canonical (sempre tentar) ---
+            try:
+                # raw_sign pode estar em PT ou EN; sign_to_canonical converte para canonical EN
+                sign_canonical = influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign
+            except Exception:
+                sign_canonical = raw_sign
+
+            # --- obter rótulo PT para exibição ---
+            try:
+                sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
+            except Exception:
+                sign_label = sign_canonical or raw_sign or "—"
+
+            # resolver casa (mantendo a lógica existente)
+            house = resolve_house(reading, summary, canonical, sel_planet)
+
+            # --- normalizar planet_key para canonical (para lookups internos) ---
+            try:
+                planet_key = influences.to_canonical(canonical or sel_planet) if influences and hasattr(influences, "to_canonical") else (canonical or sel_planet)
+            except Exception:
+                planet_key = canonical or sel_planet
+
+            # sign_key deve ser canonical (para usar SIGN_DESCRIPTIONS)
+            sign_key = sign_canonical or (influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign)
+
+            # --- lookups internos (usam chaves canônicas) ---
+            planet_verb, planet_core = astrology.PLANET_CORE.get(planet_key, ("", ""))
+            sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign_key, ("", ""))
+            house_noun, house_theme = astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", "")
+
+            parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
+            synthetic_line = " — ".join(parts) if parts else ""
+
+            # palavras-chave curtas (mantém lógica)
+            keywords = []
+            if planet_core:
+                keywords += [k.strip() for k in planet_core.split(",") if k.strip()]
+            if sign_quality:
+                keywords += [k.strip() for k in sign_quality.split(",") if k.strip()]
+            if house_theme:
+                keywords += [k.strip() for k in house_theme.split(",") if k.strip()]
+            seen = []
+            for k in keywords:
+                if k not in seen:
+                    seen.append(k)
+            keywords_line = ", ".join(seen[:8]) if seen else None
+
+            # label do planeta em pt_BR para exibição (usar planet_key canonical)
+            try:
+                planet_label_pt = influences.planet_label_pt(planet_key) if influences and hasattr(influences, "planet_label_pt") else (reading.get("planet") or label or planet_key)
+            except Exception:
+                planet_label_pt = reading.get("planet") or label or planet_key
+
+            # DEBUG opcional: mostrar valores para checagem rápida (remova em produção)
+            # st.write({"planet_key": planet_key, "sign_key": sign_key, "sign_label": sign_label, "degree": degree, "house": house})
+
+            with st.expander('Interpretação', expanded=False):
+                st.markdown(f"**{planet_label_pt}**")
+                st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+
+                if synthetic_line:
+                    st.write(synthetic_line)
+
+                interp_local = astrology.interpret_planet_position(
+                    planet=planet_key,
+                    sign=sign_key,
+                    degree=degree,
+                    house=house,
+                    aspects=summary.get("aspects"),
+                    context_name=reading.get("name") or summary.get("name")
+                ) or {"short": ""}
+
+                short_local = interp_local.get("short") or ""
+                if short_local:
+                    st.write(short_local)
+                elif keywords_line:
+                    st.write(f"Palavras-chave: {keywords_line}")
+                else:
+                    st.write("—")
+
+        # interpretação curta + expander para completa
+        st.markdown("### Interpretação Astrológica")
+
+        sel_planet = st.session_state.get("selected_planet")
+        canonical, label, reading = get_reading(summary, sel_planet)
+
+        if reading:
+            sign, degree = normalize_degree_sign(reading)
+            house = resolve_house(reading, summary, canonical, sel_planet)
+            aspects = ensure_aspects(summary)
+
+            interp = astrology.interpret_planet_position(
+                planet=canonical or sel_planet,
+                sign=sign,
+                degree=degree,
+                house=house,
+                aspects=aspects,
+                context_name=reading.get("name") or summary.get("name")
+            ) or {"short": "", "long": ""}
+
+            # exibir curta e manter expander para completa
+            # st.write(interp.get("short", ""))
+            with st.expander("Ver interpretação completa"):
+                st.write(interp.get("long", ""))
+        else:
+            # fallback: classic or general message
+            if sel_planet and summary:
+                canonical_fallback = influences._to_canonical(sel_planet)
+                classic = {}
+                try:
+                    classic = interpretations.classic_for_planet(summary, canonical_fallback) if hasattr(interpretations, "classic_for_planet") else {}
+                except Exception:
+                    classic = {}
+                st.write(classic.get("short", "") or "Interpretação não disponível.")
+                with st.expander("Ver interpretação completa"):
+                    st.write(classic.get("long", "") or "—")
+            else:
+                general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
+                st.write(general)
+
+# UI: geração IA com proteção e envio controlado
+if use_ai:
+    st.markdown("#### Interpretação IA Etheria")
+
+    # importar generator_service de forma resiliente
     try:
         from etheria.services import generator_service as gs
     except Exception:
         gs = None
 
-        # botão único para gerar interpretação IA (usa rotina centralizada com validação e timeout)
-        if st.sidebar.button("Gerar interpretação IA"):
-            if not gs or not hasattr(gs, "generate_interpretation_from_summary"):
-                st.error("Serviço de geração não disponível. Verifique generator_service.")
-            else:
-                # chamar rotina que normaliza, valida, mostra prompt preview e executa com timeout
-                res = gs.generate_interpretation_from_summary(st.session_state["map_summary"], generate_analysis, timeout_seconds=60)
+    if not gs:
+        st.info("Serviço de geração não disponível.")
+    else:
+        # flag para evitar cliques repetidos
+        if "generating" not in st.session_state:
+            st.session_state["generating"] = False
+
+        # botão de geração
+        if st.session_state["generating"]:
+            st.button("Gerando... (aguarde)", disabled=True)
+        else:
+            if st.button("Gerar interpretação IA", key="gen_ai_button"):
+                st.session_state["generating"] = True
+
+                # chamada ao serviço (defensiva)
+                try:
+                    with st.spinner("Gerando sua interpretação personalizada com IA Etheria"):
+                        if hasattr(gs, "generate_interpretation_from_summary"):
+                            res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                        elif hasattr(gs, "generate_analysis"):
+                            res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash")
+                        else:
+                            res = {"error": "Serviço indisponível"}
+                except Exception as e:
+                    logger.exception("Erro ao chamar serviço de geração: %s", e)
+                    res = {"error": str(e)}
+
+                # garantir que res é dict e normalizar campos esperados
+                if not isinstance(res, dict):
+                    logger.warning("Resposta do serviço não é dict: %r — normalizando para dict", res)
+                    res = {"error": "Resposta inválida do serviço", "raw_response": str(res)}
+
+                # garantir chaves mínimas para evitar AttributeError e fallback silencioso
+                res.setdefault("error", None)
+                res.setdefault("analysis_text", "")
+                res.setdefault("analysis_json", None)
+                res.setdefault("svg", "")
+                res.setdefault("source", "unknown")
+                res.setdefault("raw_text", res.get("raw_text") or "")
+
+                # agora é seguro usar res.get(...)
                 if res.get("error"):
-                    st.error(res["error"])
+                    with st.expander("Detalhes do erro"):
+                        st.warning("Não foi possível gerar a interpretação via serviço.")
+                        st.write(res.get("error"))
                 else:
-                    analysis_text = res.get("analysis_text") or res.get("text") or ""
-                    if analysis_text:
-                        st.markdown("### Interpretação gerada")
-                        st.markdown(analysis_text)
-                    else:
-                        st.info("Nenhuma interpretação retornada pelo serviço.")
+                    ai_text = (res.get("analysis_text") or res.get("text") or res.get("raw_text") or "").strip()
+                    parsed = res.get("analysis_json") or res.get("analysis") or None
 
-    # -------------------- Renderização central + seleção de planeta (Parte 4) --------------------
+                    if not ai_text:
+                        ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento."
 
-    # Recuperar summary e fig da sessão
-    summary = st.session_state.get("map_summary")
-    fig_saved = st.session_state.get("map_fig")
-    map_ready = st.session_state.get("map_ready", False)
+                    st.success("Interpretação IA Etheria gerada especialmente para você" if ai_text else "Interpretação IA (fallback)")
+                    st.write(ai_text)
 
-    from etheria import rules, interpretations, influences
-    from etheria.utils import safe_filename
-    from typing import Optional
+                    st.download_button(
+                        "Exportar interpretação (.txt)",
+                        data=ai_text,
+                        file_name="interpretacao_ia.txt",
+                        mime="text/plain"
+                    )
 
-    def _canonical_and_label(name: Optional[str]):
-        """
-        Retorna (canonical_name, label_pt).
-        Aceita 'Lua' ou 'Moon' e devolve ('Moon', 'Lua').
-        """
-        canonical = influences._to_canonical(name)
-        label_pt = influences.CANONICAL_TO_PT.get(canonical, canonical)
-        return canonical, label_pt
+                    if parsed:
+                        with st.expander("Ver JSON estruturado (expandir)"):
+                            st.json(parsed)
+                            st.download_button(
+                                "Baixar JSON",
+                                data=json.dumps(parsed, ensure_ascii=False, indent=2),
+                                file_name="interpretacao_ia.json",
+                                mime="application/json"
+                            )
+                    elif not ai_text:
+                        st.info("Geração concluída, mas não houve texto de interpretação.")
 
-    # CENTER / LEFT / RIGHT layout (após geração)
-    left_col, center_col,  right_col = st.columns([0.7, 2.0, 0.8])
+# RIGHT: painel de análise
+with right_col:
+    st.subheader("Interpretação dos Arcanos")
+    st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores. " \
+    "A partir da posição dos planetas, veja abaixo, quais signos são influenciados:")
 
-    # LEFT: controles e tabela (se houver summary)
-    with left_col:
-        st.markdown("### Posições")
-        import pandas as _pd
+    # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
+    # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
+    tabs = st.tabs(["Planeta", "Signo"])
 
-        # preparar DataFrame e coluna de exibição (rótulos PT)
-        if summary:
-            df = _pd.DataFrame(summary.get("table", []))
-            if not df.empty and "planet" in df.columns:
-                df_display = df.copy()
+    # dados selecionados
+    selected_raw = st.session_state.get("selected_planet")
+    canonical_selected, label_selected = _canonical_and_label(selected_raw) if selected_raw else (None, None)
 
-                # planet_label (PT)
-                def _planet_label_for_display(p):
-                    try:
-                        return influences.planet_label_pt(influences._to_canonical(p)) if hasattr(influences, "planet_label_pt") else (influences._to_canonical(p) or p)
-                    except Exception:
-                        return p or "—"
-                df_display["planet_label"] = df_display["planet"].apply(_planet_label_for_display)
+    # preparar leitura existente (se houver)
+    reading = summary.get("readings", {}).get(canonical_selected) if summary else None
 
-                # sign_label (PT) se houver coluna 'sign'
-                if "sign" in df_display.columns:
-                    def _sign_label_for_display(s):
-                        try:
-                            can = influences.sign_to_canonical(s) if hasattr(influences, "sign_to_canonical") else s
-                            return influences.sign_label_pt(can) if hasattr(influences, "sign_label_pt") else (can or s or "—")
-                        except Exception:
-                            return s or "—"
-                    df_display["sign_label"] = df_display["sign"].apply(_sign_label_for_display)
-            else:
-                df = _pd.DataFrame([]) if df is None else df
-                df_display = df.copy()
-                if "planet" in df_display.columns and "planet_label" not in df_display.columns:
-                    df_display["planet_label"] = df_display["planet"]
-                if "sign" in df_display.columns and "sign_label" not in df_display.columns:
-                    df_display["sign_label"] = df_display["sign"]
-        else:
-            df = _pd.DataFrame([])
-            df_display = df
+    # -------------------------
+    # Aba 0: Interpretação via Arcanos (usar leitura já gerada quando disponível)
+    # -------------------------
+    with tabs[0]:
+        if reading:
+            # obter canonical do planeta e label (já faz para planetas)
+            planet_label = influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected) if canonical_selected else (label_selected or "—")
 
-        if df_display.empty:
-            st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
-        else:
-            # montar df_to_show: esconder raw 'planet' e 'sign', mostrar labels PT
-            df_to_show = df_display.copy()
-
-            # preferir planet_label e sign_label para exibição
-            if "planet_label" in df_to_show.columns:
-                df_to_show = df_to_show.drop(columns=["planet"], errors="ignore")
-                df_to_show = df_to_show.rename(columns={"planet_label": "Planeta"})
-            if "sign_label" in df_to_show.columns:
-                df_to_show = df_to_show.drop(columns=["sign"], errors="ignore")
-                df_to_show = df_to_show.rename(columns={"sign_label": "Signo"})
-
-            # normalizar nomes de colunas internas para exibição consistente
-            # Degree <- degree, House <- house
-            if "degree" in df_to_show.columns and "Graus" not in df_to_show.columns:
-                df_to_show = df_to_show.rename(columns={"degree": "Graus"})
-            if "house" in df_to_show.columns and "Casa" not in df_to_show.columns:
-                df_to_show = df_to_show.rename(columns={"house": "Casa"})
-
-            # selecionar apenas as colunas que queremos mostrar no expander, na ordem desejada
-            cols_to_show = []
-            for c in ["Planeta", "Signo", "Casa", "Graus"]:
-                if c in df_to_show.columns:
-                    cols_to_show.append(c)
-
-            # se nenhuma das colunas esperadas existir, mostrar o dataframe completo como fallback
-            if not cols_to_show:
-                df_exp = df_to_show.copy()
-            else:
-                df_exp = df_to_show[cols_to_show].copy()
-
-            # colocar dentro de um expander para esconder/mostrar
-            with st.expander("Tabela de posições", expanded=False):
-                st.dataframe(df_exp, use_container_width=True, height=300)
-
-        # construir lista de opções (apenas rótulos de planeta em PT) e mapa label -> raw (valor interno)
-        label_list = []
-        label_to_raw = {}
-
-        if not df_display.empty and "planet_label" in df_display.columns:
-            raw_planets = list(df_display["planet"].values)
-            planet_labels = list(df_display["planet_label"].values)
-
-            for raw, plab in zip(raw_planets, planet_labels):
-                lab = f"{plab}"  # apenas o rótulo do planeta (sem signo)
-                label_list.append(lab)
-                label_to_raw[lab] = raw
-        elif not df_display.empty and "planet" in df_display.columns:
-            # fallback: usar raw como label
-            label_list = list(df_display["planet"].values)
-            label_to_raw = {lab: lab for lab in label_list}
-        else:
-            label_list = []
-            label_to_raw = {}
-
-        # garantir inicialização consistente do estado do selectbox e do valor interno
-        if label_list:
-            # inicializar selected_planet com o primeiro raw se não existir
-            if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
-                st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
-
-            # garantir que planet_selectbox mostre o label correspondente ao selected_planet
-            if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
-                current_internal = st.session_state.get("selected_planet")
-                current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                st.session_state["planet_selectbox"] = current_label or label_list[0]
-        else:
-            # limpar estados se não houver opções
-            st.session_state.setdefault("selected_planet", None)
-            st.session_state.setdefault("planet_selectbox", None)
-
-        # callback: quando usuário escolhe um label, armazenar o raw/canonical e manter o label
-        def _on_select_planet():
-            sel_label = st.session_state.get("planet_selectbox")
-            sel_raw = label_to_raw.get(sel_label, sel_label)
-            st.session_state["selected_planet"] = sel_raw
-            st.session_state["planet_selectbox"] = sel_label
-
-        # selectbox usando label_list (rótulos em PT)
-        st.selectbox(
-            "Selecionar planeta",
-            label_list,
-            index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
-            key="planet_selectbox",
-            on_change=_on_select_planet
-        )
-        
-    # CENTER: mapa + IA + interpretação
-    with center_col:
-        st.subheader("Mapa Astral")
-        if not map_ready or fig_saved is None:
-            st.info("Nenhum mapa gerado. Preencha os parâmetros e clique em 'Gerar Mapa'.")
-        else:
+            # obter signo raw e normalizar para canonical e label pt
+            raw_sign = reading.get("sign")
             try:
-                fig_dict = fig_saved.to_dict()
-                fig = go.Figure(fig_dict)
+                sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
             except Exception:
-                fig = fig_saved
+                sign_canonical = raw_sign
+            sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
 
-            # destacar seleção no mapa
-            sel_name = st.session_state.get("selected_planet")
-            if sel_name and summary:
-                try:
-                    sel_lon = None
-                    canonical_sel = influences._to_canonical(sel_name)
-                    if summary.get("planets", {}).get(canonical_sel):
-                        sel_lon = summary["planets"][canonical_sel].get("longitude")
-                    elif summary.get("planets", {}).get(sel_name):
-                        sel_lon = summary["planets"][sel_name].get("longitude")
-                    if sel_lon is not None:
-                        theta_sel = (360.0 - float(sel_lon)) % 360.0
-                        fig.add_trace(go.Scatterpolar(
-                            r=[1.0],
-                            theta=[theta_sel],
-                            mode="markers+text",
-                            marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
-                            text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name)],
-                            textfont=dict(size=12, color="#000"),
-                            hoverinfo="none",
-                            showlegend=False
-                        ))
-                except Exception:
-                    pass
+            degree = reading.get("degree") or reading.get("deg") or "—"
 
-            # plot e captura de clique
-            try:
-                from streamlit_plotly_events import plotly_events
-                plotly_events_available = True
-            except Exception:
-                plotly_events_available = False
-
-            clicked_planet = None
-            if plotly_events_available:
-                events = plotly_events(fig, click_event=True, hover_event=False, select_event=False, key="plotly_events")
-                if events:
-                    ev = events[0]
-                    cd = ev.get("customdata")
-                    if isinstance(cd, (list, tuple)) and len(cd) > 0:
-                        clicked_planet = cd[0]
-                    elif isinstance(cd, str):
-                        clicked_planet = cd
-                    if not clicked_planet:
-                        clicked_planet = ev.get("text") or ev.get("pointNumber")
-            else:
-                st.plotly_chart(fig, use_container_width=True)
-
-            if clicked_planet:
-                clicked_planet = str(clicked_planet)
-                canonical_clicked = influences._to_canonical(clicked_planet)
-                if st.session_state.get("selected_planet") != canonical_clicked:
-                    st.session_state["selected_planet"] = canonical_clicked
+            st.markdown(f"#### {planet_label} em {sign_label} {degree}°")
+            st.markdown("**Arcano Correspondente**")
+            arc = reading.get("arcano_info") or reading.get("arcano")
+            if arc:
+                if isinstance(arc, dict):
+                    arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
+                    arc_num = arc.get("arcano") or arc.get("value")
+                    st.write(f"{arc_name} (#{arc_num})")
+                else:
+                    st.write(f"Arcano {arc}")
+            st.markdown("**Resumo**")
+            st.write(reading.get("interpretation_short") or "Resumo não disponível.")
             
-        # -------------------------
-        # Leitura Sintética
-        # -------------------------
-        st.markdown("#### Leitura Sintética")
+            st.markdown("**Sugestões práticas**")
+            kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
+            if kw:
+                for k in kw:
+                    st.write(f"- {k}")
+            else:
+                st.write("Nenhuma sugestão prática disponível.")
 
-        sel_planet = st.session_state.get("selected_planet")
-        if not sel_planet or not summary:
-            st.info("Selecione um planeta na tabela para ver a leitura sintética.")
+            with st.expander("Interpretação completa"):
+                st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
+            
         else:
-            # obter leitura e rótulos (get_reading deve aceitar raw/canonical)
-            canonical, label, reading = get_reading(summary, sel_planet)
-            if not reading:
-                st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
+            # sem leitura pré-gerada: instruir usuário ou gerar via arcano_for_planet (opcional)
+            if not (canonical_selected and summary):
+                st.info("Selecione um planeta (na tabela ou na roda) e gere o resumo do mapa para ver a análise por arcanos.")
             else:
-                # extrair signo bruto e grau (preserva compatibilidade com normalize_degree_sign)
-                raw_sign, degree = normalize_degree_sign(reading)
+                st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Influencia Arcano x Signo' para gerar a interpretação automática.")
 
-                # importar influences defensivamente (já deve estar importado globalmente)
-                try:
-                    from etheria import influences
-                except Exception:
-                    influences = None
+    # -------------------------
+    # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
+    # -------------------------
+        with tabs[1]:
+            # obter nome do consulente (priorizar campo do sidebar)
+            client_name = st.session_state.get("client_name") or summary.get("name") if summary else "Consulente"
 
-                # --- normalizar sign para canonical (sempre tentar) ---
-                try:
-                    # raw_sign pode estar em PT ou EN; sign_to_canonical converte para canonical EN
-                    sign_canonical = influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign
-                except Exception:
-                    sign_canonical = raw_sign
-
-                # --- obter rótulo PT para exibição ---
-                try:
-                    sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
-                except Exception:
-                    sign_label = sign_canonical or raw_sign or "—"
-
-                # resolver casa (mantendo a lógica existente)
-                house = resolve_house(reading, summary, canonical, sel_planet)
-
-                # --- normalizar planet_key para canonical (para lookups internos) ---
-                try:
-                    planet_key = influences.to_canonical(canonical or sel_planet) if influences and hasattr(influences, "to_canonical") else (canonical or sel_planet)
-                except Exception:
-                    planet_key = canonical or sel_planet
-
-                # sign_key deve ser canonical (para usar SIGN_DESCRIPTIONS)
-                sign_key = sign_canonical or (influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign)
-
-                # --- lookups internos (usam chaves canônicas) ---
-                planet_verb, planet_core = astrology.PLANET_CORE.get(planet_key, ("", ""))
-                sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign_key, ("", ""))
-                house_noun, house_theme = astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", "")
-
-                parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
-                synthetic_line = " — ".join(parts) if parts else ""
-
-                # palavras-chave curtas (mantém lógica)
-                keywords = []
-                if planet_core:
-                    keywords += [k.strip() for k in planet_core.split(",") if k.strip()]
-                if sign_quality:
-                    keywords += [k.strip() for k in sign_quality.split(",") if k.strip()]
-                if house_theme:
-                    keywords += [k.strip() for k in house_theme.split(",") if k.strip()]
-                seen = []
-                for k in keywords:
-                    if k not in seen:
-                        seen.append(k)
-                keywords_line = ", ".join(seen[:8]) if seen else None
-
-                # label do planeta em pt_BR para exibição (usar planet_key canonical)
-                try:
-                    planet_label_pt = influences.planet_label_pt(planet_key) if influences and hasattr(influences, "planet_label_pt") else (reading.get("planet") or label or planet_key)
-                except Exception:
-                    planet_label_pt = reading.get("planet") or label or planet_key
-
-                # DEBUG opcional: mostrar valores para checagem rápida (remova em produção)
-                # st.write({"planet_key": planet_key, "sign_key": sign_key, "sign_label": sign_label, "degree": degree, "house": house})
-
-                with st.expander('Interpretação', expanded=False):
-                    st.markdown(f"**{planet_label_pt}**")
-                    st.write(f"Signo: **{sign_label or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
-
-                    if synthetic_line:
-                        st.write(synthetic_line)
-
-                    interp_local = astrology.interpret_planet_position(
-                        planet=planet_key,
-                        sign=sign_key,
-                        degree=degree,
-                        house=house,
-                        aspects=summary.get("aspects"),
-                        context_name=reading.get("name") or summary.get("name")
-                    ) or {"short": ""}
-
-                    short_local = interp_local.get("short") or ""
-                    if short_local:
-                        st.write(short_local)
-                    elif keywords_line:
-                        st.write(f"Palavras-chave: {keywords_line}")
-                    else:
-                        st.write("—")
-
-            # interpretação curta + expander para completa
-            st.markdown("### Interpretação Astrológica")
-
-            sel_planet = st.session_state.get("selected_planet")
-            canonical, label, reading = get_reading(summary, sel_planet)
-
-            if reading:
-                sign, degree = normalize_degree_sign(reading)
-                house = resolve_house(reading, summary, canonical, sel_planet)
-                aspects = ensure_aspects(summary)
-
-                interp = astrology.interpret_planet_position(
-                    planet=canonical or sel_planet,
-                    sign=sign,
-                    degree=degree,
-                    house=house,
-                    aspects=aspects,
-                    context_name=reading.get("name") or summary.get("name")
-                ) or {"short": "", "long": ""}
-
-                # exibir curta e manter expander para completa
-                # st.write(interp.get("short", ""))
-                with st.expander("Ver interpretação completa"):
-                    st.write(interp.get("long", ""))
+            if not summary:
+                st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
             else:
-                # fallback: classic or general message
-                if sel_planet and summary:
-                    canonical_fallback = influences._to_canonical(sel_planet)
-                    classic = {}
-                    try:
-                        classic = interpretations.classic_for_planet(summary, canonical_fallback) if hasattr(interpretations, "classic_for_planet") else {}
-                    except Exception:
-                        classic = {}
-                    st.write(classic.get("short", "") or "Interpretação não disponível.")
-                    with st.expander("Ver interpretação completa"):
-                        st.write(classic.get("long", "") or "—")
+                table = summary.get("table", []) or []
+
+                # construir mapa norm -> primeiro raw encontrado (preserva forma original)
+                sign_map: Dict[str, str] = {}
+                for row in table:
+                    raw = row.get("sign") or row.get("zodiac")
+                    if not raw:
+                        continue
+                    norm = interpretations._normalize_sign(raw)
+                    if not norm:
+                        continue
+                    if norm not in sign_map:
+                        sign_map[norm] = raw
+
+                if not sign_map:
+                    st.info("Nenhum signo detectado no mapa.")
                 else:
-                    general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
-                    st.write(general)
+                    # iterar em ordem de aparição
+                    for norm, raw_sign in sign_map.items():
+                        display_sign = str(raw_sign).strip()
+                        # criar expander por signo (abre/fecha)
+                        with st.expander(f"**{display_sign}**"):
+                            # gerar interpretação (arcano_for_sign normaliza internamente)
+                            arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name)
 
-    # UI: geração IA com proteção e envio controlado
-    if use_ai:
-        st.markdown("#### Interpretação IA Etheria")
+                            # título com arcano (se disponível)
+                            arcano_label = arc_res.get("arcano") or "—"
+                            #st.markdown(f"**Arcano: {arcano_label}**")
 
-        # importar generator_service de forma resiliente
-        try:
-            from etheria.services import generator_service as gs
-        except Exception:
-            gs = None
-
-        if not gs:
-            st.info("Serviço de geração não disponível.")
-        else:
-            # flag para evitar cliques repetidos
-            if "generating" not in st.session_state:
-                st.session_state["generating"] = False
-
-            # botão de geração
-            if st.session_state["generating"]:
-                st.button("Gerando... (aguarde)", disabled=True)
-            else:
-                if st.button("Gerar interpretação IA", key="gen_ai_button"):
-                    st.session_state["generating"] = True
-
-                    # chamada ao serviço (defensiva)
-                    try:
-                        with st.spinner("Gerando sua interpretação personalizada com IA Etheria"):
-                            if hasattr(gs, "generate_interpretation_from_summary"):
-                                res = gs.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
-                            elif hasattr(gs, "generate_analysis"):
-                                res = gs.generate_analysis(summary, prefer="auto", text_only=True, model="gemini-2.5-flash")
+                            # erro ou texto
+                            if arc_res.get("error"):
+                                st.warning("Não foi possível gerar interpretação por signo: " + str(arc_res["error"]))
+                                # opção de debug por expander
+                                if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
+                                    st.write(arc_res)
                             else:
-                                res = {"error": "Serviço indisponível"}
-                    except Exception as e:
-                        logger.exception("Erro ao chamar serviço de geração: %s", e)
-                        res = {"error": str(e)}
-
-                    # garantir que res é dict e normalizar campos esperados
-                    if not isinstance(res, dict):
-                        logger.warning("Resposta do serviço não é dict: %r — normalizando para dict", res)
-                        res = {"error": "Resposta inválida do serviço", "raw_response": str(res)}
-
-                    # garantir chaves mínimas para evitar AttributeError e fallback silencioso
-                    res.setdefault("error", None)
-                    res.setdefault("analysis_text", "")
-                    res.setdefault("analysis_json", None)
-                    res.setdefault("svg", "")
-                    res.setdefault("source", "unknown")
-                    res.setdefault("raw_text", res.get("raw_text") or "")
-
-                    # agora é seguro usar res.get(...)
-                    if res.get("error"):
-                        with st.expander("Detalhes do erro"):
-                            st.warning("Não foi possível gerar a interpretação via serviço.")
-                            st.write(res.get("error"))
-                    else:
-                        ai_text = (res.get("analysis_text") or res.get("text") or res.get("raw_text") or "").strip()
-                        parsed = res.get("analysis_json") or res.get("analysis") or None
-
-                        if not ai_text:
-                            ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento."
-
-                        st.success("Interpretação IA Etheria gerada especialmente para você" if ai_text else "Interpretação IA (fallback)")
-                        st.write(ai_text)
-
-                        st.download_button(
-                            "Exportar interpretação (.txt)",
-                            data=ai_text,
-                            file_name="interpretacao_ia.txt",
-                            mime="text/plain"
-                        )
-
-                        if parsed:
-                            with st.expander("Ver JSON estruturado (expandir)"):
-                                st.json(parsed)
-                                st.download_button(
-                                    "Baixar JSON",
-                                    data=json.dumps(parsed, ensure_ascii=False, indent=2),
-                                    file_name="interpretacao_ia.json",
-                                    mime="application/json"
-                                )
-                        elif not ai_text:
-                            st.info("Geração concluída, mas não houve texto de interpretação.")
-
-    # RIGHT: painel de análise
-    with right_col:
-        st.subheader("Interpretação dos Arcanos")
-        st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores. " \
-        "A partir da posição dos planetas, veja abaixo, quais signos são influenciados:")
-
-        # criar duas abas: 0 = Interpretação via Arcanos (leitura ou geração),
-        # 1 = Influência Arcano x Signo (geração via interpretations.arcano_for_planet)
-        tabs = st.tabs(["Planeta", "Signo"])
-
-        # dados selecionados
-        selected_raw = st.session_state.get("selected_planet")
-        canonical_selected, label_selected = _canonical_and_label(selected_raw) if selected_raw else (None, None)
-
-        # preparar leitura existente (se houver)
-        reading = summary.get("readings", {}).get(canonical_selected) if summary else None
-
-        # -------------------------
-        # Aba 0: Interpretação via Arcanos (usar leitura já gerada quando disponível)
-        # -------------------------
-        with tabs[0]:
-            if reading:
-                # obter canonical do planeta e label (já faz para planetas)
-                planet_label = influences.CANONICAL_TO_PT.get(canonical_selected, canonical_selected) if canonical_selected else (label_selected or "—")
-
-                # obter signo raw e normalizar para canonical e label pt
-                raw_sign = reading.get("sign")
-                try:
-                    sign_canonical = influences.sign_to_canonical(raw_sign) if hasattr(influences, "sign_to_canonical") else raw_sign
-                except Exception:
-                    sign_canonical = raw_sign
-                sign_label = influences.sign_label_pt(sign_canonical) if hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
-
-                degree = reading.get("degree") or reading.get("deg") or "—"
-
-                st.markdown(f"#### {planet_label} em {sign_label} {degree}°")
-                st.markdown("**Arcano Correspondente**")
-                arc = reading.get("arcano_info") or reading.get("arcano")
-                if arc:
-                    if isinstance(arc, dict):
-                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
-                        arc_num = arc.get("arcano") or arc.get("value")
-                        st.write(f"{arc_name} (#{arc_num})")
-                    else:
-                        st.write(f"Arcano {arc}")
-                st.markdown("**Resumo**")
-                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
-                
-                st.markdown("**Sugestões práticas**")
-                kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
-                if kw:
-                    for k in kw:
-                        st.write(f"- {k}")
-                else:
-                    st.write("Nenhuma sugestão prática disponível.")
-
-                with st.expander("Interpretação completa"):
-                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
-                
-            else:
-                # sem leitura pré-gerada: instruir usuário ou gerar via arcano_for_planet (opcional)
-                if not (canonical_selected and summary):
-                    st.info("Selecione um planeta (na tabela ou na roda) e gere o resumo do mapa para ver a análise por arcanos.")
-                else:
-                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Influencia Arcano x Signo' para gerar a interpretação automática.")
-
-        # -------------------------
-        # Aba 1: Influencia Arcano x Signo (gerar via interpretations.arcano_for_planet)
-        # -------------------------
-            with tabs[1]:
-                # obter nome do consulente (priorizar campo do sidebar)
-                client_name = st.session_state.get("client_name") or summary.get("name") if summary else "Consulente"
-
-                if not summary:
-                    st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
-                else:
-                    table = summary.get("table", []) or []
-
-                    # construir mapa norm -> primeiro raw encontrado (preserva forma original)
-                    sign_map: Dict[str, str] = {}
-                    for row in table:
-                        raw = row.get("sign") or row.get("zodiac")
-                        if not raw:
-                            continue
-                        norm = interpretations._normalize_sign(raw)
-                        if not norm:
-                            continue
-                        if norm not in sign_map:
-                            sign_map[norm] = raw
-
-                    if not sign_map:
-                        st.info("Nenhum signo detectado no mapa.")
-                    else:
-                        # iterar em ordem de aparição
-                        for norm, raw_sign in sign_map.items():
-                            display_sign = str(raw_sign).strip()
-                            # criar expander por signo (abre/fecha)
-                            with st.expander(f"**{display_sign}**"):
-                                # gerar interpretação (arcano_for_sign normaliza internamente)
-                                arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name)
-
-                                # título com arcano (se disponível)
-                                arcano_label = arc_res.get("arcano") or "—"
-                                #st.markdown(f"**Arcano: {arcano_label}**")
-
-                                # erro ou texto
-                                if arc_res.get("error"):
-                                    st.warning("Não foi possível gerar interpretação por signo: " + str(arc_res["error"]))
-                                    # opção de debug por expander
-                                    if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
-                                        st.write(arc_res)
+                                text = arc_res.get("text") or ""
+                                if not text.strip():
+                                    st.write("Interpretação não disponível para este signo no momento.")
                                 else:
-                                    text = arc_res.get("text") or ""
-                                    if not text.strip():
-                                        st.write("Interpretação não disponível para este signo no momento.")
-                                    else:
-                                        st.write(text)
-                                        
+                                    st.write(text)
+                                    
 # permite executar diretamente para desenvolvimento
 if __name__ == "__main__":
     main()
