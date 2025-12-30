@@ -12,6 +12,8 @@ import traceback
 import json
 from pathlib import Path
 from datetime import datetime, date, time as dt_time
+import datetime
+
 from typing import Optional, Tuple, Dict, Any, List
 
 import streamlit as st
@@ -1659,7 +1661,7 @@ def parse_time_string(time_string: Optional[str]) -> Optional[time]:
         return None
     if not (0 <= h < 24 and 0 <= m < 60 and 0 <= sec < 60):
         return None
-    return time(hour=h, minute=m, second=sec)
+    return datetime.time(hour=h, minute=m, second=sec)
 
 # após o form_submit_button
 if submitted:
