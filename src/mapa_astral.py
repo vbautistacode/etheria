@@ -1,10 +1,7 @@
 # pages/mapa_astral.py
 from __future__ import annotations
-import os
-import sys
 import logging
-import importlib
-import traceback
+import importlib, os, sys, traceback
 import json
 import pytz
 import plotly.graph_objects as go
