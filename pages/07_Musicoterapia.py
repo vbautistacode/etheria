@@ -15,14 +15,14 @@ st.markdown(
 st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # ---------------------------
-# Dados iniciais de faixas
+# Dados iniciais de faixas (textos de efeito enriquecidos)
 # ---------------------------
 TRACKS_CSV = """Título,Artista/Coleção,Categoria,Efeito,URL
-Ondas Suaves,Sons da Natureza,Relaxamento,Calmante,https://www.youtube.com/watch?v=VUnN0jILbmQ
-Batida Alfa,Ambiente,Foco,Estimula concentração,https://www.youtube.com/watch?v=p2_zDvtPQ-g
-Tonalidade Terra,Sons Amadeirados,Aterramento,Estabiliza,https://www.youtube.com/watch?v=MIo9jbjbO7o
-Cascata Noturna,Sons da Natureza,Sono,Induz relaxamento profundo,https://www.youtube.com/watch?v=V1RPi2MYptM
-Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://www.youtube.com/watch?v=Lju6h-C37hE
+Ondas Suaves,Sons da Natureza,Relaxamento,"Calmante; ondas contínuas que reduzem a tensão e favorecem respiração lenta",https://www.youtube.com/watch?v=VUnN0jILbmQ
+Batida Alfa,Ambiente,Foco,"Estimula concentração; batidas regulares que ajudam a sincronizar atenção e reduzir distrações",https://www.youtube.com/watch?v=p2_zDvtPQ-g
+Tonalidade Terra,Sons Amadeirados,Aterramento,"Estabiliza; timbres graves e texturas orgânicas que promovem sensação de enraizamento",https://www.youtube.com/watch?v=MIo9jbjbO7o
+Cascata Noturna,Sons da Natureza,Sono,"Induz relaxamento profundo; camadas sonoras suaves que facilitam a transição para o sono",https://www.youtube.com/watch?v=V1RPi2MYptM
+Ritmo Vital,Trilhas Energéticas,Energia,"Aumenta vigor; ritmos ascendentes e percussão leve para ativar corpo e motivação",https://www.youtube.com/watch?v=Lju6h-C37hE
 """
 tracks_df = pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
