@@ -1,4 +1,5 @@
 # pages/mapa_astral.py
+from typing import Optional
 from etheria.astrology import SIGNS
 
 
@@ -254,7 +255,7 @@ def main():
 
     def _get_canonical_and_label(sel: str) -> Tuple[Optional[str], Optional[str]]:
         try:
-            return _canonical_and_label(sel)
+            return _canonical_and_label(sel) # type: ignore
         except Exception:
             try:
                 return influences._to_canonical(sel), sel
@@ -1241,82 +1242,198 @@ def main():
         summary["readings"] = normalized
         return summary
 
-    def _parse_time_string(t: str) -> Optional[dt_time]:
-        """
-        Normaliza a hora informada pelo usuário para datetime.time.
-        Aceita formatos: '14:30', '2:30 PM', '02:30pm', '1430', '2 PM', '2pm', '14', etc.
-        Retorna datetime.time ou None se não conseguir parsear.
-        """
-        if not t or not str(t).strip():
-            return None
-        s = str(t).strip()
-        s = " ".join(s.split())
-        fmts = [
-            "%H:%M", "%H.%M", "%H%M",
-            "%I:%M %p", "%I:%M%p", "%I %p", "%I%p",
-            "%I.%M %p", "%I.%M%p"
-        ]
-        for f in fmts:
-            try:
-                dt = datetime.strptime(s, f)
-                return dt.time()
-            except Exception:
-                continue
-        # tentativa manual
-        try:
-            low = s.lower().replace(".", "")
-            if low.endswith("am") or low.endswith("pm"):
-                num = low[:-2].strip()
-                ampm = low[-2:]
-                h = int(num)
-                if ampm == "pm" and h < 12:
-                    h += 12
-                if ampm == "am" and h == 12:
-                    h = 0
-                return dt_time(hour=h, minute=0)
-            if low.isdigit():
-                h = int(low)
-                if 0 <= h < 24:
-                    return dt_time(hour=h, minute=0)
-        except Exception:
-            pass
+# ---------------------------
+# Helpers: parsing de hora, geocoding e timezone
+# ---------------------------
+from geopy.geocoders import GoogleV3
+
+logger = logging.getLogger(__name__) # type: ignore
+
+def _parse_time_string(t: str) -> Optional[dt_time]: # type: ignore
+    """
+    Normaliza a hora informada pelo usuário para datetime.time.
+    Aceita formatos: '14:30', '2:30 PM', '02:30pm', '1430', '2 PM', '2pm', '14', etc.
+    Retorna datetime.time ou None se não conseguir parsear.
+    """
+    if not t or not str(t).strip():
         return None
 
-    def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
-        """
-        Tenta resolver lat/lon/timezone/address usando múltiplos provedores.
-        Retorna (lat, lon, tz_name, address). Pode retornar None para cada item se não resolvido.
-        """
-        lat = st.session_state.get("lat_manual")
-        lon = st.session_state.get("lon_manual")
-        tz_name = st.session_state.get("tz_manual")
-        address = None
+    s = str(t).strip()
+    s = " ".join(s.split())  # normaliza espaços
 
-        if place and place.strip():
-            # Primeiro: geocode seguro (ex.: provider com API key)
-            try:
-                lat_r, lon_r, tz_r, address_r = geocode_place_safe(place)
-                if lat_r is not None and lon_r is not None:
-                    return lat_r, lon_r, tz_r, address_r
-            except Exception as e:
-                logger.warning("geocode_place_safe falhou: %s", e)
+    fmts = [
+        "%H:%M", "%H.%M", "%H%M", "%H",
+        "%I:%M %p", "%I:%M%p", "%I %p", "%I%p",
+        "%I.%M %p", "%I.%M%p"
+    ]
+    for f in fmts:
+        try:
+            dt = datetime.strptime(s, f) # type: ignore
+            return dt.time()
+        except Exception:
+            continue
 
-            # Fallback: Nominatim
-            try:
-                lat_r, lon_r, address_r = geocode_place_nominatim(place)
-                try:
-                    from timezonefinder import TimezoneFinder
-                    tf = TimezoneFinder()
-                    tz_r = tf.timezone_at(lat=lat_r, lng=lon_r) or st.session_state.get("tz_manual")
-                except Exception:
-                    tz_r = st.session_state.get("tz_manual")
-                if lat_r is not None and lon_r is not None:
-                    return lat_r, lon_r, tz_r, address_r
-            except Exception as e:
-                logger.warning("geocode_place_nominatim falhou: %s", e)
+    try:
+        dt = dateutil_parser.parse(s, fuzzy=True, default=datetime(1900, 1, 1)) # type: ignore
+        return dt.time()
+    except Exception:
+        pass
 
-        # Se não conseguiu, retornar valores manuais (podem ser None)
+    try:
+        low = s.lower().replace(".", "").strip()
+        if low.endswith("am") or low.endswith("pm"):
+            num = low[:-2].strip()
+            if ":" in num:
+                parts = num.split(":")
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 else 0
+            elif num.isdigit():
+                h = int(num)
+                m = 0
+            else:
+                return None
+            ampm = low[-2:]
+            if ampm == "pm" and h < 12:
+                h += 12
+            if ampm == "am" and h == 12:
+                h = 0
+            if 0 <= h < 24 and 0 <= m < 60:
+                return dt_time(hour=h, minute=m)
+        digits = "".join(ch for ch in low if ch.isdigit())
+        if digits:
+            if len(digits) <= 2:
+                h = int(digits)
+                m = 0
+            elif len(digits) == 3:
+                h = int(digits[0])
+                m = int(digits[1:])
+            else:
+                h = int(digits[:-2])
+                m = int(digits[-2:])
+            if 0 <= h < 24 and 0 <= m < 60:
+                return dt_time(hour=h, minute=m)
+    except Exception:
+        pass
+
+    return None
+
+@st.cache_data(show_spinner=False)
+def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
+    """
+    Tenta usar um provedor 'seguro' (ex.: Google) se houver API key configurada.
+    Retorna (lat, lon, tz_name, address) ou (None, None, None, None) em caso de falha.
+    """
+    api_key = None
+    try:
+        api_key = st.secrets.get("GEOCODE_API_KEY") if hasattr(st, "secrets") else None
+    except Exception:
+        api_key = None
+    if not api_key:
+        api_key = os.environ.get("GEOCODE_API_KEY")
+
+    if not api_key:
+        return None, None, None, None
+
+    try:
+        geolocator = GoogleV3(api_key=api_key, timeout=10)
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=0.2)
+        loc = geocode(place_text)
+        if not loc:
+            return None, None, None, None
+        lat = float(loc.latitude)
+        lon = float(loc.longitude)
+        address = loc.address
+        tf = TimezoneFinder()
+        tz_name = tf.timezone_at(lng=lon, lat=lat)
         return lat, lon, tz_name, address
+    except Exception as e:
+        logger.warning("geocode_place_safe exception: %s", e)
+        return None, None, None, None
+
+@st.cache_data(show_spinner=False)
+def geocode_place_nominatim(place_text: str) -> Tuple[Optional[float], Optional[float], Optional[str]]:
+    """
+    Usa Nominatim (OpenStreetMap) para geocoding.
+    Retorna (lat, lon, address) ou (None, None, None) em caso de falha.
+    """
+    if not place_text or not str(place_text).strip():
+        return None, None, None
+    try:
+        geolocator = Nominatim(user_agent="mapa_astral_app")
+        geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+        loc = geocode(place_text, addressdetails=True, language="pt")
+        if not loc:
+            return None, None, None
+        lat = float(loc.latitude)
+        lon = float(loc.longitude)
+        address = loc.address
+        return lat, lon, address
+    except Exception as e:
+        logger.warning("geocode_place_nominatim exception: %s", e)
+        return None, None, None
+
+@st.cache_data(show_spinner=False)
+def tz_from_latlon(lat: float, lon: float) -> Optional[str]:
+    """
+    Retorna o nome IANA do timezone a partir de lat/lon usando timezonefinder.
+    """
+    try:
+        tf = TimezoneFinder()
+        tz = tf.timezone_at(lng=lon, lat=lat)
+        return tz
+    except Exception as e:
+        logger.warning("tz_from_latlon exception: %s", e)
+        return None
+
+def _resolve_place_and_tz(place: str) -> Tuple[Optional[float], Optional[float], Optional[str], Optional[str]]:
+    """
+    Tenta resolver lat/lon/timezone/address usando múltiplos provedores.
+    Retorna (lat, lon, tz_name, address). Pode retornar None para cada item se não resolvido.
+    """
+    lat_manual = st.session_state.get("lat_manual")
+    lon_manual = st.session_state.get("lon_manual")
+    tz_manual = st.session_state.get("tz_manual")
+    address = None
+
+    if not place or not str(place).strip():
+        return lat_manual, lon_manual, tz_manual, None
+
+    try:
+        lat_r, lon_r, tz_r, address_r = geocode_place_safe(place)
+        if lat_r is not None and lon_r is not None:
+            if not tz_r:
+                tz_r = tz_from_latlon(lat_r, lon_r) or tz_manual
+            return lat_r, lon_r, tz_r, address_r
+    except Exception as e:
+        logger.warning("geocode_place_safe falhou: %s", e)
+
+    try:
+        lat_r, lon_r, address_r = geocode_place_nominatim(place)
+        if lat_r is not None and lon_r is not None:
+            tz_r = tz_from_latlon(lat_r, lon_r) or tz_manual
+            return lat_r, lon_r, tz_r, address_r
+    except Exception as e:
+        logger.warning("geocode_place_nominatim falhou: %s", e)
+
+    return lat_manual, lon_manual, tz_manual, None
+
+def to_local_datetime(bdate: date, btime: dt_time, tz_name: Optional[str]) -> Optional[datetime]:
+    """
+    Constrói um datetime timezone-aware a partir de date, time e tz_name (IANA).
+    Retorna None se não for possível.
+    """
+    if not isinstance(bdate, date) or not isinstance(btime, dt_time):
+        return None
+    if not tz_name:
+        return None
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception as e:
+        logger.warning("ZoneInfo falhou para %s: %s", tz_name, e)
+        return None
+    dt_naive = datetime.combine(bdate, btime)
+    dt_local = dt_naive.replace(tzinfo=tz)
+    return dt_local
 
     # -------------------------
     # UI: formulário lateral
