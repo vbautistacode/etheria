@@ -23,10 +23,10 @@ Tonalidade Terra,Sons Amadeirados,Aterramento,Estabiliza,https://www.youtube.com
 Cascata Noturna,Sons da Natureza,Sono,Induz relaxamento profundo,https://www.youtube.com/watch?v=V1RPi2MYptM
 Ritmo Vital,Trilhas Energéticas,Energia,Aumenta vigor,https://www.youtube.com/watch?v=Lju6h-C37hE
 """
-tracks_df = pd.read_csv(StringIO(TRACKS_CSV))
+tracks_df = pd.read_csv(StringIO(TRACKS_CSV), quotechar='"', skipinitialspace=True, encoding='utf-8')
 
 # ---------------------------
-# Obras clássicas: metadados
+# Obras clássicas: metadados (CSV bem formado)
 # ---------------------------
 CLASSICAL_CSV = """Título,Composer,Work,Key,URL
 "Symphony No.5","Beethoven","Symphony No.5","C minor","https://www.youtube.com/watch?v=3ug835LFixU"
@@ -51,21 +51,15 @@ classical_df = pd.read_csv(StringIO(CLASSICAL_CSV), quotechar='"', skipinitialsp
 # Funções utilitárias musicais
 # ---------------------------
 def tonic_to_note(key: str) -> str:
-    """
-    Extrai a letra base da tônica (C D E F G A B) a partir de uma string Key.
-    Normaliza ♯/# e ♭/b e retorna a letra maiúscula ou string vazia se inválida.
-    """
+    """Extrai a letra base da tônica (C D E F G A B) a partir de uma string Key."""
     if not isinstance(key, str) or key.strip() == "":
         return ""
-    base = key.split()[0]  # ex.: "C#", "D", "E♭", "C"
+    base = key.split()[0]
     base = base.replace('♯', '#').replace('♭', 'b')
     return base[0].upper() if base[0].upper() in "CDEFGAB" else ""
 
 def get_youtube_id(u: str) -> str | None:
-    """
-    Extrai o ID do YouTube de uma URL (suporta youtube.com/watch?v= e youtu.be/ e embed).
-    Retorna None se não for possível extrair.
-    """
+    """Extrai o ID do YouTube de uma URL (youtube.com/watch?v=, youtu.be/, embed)."""
     try:
         parsed = urlparse(u)
         netloc = parsed.netloc.lower()
@@ -90,10 +84,10 @@ def render_video_from_url(url: str, width: int = 800, height: int = 450):
     3) se não for YouTube ou falhar, exibe link clicável.
     """
     if not url or pd.isna(url) or str(url).strip() == "":
-        st.markdown("- **Fonte:** (nenhuma URL disponível)")
+        st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
         return
 
-    st.markdown(f"- **Fonte:** [{url}]({url})")
+    # mostra link de origem como referência (mas não exibe URL na seção de detalhes)
     yt_id = get_youtube_id(url)
     try:
         st.video(url)
@@ -122,7 +116,7 @@ NOTE_TO_PLANET_SHORT = {
     'B': 'Lua'
 }
 
-# aplica transformação e mapeamento nas obras clássicas
+# aplica transformação e mapeamento nas obras clássicas (garante coluna Key)
 if 'Key' not in classical_df.columns:
     classical_df['Key'] = ""
 classical_df['Tonic'] = classical_df['Key'].apply(tonic_to_note)
@@ -135,8 +129,8 @@ for col in ['Título', 'Artista/Coleção', 'Categoria', 'Efeito', 'URL', 'Compo
     if col not in tracks_df.columns:
         tracks_df[col] = ""
 
-classical_df_renamed = classical_df.rename(columns={'URL': 'URL', 'Título': 'Título'})
-tracks_df = pd.concat([tracks_df, classical_df_renamed], ignore_index=True, sort=False)
+# concatena obras clássicas ao catálogo de faixas
+tracks_df = pd.concat([tracks_df, classical_df[list(classical_df.columns.intersection(tracks_df.columns))]], ignore_index=True, sort=False)
 
 # ---------------------------
 # Explicações resumidas por planeta (para UI)
@@ -167,6 +161,20 @@ PLANET_TO_TRACKS = {
 }
 
 # ---------------------------
+# Enriquecer PLANET_TO_TRACKS com títulos clássicos detectados
+# ---------------------------
+for p in classical_df['Planet'].dropna().unique():
+    if not p or p == "—":
+        continue
+    titles = classical_df[classical_df['Planet'] == p]['Título'].tolist()
+    existing = PLANET_TO_TRACKS.get(p, [])
+    merged = existing[:]
+    for t in titles:
+        if t not in merged:
+            merged.append(t)
+    PLANET_TO_TRACKS[p] = merged
+
+# ---------------------------
 # Interface lateral: filtros
 # ---------------------------
 st.sidebar.header("Filtros")
@@ -174,6 +182,10 @@ mode = st.sidebar.radio(
     "Modo de consulta",
     ["Por signo", "Por planeta", "Por nota", "Por intenção / uso", "Busca livre / tabela"]
 )
+
+# variáveis de controle
+sign = planet = note = mapped_planet = intent = query = None
+suggested = []
 
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_TRACKS.keys()))
@@ -190,8 +202,31 @@ elif mode == "Por intenção / uso":
 else:
     query = st.sidebar.text_input("Busca livre (título, compositor, categoria)")
 
-# Observação: filtros clássicos opcionais (se quiser reativar, descomente e ajuste)
-# composer_sel, planet_sel, tonic_sel podem não existir; usaremos guards abaixo.
+# ---------------------------
+# Prepara df_display com filtros aplicados
+# ---------------------------
+df_display = tracks_df.copy()
+
+if mode == "Por signo" and suggested:
+    df_display = df_display[df_display["Título"].isin(suggested)]
+elif mode == "Por planeta" and suggested:
+    df_display = df_display[df_display["Título"].isin(suggested)]
+elif mode == "Por nota" and suggested:
+    df_display = df_display[df_display["Título"].isin(suggested)]
+elif mode == "Por intenção / uso":
+    if intent == "Relaxamento":
+        df_display = df_display[df_display["Categoria"].str.contains("Relaxamento|Natureza", case=False, na=False)]
+    elif intent == "Foco":
+        df_display = df_display[df_display["Categoria"].str.contains("Foco|Ambiente", case=False, na=False)]
+    elif intent == "Sono":
+        df_display = df_display[df_display["Categoria"].str.contains("Sono|Natureza", case=False, na=False)]
+else:
+    if mode == "Busca livre / tabela" and query:
+        q = query.strip().lower()
+        df_display = df_display[df_display.apply(lambda r:
+            q in str(r.get("Título","")).lower() or
+            q in str(r.get("Composer","")).lower() or
+            q in str(r.get("Categoria","")).lower(), axis=1)]
 
 # ---------------------------
 # Painel principal
@@ -235,64 +270,30 @@ with col1:
 with col2:
     st.subheader("Sons e Músicas")
 
-    # prepara df_display com filtros aplicados
-    df_display = tracks_df.copy()
-    if mode == "Por signo" and suggested:
-        df_display = df_display[df_display["Título"].isin(suggested)]
-    elif mode == "Por planeta" and suggested:
-        df_display = df_display[df_display["Título"].isin(suggested)]
-    elif mode == "Por nota" and suggested:
-        df_display = df_display[df_display["Título"].isin(suggested)]
-    elif mode == "Por intenção / uso":
-        if intent == "Relaxamento":
-            df_display = df_display[df_display["Categoria"].str.contains("Relaxamento|Natureza", case=False, na=False)]
-        elif intent == "Foco":
-            df_display = df_display[df_display["Categoria"].str.contains("Foco|Ambiente", case=False, na=False)]
-        elif intent == "Sono":
-            df_display = df_display[df_display["Categoria"].str.contains("Sono|Natureza", case=False, na=False)]
-    else:
-        if mode == "Busca livre / tabela" and query:
-            q = query.strip().lower()
-            df_display = df_display[df_display.apply(lambda r:
-                q in str(r.get("Título","")).lower() or
-                q in str(r.get("Composer","")).lower() or
-                q in str(r.get("Categoria","")).lower(), axis=1)]
-
-    # Se existirem filtros clássicos opcionais, aplique-os com guard
-    if 'composer_sel' in locals() and composer_sel != "Todos": # type: ignore
-        df_display = df_display[df_display['Composer'] == composer_sel] # type: ignore
-    if 'planet_sel' in locals() and planet_sel != "Todos": # type: ignore
-        df_display = df_display[df_display['Planet'] == planet_sel] # type: ignore
-    if 'tonic_sel' in locals() and tonic_sel != "Todos": # type: ignore
-        df_display = df_display[df_display['Tonic'] == tonic_sel] # type: ignore
-
-    # ---------------------------
-    # "Sons e Músicas" dentro de expander (oculto por padrão)
-    # ---------------------------
+    # exibe tabela dentro de expander (oculta por padrão)
     with st.expander("Mostrar Sons e Músicas"):
         st.dataframe(df_display.reset_index(drop=True), use_container_width=True)
 
-        st.markdown("### Player / Reprodução")
-        playable_tracks = df_display["Título"].tolist()
-        if playable_tracks:
-            play_sel = st.selectbox("Escolha uma faixa para tocar", [""] + playable_tracks, key="player_select")
-            if play_sel:
-                play_row = df_display[df_display["Título"] == play_sel].iloc[0]
-                play_url = play_row.get('URL', '')
-                # renderiza player com fallback
-                render_video_from_url(play_url)
-        else:
-            st.info("Nenhuma faixa disponível para reprodução com os filtros atuais.")
-
     # ---------------------------
-    # Detalhes da Nota (visível fora do expander)
+    # Seletor unificado: player + detalhes
     # ---------------------------
-    st.markdown("### Detalhes")
+    st.markdown("### Player e Detalhes")
     tracks = df_display["Título"].tolist()
     if tracks:
-        sel = st.selectbox("Escolha uma faixa/obra para ver detalhes", [""] + tracks, key="details_select")
+        sel = st.selectbox("Escolha uma faixa/obra", [""] + tracks, key="track_select")
         if sel:
             row = df_display[df_display["Título"] == sel].iloc[0]
+
+            # Player (renderiza se houver URL)
+            play_url = row.get('URL', '')
+            if play_url and pd.notna(play_url) and str(play_url).strip() != "":
+                st.markdown("**Reprodução**")
+                render_video_from_url(play_url)
+            else:
+                st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
+
+            # Detalhes (omitindo 'Key' e 'Fonte')
+            st.markdown("**Detalhes da faixa**")
             title = row.get('Título', '')
             artist = row.get('Artista/Coleção', '') or row.get('Composer', '')
             category = row.get('Categoria', '')
@@ -305,7 +306,6 @@ with col2:
                 st.markdown(f"- **Categoria:** {category}")
             if effect:
                 st.markdown(f"- **Efeito:** {effect}")
-            # OMITIR 'Key' e 'Fonte' conforme solicitado (não exibir Key nem URL aqui)
             if tonic:
                 st.markdown(f"- **Tônica (nota):** {tonic}")
             if planet_for_piece and planet_for_piece != "—":
