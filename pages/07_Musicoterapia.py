@@ -340,15 +340,19 @@ with col2:
         st.info("Nenhuma faixa encontrada com os filtros atuais.")
 
 # ---------------------------
-# Visualização nota -> planeta (visível fora do expander)
+# Visualização nota -> planeta (dentro de expander)
 # ---------------------------
-st.markdown("---")
-st.subheader("Correspondência Nota → Planeta")
-note_table = pd.DataFrame([
-    {"Nota (solfejo)": f"{k} ({'Dó' if k=='C' else 'Ré' if k=='D' else 'Mi' if k=='E' else 'Fá' if k=='F' else 'Sol' if k=='G' else 'Lá' if k=='A' else 'Si'})", "Planeta": v}
-    for k, v in NOTE_TO_PLANET_SHORT.items()
-])
-st.table(note_table)
+with st.expander("Correspondência Nota → Planeta"):
+    st.markdown("---")
+    st.subheader("Correspondência Nota → Planeta")
+    note_table = pd.DataFrame([
+        {
+            "Nota (solfejo)": f"{k} ({'Dó' if k=='C' else 'Ré' if k=='D' else 'Mi' if k=='E' else 'Fá' if k=='F' else 'Sol' if k=='G' else 'Lá' if k=='A' else 'Si'})",
+            "Planeta": v
+        }
+        for k, v in NOTE_TO_PLANET_SHORT.items()
+    ])
+    st.table(note_table)
 
 # ---------------------------
 # Observações finais
