@@ -59,6 +59,60 @@ try:
 except Exception:
     GEOCODE_AVAILABLE = False
 
+def normalize_tz_name(tz_name: Optional[str]) -> Optional[str]:
+    if not tz_name:
+        return None
+    tz = str(tz_name).strip().replace(" ", "_")
+    # try stdlib zoneinfo
+    try:
+        from zoneinfo import ZoneInfo
+        ZoneInfo(tz)
+        return tz
+    except Exception:
+        pass
+    # try pytz
+    try:
+        import pytz
+        if tz in pytz.all_timezones:
+            return tz
+    except Exception:
+        pass
+    # try dateutil aliases
+    try:
+        from dateutil import tz as dateutil_tz
+        if dateutil_tz.gettz(tz):
+            return tz
+    except Exception:
+        pass
+    return None
+
+def make_datetime_with_tz(bdate: date, btime: time, tz_name: Optional[str]) -> Optional[datetime]:
+    if not bdate or not btime or not tz_name:
+        return None
+    dt_naive = datetime.combine(bdate, btime)
+    # zoneinfo
+    try:
+        from zoneinfo import ZoneInfo
+        return dt_naive.replace(tzinfo=ZoneInfo(tz_name))
+    except Exception:
+        pass
+    # pytz
+    try:
+        import pytz
+        tz = pytz.timezone(tz_name)
+        return tz.localize(dt_naive)
+    except Exception:
+        pass
+    # dateutil
+    try:
+        from dateutil import tz as dateutil_tz
+        tz = dateutil_tz.gettz(tz_name)
+        if tz:
+            return dt_naive.replace(tzinfo=tz)
+    except Exception:
+        pass
+    return None
+
 def main():
     # variáveis de fallback e session_state
     st.session_state.setdefault("house_system", "P")
@@ -266,6 +320,7 @@ def main():
         logger.info("plotly disponível")
     except Exception as e:
         PLOTLY_AVAILABLE = False
+        go = None  # type: ignore
         logger.warning("plotly não disponível: %s", e)
 
     # Importações do projeto (ajuste conforme sua estrutura)
@@ -677,7 +732,7 @@ def main():
         display_name = item.get("display_name", place)
         return lat, lon, display_name
 
-    def parse_time_input(free_text: str) -> Optional[dtime]:
+    def parse_time_input(free_text: str) -> Optional[dt_time]:
         """
         Tenta parsear strings de hora comuns: "14:30", "14:30:15", "2:30 PM".
         Retorna objeto datetime.time ou None se inválido.
@@ -698,7 +753,7 @@ def main():
         except Exception:
             return None
 
-    def to_local_datetime(bdate: date, btime: dtime, tz_name: str) -> datetime:
+    def to_local_datetime(bdate: date, btime: dt_time, tz_name: str) -> datetime:
         """
         Converte data/hora local (sem tzinfo) para datetime timezone-aware.
         """
@@ -1581,26 +1636,63 @@ with st.sidebar:
 
         submitted = st.form_submit_button("Gerar Mapa")
 
-# processamento após submit (mantido no seu fluxo)
+def parse_time_string(time_string):
+    raise NotImplementedError
+
+# após o form_submit_button
 if submitted:
-    # se metadados ausentes, tentar geocoding
+    # preferir tz do CITY_MAP, se houver
+    meta = CITY_MAP.get(place_choice, {}) if 'place_choice' in locals() else {}
+    tz_candidate = meta.get("tz") or (st.session_state.get("tz_name") if st.session_state.get("tz_name") else None)
+
+    # permitir override manual via campo de texto (se você tiver um input para isso)
+    # tz_user_input = st.text_input("Timezone (IANA)", value=st.session_state.get("tz_name",""))
+    # tz_candidate = tz_user_input.strip() or tz_candidate
+
+    tz_ok = normalize_tz_name(tz_candidate)
+    if not tz_ok:
+        # oferecer seleção rápida de timezones comuns
+        tz_choice = st.selectbox("Timezone inválido. Escolha um IANA válido", options=[
+            "America/Sao_Paulo", "America/Fortaleza", "America/Recife", "America/Manaus", "UTC"
+        ], index=0)
+        tz_ok = normalize_tz_name(tz_choice)
+
+    # parse da hora
+    btime_obj = parse_time_string(btime_free or st.session_state.get("btime_text", ""))
+    if btime_free and btime_obj is None:
+        st.warning("Hora inválida. Use o formato HH:MM ou HH:MM:SS. Exemplo: 14:30")
+    # se hora ausente, você pode assumir meia-noite ou pedir confirmação; aqui deixamos como None
+    if btime_obj is None:
+        st.info("Hora não informada ou inválida. Cálculos precisarão de hora exata para máxima precisão.")
+
+    # tentar criar datetime timezone-aware
+    dt_local = None
+    if btime_obj:
+        dt_local = make_datetime_with_tz(bdate, btime_obj, tz_ok)
+
+    if dt_local is None and btime_obj:
+        st.error("Falha ao aplicar o timezone. Verifique o IANA timezone ou escolha manualmente.")
+    elif dt_local:
+        st.success(f"Datetime local: {dt_local.isoformat()}")
+
+    # fallback geocoding se lat/lon ausentes
     if (lat is None or lon is None) and place:
         try:
             lat_g, lon_g, tz_guess, address = geocode_place_safe(place)
             lat = lat or lat_g
             lon = lon or lon_g
-            tz_name = tz_name or tz_guess
+            tz_ok = tz_ok or normalize_tz_name(tz_guess)
         except Exception:
             st.warning("Não foi possível resolver coordenadas automaticamente para esse local.")
 
-    # salvar no session_state para uso posterior
+    # salvar no session_state para uso posterior (mesmo que dt_local seja None)
     st.session_state["place_input"] = place
-    st.session_state["address_resolved"] = st.session_state.get("address_resolved", "")
     st.session_state["lat"] = lat
     st.session_state["lon"] = lon
-    st.session_state["tz_name"] = tz_name
+    st.session_state["tz_name"] = tz_ok
     st.session_state["bdate"] = bdate
     st.session_state["btime_text"] = btime_free
+    st.session_state["dt_local"] = dt_local
 
 def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
     raise NotImplementedError
