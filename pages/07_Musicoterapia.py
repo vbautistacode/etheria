@@ -87,7 +87,6 @@ def render_video_from_url(url: str, width: int = 800, height: int = 450):
         st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
         return
 
-    # mostra link de origem como referência (mas não exibe URL na seção de detalhes)
     yt_id = get_youtube_id(url)
     try:
         st.video(url)
@@ -125,54 +124,75 @@ classical_df['Planet'] = classical_df['Tonic'].map(NOTE_TO_PLANET_SHORT).fillna(
 # ---------------------------
 # Preparar tracks_df para concatenação
 # ---------------------------
-for col in ['Título', 'Artista/Coleção', 'Categoria', 'Efeito', 'URL', 'Composer', 'Work', 'Key', 'Tonic', 'Planet']:
+required_cols = ['Título', 'Artista/Coleção', 'Categoria', 'Efeito', 'URL', 'Composer', 'Work', 'Key', 'Tonic', 'Planet']
+for col in required_cols:
     if col not in tracks_df.columns:
         tracks_df[col] = ""
+    tracks_df[col] = tracks_df[col].fillna("")
 
-# concatena obras clássicas ao catálogo de faixas
+for col in required_cols:
+    if col not in classical_df.columns:
+        classical_df[col] = ""
+    classical_df[col] = classical_df[col].fillna("")
+
+# concatena obras clássicas ao catálogo de faixas (mantendo colunas consistentes)
 tracks_df = pd.concat([tracks_df, classical_df[list(classical_df.columns.intersection(tracks_df.columns))]], ignore_index=True, sort=False)
+tracks_df = tracks_df.fillna("")
 
 # ---------------------------
 # Explicações resumidas por planeta (para UI)
 # ---------------------------
 PLANET_MUSIC_EXPLANATIONS = {
-    'Marte': 'Marte (Dó) — energia de ação e vigor; obras em C tendem a ser diretas e incisivas.',
-    'Sol': 'Sol (Ré) — presença e clareza; obras em D costumam transmitir brilho e afirmação.',
-    'Mercúrio': 'Mercúrio (Mi) — agilidade mental e comunicação; peças em E favorecem leveza e fluidez.',
-    'Saturno': 'Saturno (Fá) — estrutura e profundidade; obras em F trazem sensação de estabilidade.',
-    'Júpiter': 'Júpiter (Sol) — expansão e nobreza; obras em G costumam soar amplas e otimistas.',
-    'Vênus': 'Vênus (Lá) — harmonia e beleza; peças em A evocam suavidade e afeto.',
-    'Lua': 'Lua (Si) — sensibilidade e introspecção; obras em B podem soar etéreas ou contemplativas.'
+    'Marte': 'Marte (Dó) — energia de ação e vigor; obras em Dó tendem a ser diretas e incisivas.',
+    'Sol': 'Sol (Ré) — presença e clareza; obras em Ré costumam transmitir brilho e afirmação.',
+    'Mercúrio': 'Mercúrio (Mi) — agilidade mental e comunicação; peças em Mi favorecem leveza e fluidez.',
+    'Saturno': 'Saturno (Fá) — estrutura e profundidade; obras em Fá trazem sensação de estabilidade.',
+    'Júpiter': 'Júpiter (Sol) — expansão e nobreza; obras em Sol costumam soar amplas e otimistas.',
+    'Vênus': 'Vênus (Lá) — harmonia e beleza; peças em Lá evocam suavidade e afeto.',
+    'Lua': 'Lua (Si) — sensibilidade e introspecção; obras em Si podem soar etéreas ou contemplativas.'
 }
 
 # ---------------------------
-# Mapeamentos por signo/planeta (exemplos)
+# Mapeamentos por signo/planeta (conteúdo melhorado)
 # ---------------------------
 SIGN_TO_TRACKS = {
-    "Áries": ["Ritmo Vital"], "Touro": ["Tonalidade Terra"], "Gêmeos": ["Batida Alfa"],
-    "Câncer": ["Cascata Noturna"], "Leão": ["Ritmo Vital"], "Virgem": ["Batida Alfa"],
-    "Libra": ["Tonalidade Terra"], "Escorpião": ["Ondas Suaves"], "Sagitário": ["Ritmo Vital"],
-    "Capricórnio": ["Tonalidade Terra"], "Aquário": ["Batida Alfa"], "Peixes": ["Ondas Suaves"]
-}
-PLANET_TO_TRACKS = {
-    "Sol": ["Ritmo Vital"], "Lua": ["Cascata Noturna"], "Marte": ["Ritmo Vital"],
-    "Vênus": ["Tonalidade Terra"], "Mercúrio": ["Batida Alfa"], "Júpiter": ["Ondas Suaves"],
-    "Saturno": ["Tonalidade Terra"], "Netuno": ["Ondas Suaves"], "Urano": ["Batida Alfa"], "Plutão": ["Ondas Suaves"]
+    "Áries": ["Ritmo Vital", "Toccata and Fugue"],            # ação, coragem, impulso
+    "Touro": ["Tonalidade Terra", "Piano Concerto No.23"],   # estabilidade, conforto, beleza sensorial
+    "Gêmeos": ["Batida Alfa", "Brandenburg Concerto No.3"],  # agilidade mental, leveza e movimento
+    "Câncer": ["Cascata Noturna", "Ondas Suaves"],          # acolhimento, segurança emocional
+    "Leão": ["Ritmo Vital", "Symphony No.9"],               # presença, brilho, expressão
+    "Virgem": ["Batida Alfa", "Prelude in B"],              # foco prático, ordem e clareza
+    "Libra": ["Tonalidade Terra", "Violin Concerto No.5"],  # harmonia, equilíbrio estético
+    "Escorpião": ["Symphony No.5", "Chaconne (Partita No.2)"], # profundidade, intensidade transformadora
+    "Sagitário": ["Ritmo Vital", "Symphony No.41 (Jupiter)"], # expansão, aventura e otimismo
+    "Capricórnio": ["Tonalidade Terra", "Brandenburg Concerto No.3"], # disciplina, estrutura
+    "Aquário": ["Batida Alfa", "Ride of the Valkyries"],    # inovação, surpresa e movimento coletivo
+    "Peixes": ["Ondas Suaves", "Prelude in E minor"]        # sensibilidade, imaginação e sonho
 }
 
-# ---------------------------
-# Enriquecer PLANET_TO_TRACKS com títulos clássicos detectados
-# ---------------------------
-for p in classical_df['Planet'].dropna().unique():
-    if not p or p == "—":
-        continue
-    titles = classical_df[classical_df['Planet'] == p]['Título'].tolist()
-    existing = PLANET_TO_TRACKS.get(p, [])
-    merged = existing[:]
-    for t in titles:
-        if t not in merged:
-            merged.append(t)
-    PLANET_TO_TRACKS[p] = merged
+# Planet_To_Tracks agora reflete categorias/regentes de cada signo
+PLANET_TO_TRACKS = {
+    # Sol (regente de Leão) -> energia, presença, obras brilhantes
+    "Sol": ["Ritmo Vital", "Symphony No.9", "Piano Concerto No.23"],
+    # Lua (regente de Câncer) -> introspecção, sono, acolhimento
+    "Lua": ["Cascata Noturna", "Ondas Suaves", "Prelude in E minor"],
+    # Marte (regente de Áries) -> ação, intensidade
+    "Marte": ["Ritmo Vital", "Toccata and Fugue", "Symphony No.5"],
+    # Vênus (regente de Touro/Libra) -> harmonia, beleza, peças líricas
+    "Vênus": ["Tonalidade Terra", "Violin Concerto No.5", "Piano Concerto No.23"],
+    # Mercúrio (regente de Gêmeos/Virgem) -> agilidade mental, foco
+    "Mercúrio": ["Batida Alfa", "Brandenburg Concerto No.3", "Symphony No.3 (Eroica)"],
+    # Júpiter (regente de Sagitário/Peixes) -> expansão, nobreza
+    "Júpiter": ["Symphony No.41 (Jupiter)", "Ondas Suaves", "Symphony No.6 (Pastoral)"],
+    # Saturno (regente de Capricórnio/Aquário) -> estrutura, profundidade
+    "Saturno": ["Brandenburg Concerto No.3", "Tonalidade Terra", "Chaconne (Partita No.2)"],
+    # Netuno (regente moderno de Peixes) -> sonho, atmosfera
+    "Netuno": ["Ondas Suaves", "Chaconne (Partita No.2)"],
+    # Urano (regente moderno de Aquário) -> inovação, surpresa
+    "Urano": ["Ride of the Valkyries", "Batida Alfa"],
+    # Plutão (regente moderno de Escorpião) -> transformação, intensidade
+    "Plutão": ["Symphony No.5", "Chaconne (Partita No.2)"]
+}
 
 # ---------------------------
 # Interface lateral: filtros
@@ -215,11 +235,11 @@ elif mode == "Por nota" and suggested:
     df_display = df_display[df_display["Título"].isin(suggested)]
 elif mode == "Por intenção / uso":
     if intent == "Relaxamento":
-        df_display = df_display[df_display["Categoria"].str.contains("Relaxamento|Natureza", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Relaxamento|Natureza|Sono", case=False, na=False)]
     elif intent == "Foco":
-        df_display = df_display[df_display["Categoria"].str.contains("Foco|Ambiente", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Foco|Ambiente|Concentração", case=False, na=False)]
     elif intent == "Sono":
-        df_display = df_display[df_display["Categoria"].str.contains("Sono|Natureza", case=False, na=False)]
+        df_display = df_display[df_display["Categoria"].str.contains("Sono|Relaxamento", case=False, na=False)]
 else:
     if mode == "Busca livre / tabela" and query:
         q = query.strip().lower()
@@ -292,23 +312,26 @@ with col2:
             else:
                 st.info("Nenhuma fonte de reprodução disponível para esta faixa.")
 
-            # Detalhes (omitindo 'Key' e 'Fonte')
+            # Detalhes (omitindo 'Key' e 'Fonte') com fallbacks para Categoria/Efeito
             st.markdown("**Detalhes da faixa**")
-            title = row.get('Título', '')
-            artist = row.get('Artista/Coleção', '') or row.get('Composer', '')
-            category = row.get('Categoria', '')
-            effect = row.get('Efeito', '')
-            tonic = row.get('Tonic', '')
-            planet_for_piece = row.get('Planet', '')
+            title = (row.get('Título') or "").strip()
+            artist = (row.get('Artista/Coleção') or row.get('Composer') or "").strip()
+            category = (row.get('Categoria') or row.get('Composer') or row.get('Work') or "").strip()
+            effect = (row.get('Efeito') or row.get('Work') or "").strip()
+            tonic = (row.get('Tonic') or "").strip()
+            planet_for_piece = (row.get('Planet') or "").strip()
+
+            def show_if(value):
+                return value is not None and str(value).strip() != "" and str(value).strip().lower() != "nan"
 
             st.markdown(f"**{title}** — *{artist}*")
-            if category:
+            if show_if(category):
                 st.markdown(f"- **Categoria:** {category}")
-            if effect:
+            if show_if(effect):
                 st.markdown(f"- **Efeito:** {effect}")
-            if tonic:
+            if show_if(tonic):
                 st.markdown(f"- **Tônica (nota):** {tonic}")
-            if planet_for_piece and planet_for_piece != "—":
+            if show_if(planet_for_piece) and planet_for_piece != "—":
                 st.markdown(f"- **Planeta (via tônica):** {planet_for_piece}")
                 explanation = PLANET_MUSIC_EXPLANATIONS.get(planet_for_piece)
                 if explanation:
