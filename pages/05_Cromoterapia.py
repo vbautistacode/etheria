@@ -11,6 +11,7 @@ st.markdown(
     rápidas para o dia a dia.
     """
 )
+st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # --- Mapeamentos padrão (substitua conforme sua referência) ---
 SIGN_TO_PLANET = {

@@ -12,6 +12,7 @@ st.markdown(
     e sugestões por intenção.
     """
 )
+st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # --- Dados CSV (tabela de referência) ---
 CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização

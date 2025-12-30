@@ -12,6 +12,7 @@ st.markdown(
     relaxamento ou foco. Sugestões de playlists, obras clássicas e sessões guiadas.
     """
 )
+st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # ---------------------------
 # Dados iniciais de faixas

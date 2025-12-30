@@ -10,6 +10,7 @@ st.markdown(
     seguras para relaxamento, foco e sono. Inclui avisos de segurança e contraindicações.
     """
 )
+st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # --- Dados de óleos e usos (exemplos) ---
 OILS_CSV = """Óleo,Família,Principais Efeitos,Modo de Uso,Contraindicações
