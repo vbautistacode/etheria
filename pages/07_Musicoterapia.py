@@ -301,7 +301,7 @@ with col2:
     st.markdown("### Player e Detalhes")
     labels = df_display['_label'].tolist()
     if labels:
-        sel_label = st.selectbox("Escolha uma faixa/obra", [""] + labels, key="track_select")
+        sel_label = st.selectbox("Escolha uma faixa", [""] + labels, key="track_select")
         if sel_label:
             row = df_display[df_display['_label'] == sel_label].iloc[0]
 
