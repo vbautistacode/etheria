@@ -775,6 +775,21 @@ def main():
                     if tz_ok:
                         dt_local = make_datetime_with_tz(bdate, btime, tz_ok)
 
+
+
+                        # DEBUG VISÍVEL: sempre executado após dt_local ser criado
+                        import pprint, traceback
+                        st.write("DEBUG: snapshot antes do cálculo natal")
+                        st.write(pprint.pformat(dict(st.session_state)))
+                        st.write("DEBUG: dt_local:", st.session_state.get("dt_local"))
+                        st.write("DEBUG: dt_local tzinfo:", getattr(st.session_state.get("dt_local"), "tzinfo", None))
+                        st.write("DEBUG: lat, lon:", st.session_state.get("lat"), st.session_state.get("lon"))
+                        st.write("DEBUG: tz_name:", st.session_state.get("tz_name"))
+                        st.write("DEBUG: source:", st.session_state.get("source"))
+                        st.write("DEBUG: natal_positions callable:", callable(natal_positions))
+
+
+
                 st.session_state["tz_name"] = tz_ok
                 st.session_state["dt_local"] = dt_local
                 st.session_state["lat"] = lat
@@ -788,32 +803,27 @@ def main():
                     st.success(f"Datetime local: {dt_local.isoformat()} (tz: {tz_ok})")
                     planets = {}
                     cusps = []
+                    
+                    
+                    
+                    # substitua o try/except que chama natal_positions por este
+                    logger.info("Iniciando obtenção de posições natales; source=swisseph")
+                    logger.info("Entrada para cálculo: name=%r, dt_local=%r, lat=%r, lon=%r, tz=%r", name, dt_local, lat, lon, tz_ok)
                     try:
-                        if source == "api" and fetch_natal_chart:
-                            with st.spinner("Buscando mapa via API..."):
-                                data = fetch_natal_chart(name, dt_local, lat, lon, tz_ok)
-                                planets = data.get("planets") or {}
-                                cusps = data.get("cusps") or []
-
-                                import pprint, traceback
-                                st.write("DEBUG session_state snapshot")
-                                st.write(pprint.pformat(dict(st.session_state)))
-                                st.write("DEBUG dt_local:", st.session_state.get("dt_local"))
-                                st.write("DEBUG dt_local tzinfo:", getattr(st.session_state.get("dt_local"), "tzinfo", None))
-                                st.write("DEBUG lat, lon:", st.session_state.get("lat"), st.session_state.get("lon"))
-                                st.write("DEBUG tz_name:", st.session_state.get("tz_name"))
-                                st.write("DEBUG natal_positions available:", natal_positions is not None)
-
-                        else:
-                            with st.spinner("Calculando mapa local (swisseph)..."):
-                                data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P")) if natal_positions else {"planets": {}, "cusps": []}
-                                planets = data.get("planets", {})
-                                cusps = data.get("cusps", [])
+                        data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
+                        logger.info("natal_positions retornou tipo %s", type(data))
+                        planets = data.get("planets", {}) if isinstance(data, dict) else {}
+                        cusps = data.get("cusps", []) if isinstance(data, dict) else []
                     except Exception as e:
                         logger.exception("Erro ao obter posições natales: %s", e)
-                        st.error("Erro ao calcular posições natales. Verifique dependências ou tente a opção 'api'.")
-                        st.session_state["map_ready"] = False
+                        st.error("Erro ao calcular posições natales. Verifique os logs do servidor.")
+                        with st.expander("Detalhes do erro (debug)"):
+                            import traceback
+                            st.code(traceback.format_exc())
                         planets = {}
+                        cusps = []
+
+
 
                     if planets:
                         try:
