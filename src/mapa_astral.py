@@ -848,6 +848,28 @@ def main():
             st.session_state["map_ready"] = False
             return
 
+
+#teste
+        import pprint, traceback
+        try:
+            # use os mesmos valores do debug
+            dt = st.session_state.get("dt_local")
+            lat = st.session_state.get("lat")
+            lon = st.session_state.get("lon")
+            hs = st.session_state.get("house_system", "P")
+            pprint.pprint({"dt": dt, "lat": lat, "lon": lon, "house_system": hs})
+            res = natal_positions(dt, lat, lon, house_system=hs)
+            print("TYPE:", type(res))
+            pprint.pprint(res)
+            if isinstance(res, dict):
+                print("keys:", list(res.keys()))
+                print("planets type:", type(res.get("planets")))
+                pprint.pprint(res.get("planets"))
+        except Exception:
+            traceback.print_exc()
+
+
+
         # processar resultado
         if not planets:
             st.warning("Não foi possível obter posições natales. Verifique as entradas e tente novamente.")
