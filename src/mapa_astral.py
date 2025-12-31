@@ -794,6 +794,16 @@ def main():
                                 data = fetch_natal_chart(name, dt_local, lat, lon, tz_ok)
                                 planets = data.get("planets") or {}
                                 cusps = data.get("cusps") or []
+
+                                import pprint, traceback
+                                st.write("DEBUG session_state snapshot")
+                                st.write(pprint.pformat(dict(st.session_state)))
+                                st.write("DEBUG dt_local:", st.session_state.get("dt_local"))
+                                st.write("DEBUG dt_local tzinfo:", getattr(st.session_state.get("dt_local"), "tzinfo", None))
+                                st.write("DEBUG lat, lon:", st.session_state.get("lat"), st.session_state.get("lon"))
+                                st.write("DEBUG tz_name:", st.session_state.get("tz_name"))
+                                st.write("DEBUG natal_positions available:", natal_positions is not None)
+
                         else:
                             with st.spinner("Calculando mapa local (swisseph)..."):
                                 data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P")) if natal_positions else {"planets": {}, "cusps": []}
