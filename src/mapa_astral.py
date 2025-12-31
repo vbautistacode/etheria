@@ -702,7 +702,9 @@ def main():
         with st.form(key=form_key, clear_on_submit=False):
             name = st.text_input("Nome", value=st.session_state.get("name", ""))
             city_options = list(CITY_MAP.keys())
-            place_choice = st.selectbox("Local de nascimento", options=city_options, index=0)
+            place_choice = st.selectbox("Local de nascimento", city_options, index=0)
+            source = "swisseph" 
+            st.session_state["source"] = source
             if place_choice == "Outra (digitar...)":
                 place = st.text_input("Digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""))
                 manual_coords = st.checkbox("Informar latitude/longitude manualmente?", value=False)
@@ -734,7 +736,6 @@ def main():
                 max_value=date(2100, 12, 31)
             )
             btime_free = st.text_input("Hora de nascimento (ex.: 14:30)", value=st.session_state.get("btime_text", ""))
-            source = st.selectbox("Fonte de cálculo", options=["swisseph", "api"], index=0)
             st.session_state["house_system"] = st.session_state.get("house_system", "P")
             use_ai = st.checkbox("Usar IA para interpretações?", value=st.session_state.get("use_ai", False))
             st.session_state["use_ai"] = use_ai
