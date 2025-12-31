@@ -852,21 +852,23 @@ def main():
 #teste
         import pprint, traceback
         try:
-            # use os mesmos valores do debug
             dt = st.session_state.get("dt_local")
             lat = st.session_state.get("lat")
             lon = st.session_state.get("lon")
             hs = st.session_state.get("house_system", "P")
-            pprint.pprint({"dt": dt, "lat": lat, "lon": lon, "house_system": hs})
+            st.write("Chamando natal_positions com:", {"dt": dt, "lat": lat, "lon": lon, "house_system": hs})
             res = natal_positions(dt, lat, lon, house_system=hs)
-            print("TYPE:", type(res))
-            pprint.pprint(res)
+            st.write("Tipo retornado:", type(res))
+            st.write("Conteúdo (pprint):")
+            st.code(pprint.pformat(res))
             if isinstance(res, dict):
-                print("keys:", list(res.keys()))
-                print("planets type:", type(res.get("planets")))
-                pprint.pprint(res.get("planets"))
+                st.write("Chaves do dict:", list(res.keys()))
+                st.write("Tipo de res['planets']:", type(res.get("planets")))
+                st.code(pprint.pformat(res.get("planets")))
         except Exception:
-            traceback.print_exc()
+            st.error("Erro ao chamar natal_positions; veja logs do servidor")
+            st.code(traceback.format_exc())
+
 
 
 
