@@ -15,7 +15,6 @@ import importlib
 import json
 import logging
 import os
-import sysa
 import traceback
 import swisseph as swe, datetime, zoneinfo
 from pathlib import Path
