@@ -734,7 +734,11 @@ def main():
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
             # carregar nomes (cached) - load_city_names_and_meta deve estar definido no topo do módulo
-            CITY_NAMES, CITY_META = load_city_names_and_meta("data/cities.csv")
+            try:
+                CITY_NAMES, CITY_META = load_city_names_and_meta("data/cities.csv")
+            except Exception as e:
+                logger.exception("Erro ao carregar cities.csv: %s", e)
+                CITY_NAMES, CITY_META = [], {}
 
             # campo de busca (persistir query em session_state se desejar)
             query = st.text_input("Local de nascimento (digite para buscar)", value=st.session_state.get("place_query", ""), key="place_query_input")
