@@ -25,19 +25,12 @@ except Exception as e:
 
 # IDs de planetas conforme convenção Swiss Ephemeris
 # Nomes de planetas em português (códigos inteiros)
+# logo após import swisseph as swe
 PLANET_CODES = {
-    "Sun": 0,
-    "Moon": 1,
-    "Mercury": 2,
-    "Venus": 3,
-    "Mars": 4,
-    "Jupiter": 5,
-    "Saturn": 6,
-    "Uranus": 7,
-    "Neptune": 8,
-    "Pluto": 9,
+    "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, "Venus": swe.VENUS,
+    "Mars": swe.MARS, "Jupiter": swe.JUPITER, "Saturn": swe.SATURN,
+    "Uranus": swe.URANUS, "Neptune": swe.NEPTUNE, "Pluto": swe.PLUTO
 }
-
 PLANETS = list(PLANET_CODES.values())
 PLANET_NAMES = {code: name for name, code in PLANET_CODES.items()}
 
@@ -77,31 +70,19 @@ def longitude_to_sign_degree(lon: float) -> Tuple[str, float]:
     return sign_name, degree_in_sign
 
 def _normalize_calc_result(res) -> Tuple[List[float], Optional[int]]:
-    """
-    Normaliza o retorno de swe.calc_ut:
-      - aceita (vals, flag) ou vals direto
-      - retorna (vals_list, flag_or_None)
-    """
-    if isinstance(res, tuple) and len(res) == 2 and isinstance(res[0], (tuple, list)):
-        vals, flag = list(res[0]), res[1]
+    if isinstance(res, (tuple, list)) and len(res) == 2 and isinstance(res[0], (list, tuple)):
+        vals = list(res[0]); flag = res[1]
     else:
-        vals, flag = list(res), None
+        vals = list(res); flag = None
+    vals = [float(v) for v in vals]
     return vals, flag
 
-def _prepare_house_system(house_system: str | bytes) -> bytes:
-    """
-    Garante que house_system seja um único byte (ex.: b'P').
-    Aceita str de comprimento 1 ou bytes/bytearray de comprimento 1.
-    """
-    if isinstance(house_system, str):
-        if len(house_system) != 1:
-            raise ValueError("house_system deve ser um caractere único, ex.: 'P', 'K', 'E'")
-        return house_system.encode("ascii")
+def _prepare_house_system(house_system: str | bytes) -> str:
     if isinstance(house_system, (bytes, bytearray)):
-        if len(house_system) != 1:
-            raise ValueError("house_system bytes deve ter comprimento 1")
-        return bytes(house_system)
-    raise TypeError("house_system deve ser str ou bytes")
+        house_system = house_system.decode("ascii")
+    if not isinstance(house_system, str) or len(house_system) != 1:
+        raise ValueError("house_system deve ser um caractere único, ex.: 'P'")
+    return house_system
 
 def _find_planet_house(planet_lon: float, cusps: List[float]) -> int:
     """
