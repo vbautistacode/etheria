@@ -283,32 +283,67 @@ def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float
 # -------------------------
 # City map loader
 # -------------------------
+# Autocomplete fuzzy com cache (substituir o selectbox atual)
+from functools import lru_cache
+import difflib
+
+# opcional: rapidfuzz é muito mais rápido/preciso; use se instalado
+try:
+    from rapidfuzz import process as rf_process  # type: ignore
+    RAPIDFUZZ = True
+except Exception:
+    RAPIDFUZZ = False
+
 @st.cache_data
-def load_city_map_csv(path: str = "data/cities.csv") -> Dict[str, dict]:
-    city_map: Dict[str, dict] = {}
-    p = Path(path)
-    if not p.exists():
-        return city_map
-    with p.open(newline="", encoding="utf-8") as f:
+def load_city_names_and_meta(csv_path: str = "data/cities.csv"):
+    """
+    Retorna (names_list, meta_map)
+    meta_map: {name: {"lat":..., "lon":..., "tz":...}}
+    """
+    import csv, os
+    names = []
+    meta = {}
+    if not os.path.exists(csv_path):
+        # fallback para CITY_MAP se já estiver carregado no módulo
+        try:
+            for k, v in CITY_MAP.items():
+                names.append(k)
+                meta[k] = {"lat": v.get("lat"), "lon": v.get("lon"), "tz": v.get("tz")}
+        except Exception:
+            return [], {}
+        return names, meta
+
+    with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for r in reader:
-            name = (r.get("name") or r.get("city") or "").strip()
+            name = (r.get("name") or "").strip()
             if not name:
                 continue
-            try:
-                lat = float(r.get("lat")) if r.get("lat") not in (None, "") else None
-                lon = float(r.get("lon")) if r.get("lon") not in (None, "") else None
-            except Exception:
-                lat = lon = None
-            tz = (r.get("tz") or "").strip() or None
-            city_map[name] = {"lat": lat, "lon": lon, "tz": tz}
-    city_map.setdefault("Outra (digitar...)", {})
-    return city_map
+            names.append(name)
+            meta[name] = {
+                "lat": float(r["lat"]) if r.get("lat") else None,
+                "lon": float(r["lon"]) if r.get("lon") else None,
+                "tz": r.get("tz") or None
+            }
+    return names, meta
 
-CITY_MAP = load_city_map_csv("data/cities.csv") or {
-    "São Paulo, SP, Brasil": {"lat": -23.550520, "lon": -46.633308, "tz": "America/Sao_Paulo"},
-    "Outra (digitar...)": {}
-}
+def suggest_cities(query: str, names: list, limit: int = 12):
+    if not query:
+        # retornar top por prefixo vazio: primeiras cidades (ou populares se tiver lista)
+        return names[:limit]
+    q = query.strip()
+    # prefix matches first (fast)
+    prefix = [n for n in names if n.lower().startswith(q.lower())]
+    if prefix:
+        return prefix[:limit]
+    # fuzzy fallback
+    if RAPIDFUZZ:
+        matches = rf_process.extract(q, names, limit=limit)
+        # rapidfuzz returns tuples (name, score, idx)
+        return [m[0] for m in matches]
+    else:
+        # difflib fallback
+        return difflib.get_close_matches(q, names, n=limit, cutoff=0.45)
 
 # -------------------------
 # Safe wrappers and stubs
@@ -686,10 +721,6 @@ def main():
     # session defaults
     st.session_state.setdefault("house_system", "P")
     st.session_state.setdefault("map_ready", False)
-    st.session_state.setdefault("lat_manual", -23.6636)
-    st.session_state.setdefault("lon_manual", -46.5381)
-    st.session_state.setdefault("tz_manual", "America/Sao_Paulo")
-    st.session_state.setdefault("btime_text", "")
     st.session_state.setdefault("map_summary", None)
     st.session_state.setdefault("map_fig", None)
     st.session_state.setdefault("selected_planet", None)
@@ -702,33 +733,44 @@ def main():
     with st.sidebar:
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
-            name = st.text_input("Nome", value=st.session_state.get("name", ""))
-            # oferecer selectbox com cidades conhecidas, mas permitir texto livre
-            city_options = list(CITY_MAP.keys())
-            place_choice = st.selectbox("Local de nascimento (atalho)", city_options, index=0)
-            place_free = st.text_input("Ou digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""))
-            # decidir qual usar: texto livre tem prioridade se preenchido
-            place = place_free.strip() or place_choice
+            # carregar nomes (cached) - load_city_names_and_meta deve estar definido no topo do módulo
+            CITY_NAMES, CITY_META = load_city_names_and_meta("data/cities.csv")
+
+            # campo de busca (persistir query em session_state se desejar)
+            query = st.text_input("Local de nascimento (digite para buscar)", value=st.session_state.get("place_query", ""), key="place_query_input")
+            st.session_state["place_query"] = query
+
+            # obter sugestões
+            suggestions = suggest_cities(query, CITY_NAMES, limit=12)
+
+            # mostrar sugestões em selectbox compacto (vazio = nenhuma seleção)
+            selected_suggestion = None
+            if suggestions:
+                options = [""] + suggestions
+                sel = st.selectbox("Sugestões", options, index=0, help="Escolha uma sugestão ou continue digitando", key="place_suggestions")
+                selected_suggestion = sel if sel else None
+
+            # opção explícita para digitar livremente (se o usuário preferir)
+            free_checkbox = st.checkbox("Digitar local livremente (usar texto exato)", value=False, key="place_free_checkbox")
+            if free_checkbox:
+                place_free = st.text_input("Digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""), key="place_free_input")
+                place = place_free.strip() or selected_suggestion
+            else:
+                place = (selected_suggestion or query.strip())
+
+            # se nada selecionado e nada digitado, manter valor anterior ou vazio
+            if not place:
+                place = st.session_state.get("place_input", "")
+
+            # extrair meta se existir
+            meta = CITY_META.get(place) or CITY_MAP.get(place) or {}
+            lat = meta.get("lat")
+            lon = meta.get("lon")
+            tz_name = meta.get("tz")
 
             # Fonte fixa
             source = "swisseph"
             st.session_state["source"] = source
-
-            # opção de coordenadas manuais
-            manual_coords = st.checkbox("Informar latitude/longitude manualmente?", value=False)
-            if manual_coords:
-                lat = st.number_input("Latitude", value=float(st.session_state.get("lat_manual", -23.6636)), format="%.6f")
-                lon = st.number_input("Longitude", value=float(st.session_state.get("lon_manual", -46.5381)), format="%.6f")
-            else:
-                lat = None
-                lon = None
-
-            # opção de timezone manual
-            manual_tz = st.checkbox("Escolher timezone manualmente?", value=False)
-            if manual_tz:
-                tz_name = st.text_input("Timezone (IANA)", value=st.session_state.get("tz_manual", ""))
-            else:
-                tz_name = None
 
             bdate = st.date_input(
                 "Data de nascimento",
@@ -760,38 +802,28 @@ def main():
 
         btime = parsed_time
 
-        # resolver local: se não houver coords manuais, tentar CITY_MAP / geocoding
-        if lat is None or lon is None:
-            meta = CITY_MAP.get(place) or {}
-            lat_meta = meta.get("lat")
-            lon_meta = meta.get("lon")
-            tz_meta = meta.get("tz")
-            # preferir meta do CITY_MAP
-            lat = lat_meta if lat is None else lat
-            lon = lon_meta if lon is None else lon
-            tz_name = tz_name or tz_meta
+        # resolver local via CITY_MAP / geocoding (sem opção manual)
+        meta = CITY_MAP.get(place) or {}
+        lat = meta.get("lat")
+        lon = meta.get("lon")
+        tz_name = meta.get("tz")
 
-            # se ainda faltar coords, tentar geocoding
-            if (lat is None or lon is None) and place:
-                lat_res, lon_res, tz_guess, address = resolve_place_and_tz(place)
-                lat = lat or lat_res
-                lon = lon or lon_res
-                tz_name = tz_name or tz_guess
-                # salvar endereço resolvido
-                address = address or st.session_state.get("address")
+        # se ainda faltar coords, tentar geocoding
+        if (lat is None or lon is None) and place:
+            lat_res, lon_res, tz_guess, address = resolve_place_and_tz(place)
+            lat = lat or lat_res
+            lon = lon or lon_res
+            tz_name = tz_name or tz_guess
+            address = address or st.session_state.get("address")
         else:
-            # se coords manuais foram fornecidas, tentar inferir timezone se não informado
             address = st.session_state.get("address")
-            if not tz_name and lat is not None and lon is not None:
-                tz_guess = tz_from_latlon_cached(lat, lon)
-                tz_name = tz_name or tz_guess
 
         # atualizar session_state com valores atuais
         st.session_state.update({"lat": lat, "lon": lon, "tz_name": tz_name, "address": address})
 
         # validar coords
         if lat is None or lon is None:
-            st.warning("Latitude/Longitude não resolvidas automaticamente. Informe manualmente ou corrija o local.")
+            st.warning("Latitude/Longitude não resolvidas automaticamente. Informe um local diferente ou corrija o nome da cidade.")
             st.session_state["map_ready"] = False
             return
         if not (-90 <= lat <= 90 and -180 <= lon <= 180):
@@ -807,24 +839,12 @@ def main():
             if tz_ok:
                 dt_local = make_datetime_with_tz(bdate, btime, tz_ok)
 
-        # DEBUG VISÍVEL: sempre executado após tentativa de criar dt_local
-        import pprint, traceback
-        st.write("DEBUG: snapshot antes do cálculo natal")
-        st.write(pprint.pformat(dict(st.session_state)))
-        st.write("DEBUG: dt_local:", dt_local)
-        st.write("DEBUG: dt_local tzinfo:", getattr(dt_local, "tzinfo", None))
-        st.write("DEBUG: lat, lon:", lat, lon)
-        st.write("DEBUG: tz_name (input):", tz_name)
-        st.write("DEBUG: tz_ok (resolved):", tz_ok)
-        st.write("DEBUG: source:", source)
-        st.write("DEBUG: natal_positions callable:", callable(natal_positions))
-
         # persistir dt_local e tz
         st.session_state["tz_name"] = tz_ok
         st.session_state["dt_local"] = dt_local
 
         if dt_local is None:
-            st.error("Não foi possível criar um datetime timezone-aware. Informe o timezone manualmente (IANA) ou corrija as coordenadas.")
+            st.error("Não foi possível criar um datetime timezone-aware. Informe o timezone manualmente (IANA) no campo de local ou corrija o nome da cidade.")
             st.session_state["map_ready"] = False
             return
 
@@ -847,30 +867,6 @@ def main():
                 st.code(traceback.format_exc())
             st.session_state["map_ready"] = False
             return
-
-
-#teste
-        import pprint, traceback
-        try:
-            dt = st.session_state.get("dt_local")
-            lat = st.session_state.get("lat")
-            lon = st.session_state.get("lon")
-            hs = st.session_state.get("house_system", "P")
-            st.write("Chamando natal_positions com:", {"dt": dt, "lat": lat, "lon": lon, "house_system": hs})
-            res = natal_positions(dt, lat, lon, house_system=hs)
-            st.write("Tipo retornado:", type(res))
-            st.write("Conteúdo (pprint):")
-            st.code(pprint.pformat(res))
-            if isinstance(res, dict):
-                st.write("Chaves do dict:", list(res.keys()))
-                st.write("Tipo de res['planets']:", type(res.get("planets")))
-                st.code(pprint.pformat(res.get("planets")))
-        except Exception:
-            st.error("Erro ao chamar natal_positions; veja logs do servidor")
-            st.code(traceback.format_exc())
-
-
-
 
         # processar resultado
         if not planets:
@@ -901,7 +897,6 @@ def main():
             logger.exception("Erro ao gerar summary/figura: %s", e)
             st.error("Erro ao processar dados astrológicos.")
             st.session_state["map_ready"] = False
-
 
     # Button to generate AI interpretation (separado)
     if st.sidebar.button("Gerar interpretação IA"):

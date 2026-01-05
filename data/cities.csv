@@ -1,42 +1,64 @@
 name,lat,lon,tz
 Ananindeua, PA, Brasil,-1.365000,-48.374000,America/Belem
+Arapiraca, AL, Brasil,-9.752778,-36.661111,America/Maceio
 Aracaju, SE, Brasil,-10.947246,-37.073082,America/Maceio
 Barueri, SP, Brasil,-23.505000,-46.876000,America/Sao_Paulo
 Bauru, SP, Brasil,-22.314500,-49.060000,America/Sao_Paulo
 Belém, PA, Brasil,-1.455754,-48.490179,America/Belem
 Belo Horizonte, MG, Brasil,-19.916681,-43.934493,America/Sao_Paulo
 Belo Jardim, PE, Brasil,-8.347000,-36.496000,America/Recife
+Blumenau, SC, Brasil,-26.919300,-49.066100,America/Sao_Paulo
+Boa Vista, RR, Brasil,2.823528,-60.675833,America/Boa_Vista
+Brasília, DF, Brasil,-15.793889,-47.882778,America/Sao_Paulo
 Campinas, SP, Brasil,-22.905560,-47.060830,America/Sao_Paulo
 Campo Grande, MS, Brasil,-20.469710,-54.620120,America/Campo_Grande
+Canoas, RS, Brasil,-29.912800,-51.183900,America/Sao_Paulo
 Caxias do Sul, RS, Brasil,-29.167800,-51.179400,America/Sao_Paulo
+Caxias, MA, Brasil,-4.863611,-43.356389,America/Fortaleza
 Cuiabá, MT, Brasil,-15.601410,-56.097890,America/Cuiaba
 Curitiba, PR, Brasil,-25.428954,-49.267137,America/Sao_Paulo
+Divinópolis, MG, Brasil,-20.138900,-44.888900,America/Sao_Paulo
+Feira de Santana, BA, Brasil,-12.266667,-38.966667,America/Bahia
 Florianópolis, SC, Brasil,-27.595377,-48.548050,America/Sao_Paulo
 Fortaleza, CE, Brasil,-3.731862,-38.526669,America/Fortaleza
 Franca, SP, Brasil,-20.538300,-47.400000,America/Sao_Paulo
+Goiânia, GO, Brasil,-16.686891,-49.264788,America/Sao_Paulo
 Guarulhos, SP, Brasil,-23.462840,-46.533070,America/Sao_Paulo
+Ilhéus, BA, Brasil,-14.793889,-39.046389,America/Bahia
 Itajaí, SC, Brasil,-26.910000,-48.670000,America/Sao_Paulo
 Itu, SP, Brasil,-23.264000,-47.299000,America/Sao_Paulo
+Jacareí, SP, Brasil,-23.304167,-45.966944,America/Sao_Paulo
 João Pessoa, PB, Brasil,-7.119495,-34.845011,America/Fortaleza
 Joinville, SC, Brasil,-26.304400,-48.848390,America/Sao_Paulo
+Juiz de Fora, MG, Brasil,-21.764167,-43.350278,America/Sao_Paulo
+Lages, SC, Brasil,-27.808056,-50.326389,America/Sao_Paulo
 Londrina, PR, Brasil,-23.304450,-51.169580,America/Sao_Paulo
 Maceió, AL, Brasil,-9.665990,-35.735000,America/Maceio
 Maringá, PR, Brasil,-23.420999,-51.933056,America/Sao_Paulo
 Marília, SP, Brasil,-22.217000,-49.948000,America/Sao_Paulo
+Mauá, SP, Brasil,-23.667500,-46.461111,America/Sao_Paulo
 Manaus, AM, Brasil,-3.119028,-60.021731,America/Manaus
 Natal, RN, Brasil,-5.794480,-35.211000,America/Fortaleza
 Niterói, RJ, Brasil,-22.883160,-43.103630,America/Sao_Paulo
+Nova Iguaçu, RJ, Brasil,-22.759444,-43.451111,America/Sao_Paulo
 Olinda, PE, Brasil,-8.008890,-34.855560,America/Recife
+Palmas, TO, Brasil,-10.184444,-48.333611,America/Araguaina
 Pelotas, RS, Brasil,-31.765000,-52.337000,America/Sao_Paulo
 Petrolina, PE, Brasil,-9.389000,-40.502000,America/Fortaleza
+Petrópolis, RJ, Brasil,-22.509444,-43.177500,America/Sao_Paulo
 Porto Alegre, RS, Brasil,-30.034647,-51.217658,America/Sao_Paulo
+Porto Velho, RO, Brasil,-8.760770,-63.899910,America/Porto_Velho
 Recife, PE, Brasil,-8.047562,-34.876964,America/Recife
 Ribeirão Preto, SP, Brasil,-21.177780,-47.810280,America/Sao_Paulo
+Rio Branco, AC, Brasil,-9.974720,-67.824300,America/Rio_Branco
 Rio de Janeiro, RJ, Brasil,-22.906847,-43.172896,America/Sao_Paulo
 Salvador, BA, Brasil,-12.971399,-38.501305,America/Bahia
 Santo André, SP, Brasil,-23.663610,-46.538060,America/Sao_Paulo
+Santos, SP, Brasil,-23.960833,-46.333056,America/Sao_Paulo
 São Bernardo do Campo, SP, Brasil,-23.691960,-46.564590,America/Sao_Paulo
+São Caetano do Sul, SP, Brasil,-23.623611,-46.557500,America/Sao_Paulo
 São Carlos, SP, Brasil,-22.017000,-47.890000,America/Sao_Paulo
+São Gonçalo, RJ, Brasil,-22.826944,-43.063611,America/Sao_Paulo
 São José do Rio Preto, SP, Brasil,-20.816700,-49.379700,America/Sao_Paulo
 São José dos Campos, SP, Brasil,-23.189586,-45.884257,America/Sao_Paulo
 São Luís, MA, Brasil,-2.530730,-44.306800,America/Fortaleza
@@ -44,5 +66,9 @@ São Paulo, SP, Brasil,-23.550520,-46.633308,America/Sao_Paulo
 Sorocaba, SP, Brasil,-23.501540,-47.452640,America/Sao_Paulo
 Teresina, PI, Brasil,-5.091944,-42.803333,America/Fortaleza
 Uberlândia, MG, Brasil,-18.912610,-48.275390,America/Sao_Paulo
+Umuarama, PR, Brasil,-23.765000,-53.320000,America/Sao_Paulo
+Valinhos, SP, Brasil,-22.969444,-47.064167,America/Sao_Paulo
+Várzea Grande, MT, Brasil,-15.646667,-56.132778,America/Cuiaba
 Vitória, ES, Brasil,-20.315500,-40.312800,America/Sao_Paulo
-Outra (digitar...),,,
+Vitória da Conquista, BA, Brasil,-14.861111,-40.839444,America/Bahia
+Outra (digitar...),,,,
