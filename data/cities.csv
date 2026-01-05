@@ -1,4 +1,4 @@
-name,lat,lon,tz
+name,str, ctr,lat,lon,tz
 Ananindeua, PA, Brasil,-1.365000,-48.374000,America/Belem
 Arapiraca, AL, Brasil,-9.752778,-36.661111,America/Maceio
 Aracaju, SE, Brasil,-10.947246,-37.073082,America/Maceio
