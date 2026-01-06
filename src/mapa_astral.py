@@ -852,19 +852,15 @@ def main():
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
             # Selectbox único para Local de Nascimento (query implícita; sem campo de digitação)
-            # Se houver um valor anterior em session_state["place_input"], usamos como seleção inicial
             default_place = st.session_state.get("place_input", "")
-            # Garantir que CITY_NAMES exista
             options = CITY_NAMES or []
-            # Se o default não estiver nas opções, não forçamos erro: adicionamos ao topo para preservá-lo
             if default_place and default_place not in options:
                 options = [default_place] + options
 
-            # Se não houver opções, mostrar mensagem única
             if not options:
                 options = ["Nenhuma correspondência"]
 
-            place_selected = st.selectbox("Local de Nascimento", options, index=0 if options[0] != default_place else 0, key="place_selectbox")
+            place_selected = st.selectbox("Local de Nascimento", options, index=0, key="place_selectbox")
             place = (place_selected or "").strip()
             if place == "Nenhuma correspondência":
                 place = ""
@@ -880,7 +876,7 @@ def main():
             tz_name = meta.get("tz")
 
             # Campo para Nome do consulente
-            consulente_name = st.text_input("Nome", value=st.session_state.get("name", ""), key="name_input")
+            consulente_name = st.text_input("Nome do consulente", value=st.session_state.get("name", ""), key="name_input")
 
             source = "swisseph"
             st.session_state["source"] = source
@@ -900,7 +896,7 @@ def main():
     # --- tratamento do submit ---
     if submitted:
         st.session_state["place_input"] = place
-        st.session_state["place_query"] = query
+        st.session_state["name"] = st.session_state.get("name_input", "")  # ou consulente_name se usar variável local
         st.session_state["bdate"] = bdate
         st.session_state["btime_text"] = btime_free
         st.session_state["source"] = source
