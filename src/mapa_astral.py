@@ -1296,50 +1296,7 @@ def main():
             with st.expander("Tabela de posições", expanded=False):
                 st.dataframe(df_exp, use_container_width=True, height=300)
 
-            # build label list and mapping to raw/canonical names
-            label_list = []
-            label_to_raw = {}
-            label_to_canonical = {}
-            if not df_display.empty and "planet_label" in df_display.columns:
-                raw_planets = list(df_display["planet"].values)
-                planet_labels = list(df_display["planet_label"].values)
-                for raw, plab in zip(raw_planets, planet_labels):
-                    lab = f"{plab}"
-                    label_list.append(lab)
-                    label_to_raw[lab] = raw
-                    label_to_canonical[lab] = _safe_canonical(raw) or raw
-            elif not df_display.empty and "planet" in df_display.columns:
-                label_list = list(df_display["planet"].values)
-                for lab in label_list:
-                    label_to_raw[lab] = lab
-                    label_to_canonical[lab] = _safe_canonical(lab) or lab
-            else:
-                label_list = []
-                label_to_raw = {}
-                label_to_canonical = {}
-
-            # initialize selection state safely
-            if label_list:
-                if st.session_state.get("selected_planet") is None:
-                    # prefer canonical stored value if present
-                    stored = st.session_state.get("selected_planet")
-                    if stored and stored in label_to_raw.values():
-                        st.session_state["selected_planet"] = stored
-                    else:
-                        st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
-                if st.session_state.get("planet_selectbox") is None:
-                    current_internal = st.session_state.get("selected_planet")
-                    current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                    st.session_state["planet_selectbox"] = current_label or label_list[0]
-            else:
-                st.session_state.setdefault("selected_planet", None)
-                st.session_state.setdefault("planet_selectbox", None)
-
-            def _on_select_planet():
-                sel_label = st.session_state.get("planet_selectbox")
-                sel_raw = label_to_raw.get(sel_label, sel_label)
-                st.session_state["selected_planet"] = sel_raw
-                st.session_state["planet_selectbox"] = sel_label
+            
 
     # CENTER: map + interpretation
     with center_col:
@@ -1414,14 +1371,59 @@ def main():
                 except Exception:
                     logger.exception("Erro ao processar clique no gráfico")
 
-        st.selectbox(
+        # build label list and mapping to raw/canonical names
+            label_list = []
+            label_to_raw = {}
+            label_to_canonical = {}
+            if not df_display.empty and "planet_label" in df_display.columns:
+                raw_planets = list(df_display["planet"].values)
+                planet_labels = list(df_display["planet_label"].values)
+                for raw, plab in zip(raw_planets, planet_labels):
+                    lab = f"{plab}"
+                    label_list.append(lab)
+                    label_to_raw[lab] = raw
+                    label_to_canonical[lab] = _safe_canonical(raw) or raw
+            elif not df_display.empty and "planet" in df_display.columns:
+                label_list = list(df_display["planet"].values)
+                for lab in label_list:
+                    label_to_raw[lab] = lab
+                    label_to_canonical[lab] = _safe_canonical(lab) or lab
+            else:
+                label_list = []
+                label_to_raw = {}
+                label_to_canonical = {}
+
+            # initialize selection state safely
+            if label_list:
+                if st.session_state.get("selected_planet") is None:
+                    # prefer canonical stored value if present
+                    stored = st.session_state.get("selected_planet")
+                    if stored and stored in label_to_raw.values():
+                        st.session_state["selected_planet"] = stored
+                    else:
+                        st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
+                if st.session_state.get("planet_selectbox") is None:
+                    current_internal = st.session_state.get("selected_planet")
+                    current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
+                    st.session_state["planet_selectbox"] = current_label or label_list[0]
+            else:
+                st.session_state.setdefault("selected_planet", None)
+                st.session_state.setdefault("planet_selectbox", None)
+
+            def _on_select_planet():
+                sel_label = st.session_state.get("planet_selectbox")
+                sel_raw = label_to_raw.get(sel_label, sel_label)
+                st.session_state["selected_planet"] = sel_raw
+                st.session_state["planet_selectbox"] = sel_label
+
+            st.selectbox(
                 "Selecionar planeta",
                 label_list,
                 index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
                 key="planet_selectbox",
                 on_change=_on_select_planet
             )
-
+            
     # RIGHT: interpretations and arcanos
     with right_col:
         st.subheader("Interpretação dos Arcanos")
