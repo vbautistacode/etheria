@@ -1561,6 +1561,90 @@ def main():
             logger.exception("Erro em get_or_generate_reading")
             return None, None, None
 
+    def _get_position_for_ui(summary: Dict[str, Any], selected_raw: Optional[str]) -> Dict[str, Any]:
+    #Retorna dict com keys: planet, sign, degree, longitude, house, source
+    #Procura em summary['table'] (prioridade) e em summary['planets'] (fallback).
+    #selected_raw pode ser nome raw (pt) ou canônico.
+        out = {"planet": selected_raw, "sign": None, "degree": None, "longitude": None, "house": None, "source": None}
+        if not summary or not selected_raw:
+            return out
+
+        # helpers locais
+        def _match_name(a, b):
+            try:
+                if a is None or b is None:
+                    return False
+                if str(a).lower() == str(b).lower():
+                    return True
+                # tentar variantes canônicas se influences disponível
+                try:
+                    if influences and hasattr(influences, "to_canonical"):
+                        return influences.to_canonical(a) == influences.to_canonical(b)
+                except Exception:
+                    pass
+                return False
+            except Exception:
+                return False
+
+        # 1) procurar na tabela (mais provável)
+        table = summary.get("table") or []
+        if isinstance(table, list):
+            for row in table:
+                try:
+                    if not isinstance(row, dict):
+                        continue
+                    pname = row.get("planet") or row.get("planet_label") or row.get("planet_label_pt")
+                    if _match_name(pname, selected_raw):
+                        out["planet"] = pname
+                        out["sign"] = row.get("sign") or row.get("sign_label") or row.get("sign_label_pt")
+                        out["degree"] = row.get("degree") if row.get("degree") not in (None, "") else row.get("deg") or row.get("degree")
+                        out["longitude"] = row.get("longitude")
+                        out["house"] = row.get("house") or row.get("Casa") or row.get("house_number")
+                        out["source"] = "table"
+                        return out
+                except Exception:
+                    continue
+
+        # 2) fallback para summary['planets']
+        planets_map = summary.get("planets") or {}
+        # tentar chave canônica primeiro
+        try:
+            key_can = None
+            if influences and hasattr(influences, "to_canonical"):
+                key_can = influences.to_canonical(selected_raw)
+        except Exception:
+            key_can = None
+
+        # checar por key_can
+        if key_can and key_can in planets_map:
+            pdata = planets_map.get(key_can) or {}
+            out["planet"] = key_can
+            out["sign"] = pdata.get("sign") or pdata.get("zodiac")
+            out["degree"] = pdata.get("degree") or pdata.get("deg")
+            out["longitude"] = pdata.get("longitude")
+            out["house"] = pdata.get("house")
+            out["source"] = "planets_map_key"
+            return out
+
+        # checar por nome raw (case-insensitive)
+        for pname, pdata in planets_map.items():
+            try:
+                if _match_name(pname, selected_raw):
+                    out["planet"] = pname
+                    if isinstance(pdata, dict):
+                        out["sign"] = pdata.get("sign") or pdata.get("zodiac")
+                        out["degree"] = pdata.get("degree") or pdata.get("deg")
+                        out["longitude"] = pdata.get("longitude")
+                        out["house"] = pdata.get("house")
+                    else:
+                        out["longitude"] = float(pdata) if isinstance(pdata, (int, float, str)) else None
+                    out["source"] = "planets_map_iter"
+                    return out
+            except Exception:
+                continue
+
+        return out
+
     # LEFT: positions table and planet selector
     with left_col:
         st.markdown("### Posições")
@@ -1861,85 +1945,138 @@ def main():
         if not sel_planet or not summary:
             st.info("Selecione um planeta na tabela para ver a leitura sintética.")
         else:
+            # tentar obter leitura persistida (se existir)
+            canonical = label = reading = None
             try:
-                canonical, label, reading = get_or_generate_reading(summary, sel_planet)
+                if callable(globals().get("get_or_generate_reading")):
+                    canonical, label, reading = get_or_generate_reading(summary, sel_planet)
             except Exception:
                 logger.exception("get_or_generate_reading falhou na Leitura Sintética")
                 canonical, label, reading = None, None, None
 
-            if not reading:
-                st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
+            # helper defensivo para extrair sign/degree/house a partir de reading ou summary
+            def _extract_position(reading_obj, summary_obj, sel):
+                sign = degree = house = None
+                # 1) tentar a leitura persistida
+                try:
+                    if isinstance(reading_obj, dict):
+                        sign = reading_obj.get("sign") or reading_obj.get("sign_label")
+                        degree = reading_obj.get("degree") or reading_obj.get("deg")
+                        house = reading_obj.get("house")
+                except Exception:
+                    pass
+                # 2) fallback para summary.table / summary.planets
+                if (not sign or degree in (None, "", "None") or house in (None, "", "None")) and isinstance(summary_obj, dict):
+                    try:
+                        # procurar na tabela
+                        for row in (summary_obj.get("table") or []):
+                            try:
+                                pname = (row.get("planet") or row.get("planet_label") or "").strip()
+                                if pname and str(pname).lower() == str(sel).lower():
+                                    sign = sign or row.get("sign") or row.get("sign_label") or row.get("sign_label_pt")
+                                    degree = degree or row.get("degree") or row.get("deg")
+                                    house = house or row.get("house")
+                                    break
+                            except Exception:
+                                continue
+                    except Exception:
+                        logger.debug("Erro ao buscar na tabela para fallback de posição")
+                    # fallback para summary['planets']
+                    try:
+                        planets_map = summary_obj.get("planets") or {}
+                        # tentar chave canônica se influences disponível
+                        key_can = None
+                        try:
+                            if influences and hasattr(influences, "to_canonical"):
+                                key_can = influences.to_canonical(sel)
+                        except Exception:
+                            key_can = None
+                        if key_can and key_can in planets_map:
+                            pdata = planets_map.get(key_can) or {}
+                            sign = sign or pdata.get("sign") or pdata.get("zodiac")
+                            degree = degree or pdata.get("degree") or pdata.get("deg")
+                            house = house or pdata.get("house")
+                        else:
+                            for pname, pdata in planets_map.items():
+                                try:
+                                    if str(pname).lower() == str(sel).lower():
+                                        if isinstance(pdata, dict):
+                                            sign = sign or pdata.get("sign") or pdata.get("zodiac")
+                                            degree = degree or pdata.get("degree") or pdata.get("deg")
+                                            house = house or pdata.get("house")
+                                        break
+                                except Exception:
+                                    continue
+                    except Exception:
+                        logger.debug("Erro ao buscar em summary['planets'] para fallback de posição")
+                return sign, degree, house
+
+            sign, degree, house = _extract_position(reading, summary, sel_planet)
+
+            # construir leitura sintética curta (verb, sign noun, house noun)
+            try:
+                planet_verb, planet_core = astrology.PLANET_CORE.get(canonical or sel_planet, ("", ""))
+            except Exception:
+                planet_verb, planet_core = "", ""
+            try:
+                sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign, ("", ""))
+            except Exception:
+                sign_noun, sign_quality = "", ""
+            try:
+                house_noun, house_theme = (astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house not in (None, "", "None") else ("", ""))
+            except Exception:
+                house_noun, house_theme = "", ""
+
+            parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
+            synthetic_line = " — ".join(parts) if parts else ""
+
+            # palavras-chave curtas (únicas, limitadas)
+            keywords = []
+            if planet_core:
+                keywords += [k.strip() for k in str(planet_core).split(",") if k.strip()]
+            if sign_quality:
+                keywords += [k.strip() for k in str(sign_quality).split(",") if k.strip()]
+            if house_theme:
+                keywords += [k.strip() for k in str(house_theme).split(",") if k.strip()]
+            seen = []
+            for k in keywords:
+                if k not in seen:
+                    seen.append(k)
+            keywords_line = ", ".join(seen[:8]) if seen else None
+
+            # rótulo do planeta para exibição
+            try:
+                display_name = (reading.get("planet") if isinstance(reading, dict) and reading.get("planet") else label) or (canonical or sel_planet)
+            except Exception:
+                display_name = label or (canonical or sel_planet)
+
+            st.markdown(f"**{display_name}**")
+            st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+
+            if synthetic_line:
+                st.write(synthetic_line)
+
+            # interpretar localmente (defensivo)
+            try:
+                interp_local = astrology.interpret_planet_position(
+                    planet=canonical or sel_planet,
+                    sign=sign,
+                    degree=degree,
+                    house=house,
+                    aspects=summary.get("aspects"),
+                    context_name=(reading.get("name") if isinstance(reading, dict) else None) or summary.get("name")
+                ) or {"short": ""}
+            except Exception:
+                logger.exception("interpret_planet_position falhou na Leitura Sintética")
+                interp_local = {"short": ""}
+
+            short_local = (interp_local.get("short") or "").strip()
+            if short_local:
+                st.write(short_local)
+            elif keywords_line:
+                st.write(f"Palavras-chave: {keywords_line}")
             else:
-                try:
-                    sign, degree = normalize_degree_sign(reading)
-                except Exception:
-                    logger.exception("normalize_degree_sign falhou")
-                    sign, degree = None, None
-
-                try:
-                    house = resolve_house(reading, summary, canonical, sel_planet)
-                except Exception:
-                    logger.exception("resolve_house falhou")
-                    house = None
-
-                # construir leitura sintética curta
-                try:
-                    planet_verb, planet_core = astrology.PLANET_CORE.get(canonical or sel_planet, ("", ""))
-                except Exception:
-                    planet_verb, planet_core = "", ""
-                try:
-                    sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign, ("", ""))
-                except Exception:
-                    sign_noun, sign_quality = "", ""
-                try:
-                    house_noun, house_theme = (astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", ""))
-                except Exception:
-                    house_noun, house_theme = "", ""
-
-                parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
-                synthetic_line = " — ".join(parts) if parts else ""
-
-                # palavras-chave curtas
-                keywords = []
-                if planet_core:
-                    keywords += [k.strip() for k in str(planet_core).split(",") if k.strip()]
-                if sign_quality:
-                    keywords += [k.strip() for k in str(sign_quality).split(",") if k.strip()]
-                if house_theme:
-                    keywords += [k.strip() for k in str(house_theme).split(",") if k.strip()]
-                seen = []
-                for k in keywords:
-                    if k not in seen:
-                        seen.append(k)
-                keywords_line = ", ".join(seen[:8]) if seen else None
-
-                display_name = reading.get("planet") or label or (canonical or sel_planet)
-                st.markdown(f"**{display_name}**")
-                st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
-
-                if synthetic_line:
-                    st.write(synthetic_line)
-
-                try:
-                    interp_local = astrology.interpret_planet_position(
-                        planet=canonical or sel_planet,
-                        sign=sign,
-                        degree=degree,
-                        house=house,
-                        aspects=summary.get("aspects"),
-                        context_name=reading.get("name") or summary.get("name")
-                    ) or {"short": ""}
-                except Exception:
-                    logger.exception("interpret_planet_position falhou na Leitura Sintética")
-                    interp_local = {"short": ""}
-
-                short_local = interp_local.get("short") or ""
-                if short_local:
-                    st.write(short_local)
-                elif keywords_line:
-                    st.write(f"Palavras-chave: {keywords_line}")
-                else:
-                    st.write("—")
+                st.write("—")
 
     # INTERPRETAÇÃO ASTROLÓGICA (painel central, integrado com o mapa)
     with center_col:
