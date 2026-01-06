@@ -1015,6 +1015,29 @@ def main():
             # -------------------------
             # Patch: gerar table com casas de forma unificada e persistir em summary
             # -------------------------
+            # Compatibilidade: garantir que _normalize_cusps exista
+            def _normalize_cusps(cusps_raw):
+                """
+                Wrapper compatível para normalizar cusps.
+                Se existir _normalize_cusps_for_positions, delega para ela; caso contrário,
+                aplica a normalização mínima (aceita 12 ou 13 valores e retorna 12 floats).
+                """
+                try:
+                    # delegar se a função mais explícita existir
+                    if "_normalize_cusps_for_positions" in globals() and callable(globals().get("_normalize_cusps_for_positions")):
+                        return globals().get("_normalize_cusps_for_positions")(cusps_raw)
+                    # fallback local: aceitar 12 ou 13 valores (remover índice 0 se houver 13)
+                    if not cusps_raw:
+                        return []
+                    cusps = list(cusps_raw)
+                    if len(cusps) == 13:
+                        cusps = cusps[1:13]
+                    if len(cusps) < 12:
+                        return []
+                    return [float(c) % 360.0 for c in cusps[:12]]
+                except Exception:
+                    logger.exception("Falha em _normalize_cusps; retornando lista vazia")
+                    return []
 
             def _normalize_cusps_for_positions(cusps_raw):
                 """Normaliza cusps para lista de 12 floats (0..360). Aceita 12 ou 13 valores."""
