@@ -896,7 +896,7 @@ def main():
         st.session_state["bdate"] = bdate
         st.session_state["btime_text"] = btime_free
         st.session_state["source"] = source
-        st.session_state["use_ai"] = use_ai
+        #st.session_state["use_ai"] = use_ai
 
         parsed_time = parse_time_string(btime_free or st.session_state.get("btime_text", ""))
         if parsed_time is None:
