@@ -1,5 +1,6 @@
 # mapa_astral.py — Versão refatorada (limpa, sem debug UI)
 from __future__ import annotations
+import importlib
 import sys
 import csv
 import json
@@ -13,6 +14,7 @@ from datetime import datetime, date, time as dt_time, timezone
 import streamlit as st
 
 from etheria.services.api_client import fetch_natal_chart_api
+from etheria.services.generator_service import generate_analysis
 
 # Project root
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -821,6 +823,15 @@ def generate_chart_summary(planets, name, bdate):
 def enrich_summary_with_astrology(summary):
     return summary
 
+def find_or_generate_and_save_reading(summary, selected_raw):
+    raise NotImplementedError
+
+def normalize_degree_sign(reading):
+    raise NotImplementedError
+
+def resolve_house(reading, summary, canonical, sel_planet):
+    raise NotImplementedError
+
 # -------------------------
 # Main UI flow (refatorado, sem debug UI)
 # -------------------------
@@ -1040,20 +1051,49 @@ def main():
                     return []
 
             def _normalize_cusps_for_positions(cusps_raw):
-                """Normaliza cusps para lista de 12 floats (0..360). Aceita 12 ou 13 valores."""
-                try:
-                    if not cusps_raw:
-                        return []
-                    cusps = list(cusps_raw)
-                    # algumas libs retornam 13 valores com índice 0 vazio; remover se necessário
-                    if len(cusps) == 13:
-                        cusps = cusps[1:13]
-                    if len(cusps) < 12:
-                        return []
-                    return [float(c) % 360.0 for c in cusps[:12]]
-                except Exception:
-                    logger.exception("Falha ao normalizar cusps")
+                if not cusps_raw:
                     return []
+                cusps = list(cusps_raw)
+                if len(cusps) == 13:
+                    cusps = cusps[1:13]
+                if len(cusps) < 12:
+                    return []
+                return [float(c) % 360.0 for c in cusps[:12]]
+
+            # normalizar cusps
+            norm_cusps = _normalize_cusps_for_positions(summary.get("cusps", []) or [])
+
+            # gerar tabela usando astrology.positions_table quando disponível
+            try:
+                if astrology and hasattr(astrology, "positions_table"):
+                    table = astrology.positions_table(summary.get("planets", {}) or {}, cusps=norm_cusps, compute_house_if_missing=True)
+                else:
+                    table = planets_to_table_and_longitudes(summary.get("planets", {}) or {})[0]
+                    # aplicar casas via get_house_for_longitude se norm_cusps presente
+                    if norm_cusps:
+                        get_house_fn = getattr(astrology, "get_house_for_longitude", globals().get("get_house_for_longitude"))
+                        for r in table:
+                            lon = r.get("longitude") or r.get("deg") or r.get("degree")
+                            if lon is not None and get_house_fn:
+                                try:
+                                    r["house"] = int(get_house_fn(float(lon), norm_cusps) or 0) or None
+                                except Exception:
+                                    r["house"] = None
+            except Exception:
+                logger.exception("Erro ao gerar table com casas; usando fallback")
+                table = planets_to_table_and_longitudes(summary.get("planets", {}) or {})[0]
+
+            summary["table"] = table
+            # propagar casas para summary['planets']
+            for r in table:
+                pname = r.get("planet")
+                if pname and pname in summary.get("planets", {}):
+                    try:
+                        summary["planets"][pname]["house"] = r.get("house")
+                    except Exception:
+                        pass
+
+            st.session_state["map_summary"] = summary
 
             def _normalize_lon(val):
                 try:
@@ -1647,8 +1687,6 @@ def main():
             with st.expander("Tabela de posições", expanded=False):
                 st.dataframe(df_exp, use_container_width=True, height=300)
 
-            
-
     # CENTER: map + interpretation
     with center_col:
         st.subheader("Mapa Astral")
@@ -1722,58 +1760,75 @@ def main():
                 except Exception:
                     logger.exception("Erro ao processar clique no gráfico")
 
-        # build label list and mapping to raw/canonical names
+            # build label list and mapping to raw/canonical names
+            # --- construir label_list e mapeamentos (garantir inicialização)
             label_list = []
             label_to_raw = {}
             label_to_canonical = {}
-            if not df_display.empty and "planet_label" in df_display.columns:
-                raw_planets = list(df_display["planet"].values)
-                planet_labels = list(df_display["planet_label"].values)
-                for raw, plab in zip(raw_planets, planet_labels):
-                    lab = f"{plab}"
-                    label_list.append(lab)
-                    label_to_raw[lab] = raw
-                    label_to_canonical[lab] = _safe_canonical(raw) or raw
-            elif not df_display.empty and "planet" in df_display.columns:
-                label_list = list(df_display["planet"].values)
-                for lab in label_list:
-                    label_to_raw[lab] = lab
-                    label_to_canonical[lab] = _safe_canonical(lab) or lab
-            else:
-                label_list = []
-                label_to_raw = {}
-                label_to_canonical = {}
 
-            # initialize selection state safely
+            # preencher label_list a partir do DataFrame (ajuste conforme suas colunas)
+            if df_display is not None and not df_display.empty:
+                # preferir coluna 'planet_label' para exibição
+                if "planet_label" in df_display.columns:
+                    for raw, plab in zip(df_display["planet"].values, df_display["planet_label"].values):
+                        lab = f"{plab}"
+                        label_list.append(lab)
+                        label_to_raw[lab] = raw
+                        label_to_canonical[lab] = _safe_canonical(raw) or raw
+                else:
+                    for raw in df_display["planet"].values:
+                        lab = str(raw)
+                        label_list.append(lab)
+                        label_to_raw[lab] = raw
+                        label_to_canonical[lab] = _safe_canonical(raw) or raw
+
+            # garantir chaves no session_state
+            st.session_state.setdefault("selected_planet", None)
+            st.session_state.setdefault("planet_selectbox", None)
+
+            # se houver opções, inicializar o valor do selectbox no session_state antes de criar o widget
             if label_list:
-                if st.session_state.get("selected_planet") is None:
-                    # prefer canonical stored value if present
-                    stored = st.session_state.get("selected_planet")
-                    if stored and stored in label_to_raw.values():
-                        st.session_state["selected_planet"] = stored
-                    else:
-                        st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
-                if st.session_state.get("planet_selectbox") is None:
-                    current_internal = st.session_state.get("selected_planet")
-                    current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
-                    st.session_state["planet_selectbox"] = current_label or label_list[0]
+                # determinar label padrão (priorizar selected_planet se já definido)
+                current_raw = st.session_state.get("selected_planet")
+                default_label = None
+                if current_raw:
+                    for lab, raw in label_to_raw.items():
+                        try:
+                            if raw == current_raw or _safe_selected_variants(raw)[0] == _safe_selected_variants(current_raw)[0]:
+                                default_label = lab
+                                break
+                        except Exception:
+                            if str(raw).lower() == str(current_raw).lower():
+                                default_label = lab
+                                break
+                if not default_label:
+                    default_label = label_list[0]
+
+                # setar session_state antes do widget se valor atual for inválido
+                if st.session_state.get("planet_selectbox") not in label_list:
+                    st.session_state["planet_selectbox"] = default_label
+
+                # callback para sincronizar selected_planet quando selectbox muda
+                def _on_select_planet():
+                    sel_label = st.session_state.get("planet_selectbox")
+                    sel_raw = label_to_raw.get(sel_label, sel_label)
+                    st.session_state["selected_planet"] = sel_raw
+
+                # criar selectbox usando o valor já presente em session_state (evita conflito)
+                try:
+                    idx = label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0
+                except Exception:
+                    idx = 0
+
+                st.selectbox(
+                    "Selecionar planeta",
+                    label_list,
+                    index=idx,
+                    key="planet_selectbox",
+                    on_change=_on_select_planet
+                )
             else:
-                st.session_state.setdefault("selected_planet", None)
-                st.session_state.setdefault("planet_selectbox", None)
-
-            def _on_select_planet():
-                sel_label = st.session_state.get("planet_selectbox")
-                sel_raw = label_to_raw.get(sel_label, sel_label)
-                st.session_state["selected_planet"] = sel_raw
-                st.session_state["planet_selectbox"] = sel_label
-
-            st.selectbox(
-                "Selecionar planeta",
-                label_list,
-                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
-                key="planet_selectbox",
-                on_change=_on_select_planet
-            )
+                st.info("Nenhum planeta disponível para seleção.")
 
     # RIGHT: interpretations and arcanos
     with right_col:
