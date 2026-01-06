@@ -847,7 +847,7 @@ def main():
         logger.exception("Erro ao carregar cities.csv: %s", e)
         CITY_NAMES, CITY_META = [], {}
 
-    # Formulário lateral
+    # Formulário lateral (apenas selectbox para Local de nascimento)
     with st.sidebar:
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
@@ -859,16 +859,17 @@ def main():
             if query:
                 q = query.strip().lower()
                 filtered = [c for c in CITY_NAMES if q in c.lower()]
+
+            # se não houver correspondências, mostrar mensagem única
             if not filtered:
-                filtered = [""]  # usuário pode digitar livremente depois
-            place_selected = st.selectbox("Ou escolha a cidade", filtered, index=0, key="place_selectbox")
+                filtered = ["Nenhuma correspondência"]
+
+            place_selected = st.selectbox("Escolha a cidade", filtered, index=0, key="place_selectbox")
             place = (place_selected or "").strip()
+            if place == "Nenhuma correspondência":
+                place = ""
 
-            free_checkbox = st.checkbox("Digitar local livremente", value=False, key="place_free_checkbox")
-            if free_checkbox:
-                place_free = st.text_input("Digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""), key="place_free_input")
-                place = place_free.strip() or place
-
+            # manter valor anterior se nada selecionado
             if not place:
                 place = st.session_state.get("place_input", "")
 
@@ -891,6 +892,7 @@ def main():
             use_ai = st.checkbox("Usar IA para interpretações?", value=st.session_state.get("use_ai", False))
             st.session_state["use_ai"] = use_ai
             submitted = st.form_submit_button("Gerar Mapa")
+
 
     # --- tratamento do submit ---
     if submitted:
