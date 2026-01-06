@@ -1101,7 +1101,8 @@ def main():
                             st.write(ai_text)
                             st.download_button("Exportar interpretação (.txt)", data=ai_text, file_name="interpretacao_ia.txt", mime="text/plain")
 
-    # Render main UI (positions, map, interpretations)
+    # Render main UI (positions, map, interpretations) - refatorado e corrigido
+    # -------------------------
     st.markdown("<h1 style='text-align:left'>Astrologia ♎</h1>", unsafe_allow_html=True)
     st.caption("Preencha os dados de nascimento no formulário lateral e clique em 'Gerar Mapa'.")
 
@@ -1112,38 +1113,63 @@ def main():
 
     left_col, center_col, right_col = st.columns([0.7, 2.0, 0.8])
 
+    # Helper local: safe canonicalizer and label formatter
+    def _safe_canonical(name: Optional[str]) -> Optional[str]:
+        try:
+            if not name:
+                return None
+            if influences and hasattr(influences, "_to_canonical"):
+                return influences._to_canonical(name)
+            return str(name)
+        except Exception:
+            return str(name) if name else None
+
+    def _planet_label_for_display(p):
+        try:
+            if influences and hasattr(influences, "planet_label_pt") and hasattr(influences, "_to_canonical"):
+                return influences.planet_label_pt(influences._to_canonical(p))
+            if influences and hasattr(influences, "_to_canonical"):
+                return influences._to_canonical(p) or p
+            return p or "—"
+        except Exception:
+            return p or "—"
+
+    def _sign_label_for_display(s):
+        try:
+            if not s:
+                return "—"
+            if influences and hasattr(influences, "sign_to_canonical") and hasattr(influences, "sign_label_pt"):
+                can = influences.sign_to_canonical(s)
+                return influences.sign_label_pt(can) if can else (s or "—")
+            return s or "—"
+        except Exception:
+            return s or "—"
+
     # LEFT: positions table and planet selector
     with left_col:
         st.markdown("### Posições")
         import pandas as _pd  # local import for optional dependency
+
         if summary:
             df = _pd.DataFrame(summary.get("table", []))
-            if not df.empty and "planet" in df.columns:
-                df_display = df.copy()
-                def _planet_label_for_display(p):
-                    try:
-                        return influences.planet_label_pt(influences._to_canonical(p)) if influences and hasattr(influences, "planet_label_pt") else (influences._to_canonical(p) or p)
-                    except Exception:
-                        return p or "—"
-                df_display["planet_label"] = df_display["planet"].apply(_planet_label_for_display)
-                if "sign" in df_display.columns:
-                    def _sign_label_for_display(s):
-                        try:
-                            can = influences.sign_to_canonical(s) if hasattr(influences, "sign_to_canonical") else s
-                            return influences.sign_label_pt(can) if hasattr(influences, "sign_label_pt") else (can or s or "—")
-                        except Exception:
-                            return s or "—"
-                    df_display["sign_label"] = df_display["sign"].apply(_sign_label_for_display)
-            else:
-                df = _pd.DataFrame([]) if df is None else df
-                df_display = df.copy()
-                if "planet" in df_display.columns and "planet_label" not in df_display.columns:
-                    df_display["planet_label"] = df_display["planet"]
-                if "sign" in df_display.columns and "sign_label" not in df_display.columns:
-                    df_display["sign_label"] = df_display["sign"]
+            # ensure df exists and has expected columns
+            if df is None:
+                df = _pd.DataFrame([])
         else:
             df = _pd.DataFrame([])
-            df_display = df
+
+        # Build display dataframe with planet_label and sign_label
+        if not df.empty and "planet" in df.columns:
+            df_display = df.copy()
+            df_display["planet_label"] = df_display["planet"].apply(_planet_label_for_display)
+            if "sign" in df_display.columns:
+                df_display["sign_label"] = df_display["sign"].apply(_sign_label_for_display)
+        else:
+            df_display = df.copy()
+            if "planet" in df_display.columns and "planet_label" not in df_display.columns:
+                df_display["planet_label"] = df_display["planet"]
+            if "sign" in df_display.columns and "sign_label" not in df_display.columns:
+                df_display["sign_label"] = df_display["sign"]
 
         if df_display.empty:
             st.info("Nenhuma posição disponível. Gere o mapa primeiro.")
@@ -1159,16 +1185,16 @@ def main():
                 df_to_show = df_to_show.rename(columns={"degree": "Graus"})
             if "house" in df_to_show.columns and "Casa" not in df_to_show.columns:
                 df_to_show = df_to_show.rename(columns={"house": "Casa"})
-            cols_to_show = []
-            for c in ["Planeta", "Signo", "Casa", "Graus"]:
-                if c in df_to_show.columns:
-                    cols_to_show.append(c)
+
+            cols_to_show = [c for c in ["Planeta", "Signo", "Casa", "Graus"] if c in df_to_show.columns]
             df_exp = df_to_show[cols_to_show].copy() if cols_to_show else df_to_show.copy()
             with st.expander("Tabela de posições", expanded=False):
                 st.dataframe(df_exp, use_container_width=True, height=300)
 
+            # build label list and mapping to raw/canonical names
             label_list = []
             label_to_raw = {}
+            label_to_canonical = {}
             if not df_display.empty and "planet_label" in df_display.columns:
                 raw_planets = list(df_display["planet"].values)
                 planet_labels = list(df_display["planet_label"].values)
@@ -1176,17 +1202,27 @@ def main():
                     lab = f"{plab}"
                     label_list.append(lab)
                     label_to_raw[lab] = raw
+                    label_to_canonical[lab] = _safe_canonical(raw) or raw
             elif not df_display.empty and "planet" in df_display.columns:
                 label_list = list(df_display["planet"].values)
-                label_to_raw = {lab: lab for lab in label_list}
+                for lab in label_list:
+                    label_to_raw[lab] = lab
+                    label_to_canonical[lab] = _safe_canonical(lab) or lab
             else:
                 label_list = []
                 label_to_raw = {}
+                label_to_canonical = {}
 
+            # initialize selection state safely
             if label_list:
-                if "selected_planet" not in st.session_state or st.session_state.get("selected_planet") is None:
-                    st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
-                if "planet_selectbox" not in st.session_state or st.session_state.get("planet_selectbox") is None:
+                if st.session_state.get("selected_planet") is None:
+                    # prefer canonical stored value if present
+                    stored = st.session_state.get("selected_planet")
+                    if stored and stored in label_to_raw.values():
+                        st.session_state["selected_planet"] = stored
+                    else:
+                        st.session_state["selected_planet"] = label_to_raw.get(label_list[0])
+                if st.session_state.get("planet_selectbox") is None:
                     current_internal = st.session_state.get("selected_planet")
                     current_label = next((lab for lab, raw in label_to_raw.items() if raw == current_internal), None)
                     st.session_state["planet_selectbox"] = current_label or label_list[0]
@@ -1224,25 +1260,32 @@ def main():
             if sel_name and summary:
                 try:
                     sel_lon = None
-                    canonical_sel = influences._to_canonical(sel_name) if influences and hasattr(influences, "_to_canonical") else sel_name
-                    if summary.get("planets", {}).get(canonical_sel):
-                        sel_lon = summary["planets"][canonical_sel].get("longitude")
-                    elif summary.get("planets", {}).get(sel_name):
-                        sel_lon = summary["planets"][sel_name].get("longitude")
+                    canonical_sel = _safe_canonical(sel_name)
+                    planets_map = summary.get("planets", {}) or {}
+                    if canonical_sel and planets_map.get(canonical_sel):
+                        sel_lon = planets_map[canonical_sel].get("longitude")
+                    elif planets_map.get(sel_name):
+                        sel_lon = planets_map[sel_name].get("longitude")
                     if sel_lon is not None:
                         theta_sel = (360.0 - float(sel_lon)) % 360.0
+                        display_text = None
+                        try:
+                            display_text = influences.CANONICAL_TO_PT.get(canonical_sel) if influences and hasattr(influences, "CANONICAL_TO_PT") else None
+                        except Exception:
+                            display_text = None
+                        display_text = display_text or sel_name
                         fig.add_trace(go.Scatterpolar(
                             r=[1.0],
                             theta=[theta_sel],
                             mode="markers+text",
                             marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
-                            text=[influences.CANONICAL_TO_PT.get(influences._to_canonical(sel_name), sel_name) if influences else sel_name],
+                            text=[display_text],
                             textfont=dict(size=12, color="#000"),
                             hoverinfo="none",
                             showlegend=False
                         ))
                 except Exception:
-                    pass
+                    logger.exception("Erro ao adicionar marcador de seleção no gráfico")
 
             try:
                 from streamlit_plotly_events import plotly_events
@@ -1266,26 +1309,36 @@ def main():
                 st.plotly_chart(fig, use_container_width=True)
 
             if clicked_planet:
-                clicked_planet = str(clicked_planet)
-                canonical_clicked = influences._to_canonical(clicked_planet) if influences and hasattr(influences, "_to_canonical") else clicked_planet
-                if st.session_state.get("selected_planet") != canonical_clicked:
-                    st.session_state["selected_planet"] = canonical_clicked
+                try:
+                    clicked_planet = str(clicked_planet)
+                    canonical_clicked = _safe_canonical(clicked_planet)
+                    if st.session_state.get("selected_planet") != canonical_clicked:
+                        st.session_state["selected_planet"] = canonical_clicked
+                except Exception:
+                    logger.exception("Erro ao processar clique no gráfico")
 
     # RIGHT: interpretations and arcanos
     with right_col:
         st.subheader("Interpretação dos Arcanos")
         st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores.")
         tabs = st.tabs(["Planeta", "Signo"])
+
         selected_raw = st.session_state.get("selected_planet")
-        def _canonical_and_label(name: Optional[str]):
+        canonical_selected, label_selected = (None, None)
+        try:
+            if selected_raw:
+                canonical_selected = _safe_canonical(selected_raw)
+                label_selected = _planet_label_for_display(selected_raw)
+        except Exception:
+            canonical_selected, label_selected = (selected_raw, selected_raw)
+
+        # buscar ou gerar leitura usando helper (find_or_generate_and_save_reading deve existir no módulo principal)
+        reading = None
+        if summary and selected_raw:
             try:
-                canonical = influences._to_canonical(name) if influences and hasattr(influences, "_to_canonical") else name
-                label_pt = influences.CANONICAL_TO_PT.get(canonical, canonical) if influences and hasattr(influences, "CANONICAL_TO_PT") else canonical
-                return canonical, label_pt
+                reading = find_or_generate_and_save_reading(summary, selected_raw)
             except Exception:
-                return name, name
-        canonical_selected, label_selected = _canonical_and_label(selected_raw) if selected_raw else (None, None)
-        reading = (summary.get("readings", {}) or {}).get(canonical_selected) if summary else None
+                logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
 
         with tabs[0]:
             if reading:
@@ -1325,7 +1378,7 @@ def main():
                     st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
         with tabs[1]:
-            client_name = st.session_state.get("client_name") or (summary.get("name") if summary else "Consulente")
+            client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
             else:
@@ -1355,8 +1408,6 @@ def main():
                                 arc_res = {"error": str(e)}
                             if arc_res.get("error"):
                                 st.warning("Não foi possível gerar interpretação por signo: " + str(arc_res.get("error")))
-                                if st.checkbox(f"Mostrar debug para {display_sign}", key=f"dbg_{norm}"):
-                                    st.write(arc_res)
                             else:
                                 text = arc_res.get("text") or ""
                                 if not text.strip():
