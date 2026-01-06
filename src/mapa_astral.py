@@ -886,7 +886,7 @@ def main():
             btime_free = st.text_input("Hora de nascimento (ex.: 14:30)", value=st.session_state.get("btime_text", ""))
             st.session_state["house_system"] = st.session_state.get("house_system", "P")
             #use_ai = st.checkbox("Usar IA para interpretações?", value=st.session_state.get("use_ai", False))
-            st.session_state["use_ai"] = use_ai
+            #st.session_state["use_ai"] = use_ai
             submitted = st.form_submit_button("Gerar Mapa")
 
     # --- tratamento do submit ---
