@@ -1249,6 +1249,107 @@ def main():
             return s or "—"
         except Exception:
             return s or "—"
+    
+    # -------------------------
+    # Helper robusto para obter/gerar leitura (usar em UI)
+    # -------------------------
+    def _safe_selected_variants(name: Optional[str]) -> List[str]:
+        """Retorna lista de variantes a tentar: canônico, bruto, lower-case."""
+        variants = []
+        try:
+            if not name:
+                return variants
+            # canônico quando possível
+            try:
+                can = influences._to_canonical(name) if influences and hasattr(influences, "_to_canonical") else None
+            except Exception:
+                can = None
+            if can:
+                variants.append(can)
+            variants.append(name)
+            # lower-case fallback
+            variants.append(str(name).lower())
+            # unique preserve order
+            seen = set()
+            out = []
+            for v in variants:
+                if v is None:
+                    continue
+                if v not in seen:
+                    seen.add(v)
+                    out.append(v)
+            return out
+        except Exception:
+            return [name] if name else []
+
+    def get_or_generate_reading(summary: Dict[str, Any], selected_raw: Optional[str]):
+        """
+        Tenta obter leitura existente com múltiplos fallbacks; se ausente, gera por signo
+        e salva em summary['readings'] e st.session_state['map_summary'].
+        Retorna (canonical_name, label, reading_dict_or_None)
+        """
+        if not summary or not selected_raw:
+            return None, None, None
+
+        # garantir estrutura readings
+        readings = summary.get("readings", {}) or {}
+        # tentar variantes
+        variants = _safe_selected_variants(selected_raw)
+        found_key = None
+        found_reading = None
+        for v in variants:
+            # busca direta
+            if v in readings:
+                found_key = v
+                found_reading = readings[v]
+                break
+            # busca case-insensitive
+            for k in readings.keys():
+                try:
+                    if str(k).lower() == str(v).lower():
+                        found_key = k
+                        found_reading = readings[k]
+                        break
+                except Exception:
+                    continue
+            if found_reading:
+                break
+
+        # se encontrou, retornar (canonical, label, reading)
+        if found_reading:
+            canonical = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else selected_raw
+            label = found_reading.get("planet") or selected_raw
+            return canonical, label, found_reading
+
+        # não encontrou: tentar gerar via helper já existente (find_or_generate_and_save_reading)
+        try:
+            generated = find_or_generate_and_save_reading(summary, selected_raw)
+            if generated:
+                # key usada pelo helper já salva em summary['readings']
+                # determinar chave canônica usada (prefer canônico)
+                canonical = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else selected_raw
+                label = generated.get("planet") or selected_raw
+                # garantir persistência no session_state
+                try:
+                    st.session_state["map_summary"] = summary
+                except Exception:
+                    logger.exception("Falha ao persistir map_summary após gerar leitura")
+                return canonical, label, generated
+        except Exception:
+            logger.exception("Erro ao gerar leitura por signo via find_or_generate_and_save_reading")
+
+        # fallback: tentar get_reading se existir (compatibilidade)
+        try:
+            if callable(globals().get("get_reading")):
+                try:
+                    can, lab, rd = globals().get("get_reading")(summary, selected_raw)
+                    return can, lab, rd
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        return None, None, None
 
     # LEFT: positions table and planet selector
     with left_col:
@@ -1423,7 +1524,7 @@ def main():
                 key="planet_selectbox",
                 on_change=_on_select_planet
             )
-            
+
     # RIGHT: interpretations and arcanos
     with right_col:
         st.subheader("Interpretação dos Arcanos")
@@ -1536,9 +1637,9 @@ def main():
             st.info("Selecione um planeta na tabela para ver a leitura sintética.")
         else:
             try:
-                canonical, label, reading = get_reading(summary, sel_planet)
+                canonical, label, reading = get_or_generate_reading(summary, sel_planet)
             except Exception:
-                logger.exception("get_reading falhou na Leitura Sintética")
+                logger.exception("get_or_generate_reading falhou na Leitura Sintética")
                 canonical, label, reading = None, None, None
 
             if not reading:
@@ -1622,9 +1723,9 @@ def main():
 
             sel_planet = st.session_state.get("selected_planet")
             try:
-                canonical, label, reading = get_reading(summary, sel_planet)
+                canonical, label, reading = get_or_generate_reading(summary, sel_planet)
             except Exception:
-                logger.exception("get_reading falhou no centro")
+                logger.exception("get_or_generate_reading falhou no centro")
                 canonical, label, reading = None, None, None
 
             if reading:
