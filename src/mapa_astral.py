@@ -1025,7 +1025,7 @@ def main():
             st.error("Erro ao processar dados astrológicos.")
             st.session_state["map_ready"] = False
 
-    # Button to generate AI interpretation (separado)
+    # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA"):
         if not st.session_state.get("map_ready"):
             st.error("Gere o mapa primeiro antes de pedir a interpretação.")
@@ -1035,33 +1035,69 @@ def main():
                 st.error("Resumo do mapa ausente.")
             else:
                 gs_mod = None
+                gs_fn = None
+
+                # tentativa 1: import do pacote principal do projeto
                 try:
                     gs_mod = importlib.import_module("etheria.services.generator_service")
                 except Exception:
+                    gs_mod = None
+                    logger.debug("etheria.services.generator_service não importável", exc_info=True)
+
+                # tentativa 2: import alternativo (deploys menores)
+                if gs_mod is None:
                     try:
                         gs_mod = importlib.import_module("services.generator_service")
                     except Exception:
                         gs_mod = None
-                if not gs_mod or not hasattr(gs_mod, "generate_interpretation_from_summary"):
-                    st.error("Serviço de geração não disponível. Verifique generator_service.")
+                        logger.debug("services.generator_service não importável", exc_info=True)
+
+                # identificar função disponível (vários nomes possíveis)
+                if gs_mod:
+                    for candidate in ("generate_interpretation_from_summary", "generate_analysis", "generate_ai_text_from_chart"):
+                        try:
+                            fn = getattr(gs_mod, candidate, None)
+                            if callable(fn):
+                                gs_fn = fn
+                                break
+                        except Exception:
+                            continue
+
+                # se não encontrou, informar e logar
+                if not gs_mod or not gs_fn:
+                    logger.warning("Generator service indisponível ou função não encontrada. gs_mod=%s, gs_fn=%s", bool(gs_mod), bool(gs_fn))
+                    st.error("Serviço de geração não disponível. Verifique generator_service e os nomes das funções exportadas.")
                 else:
+                    # executar geração com tratamento de exceções
                     with st.spinner("Gerando interpretação via IA..."):
                         try:
-                            res = gs_mod.generate_interpretation_from_summary(summary, generate_analysis, timeout_seconds=60)
+                            # alguns serviços aceitam (summary, generate_analysis, timeout_seconds)
+                            # tentamos chamar de forma compatível com várias assinaturas
+                            try:
+                                res = gs_fn(summary, generate_analysis, timeout_seconds=60)
+                            except TypeError:
+                                try:
+                                    res = gs_fn(summary, timeout_seconds=60)
+                                except TypeError:
+                                    res = gs_fn(summary)
                         except Exception as e:
-                            logger.exception("Erro ao gerar interpretação IA: %s", e)
-                            res = {"error": str(e)}
+                            logger.exception("Erro ao chamar função de geração IA: %s", e)
+                            st.error("Erro ao gerar interpretação IA. Verifique os logs do servidor.")
+                            return
+
+                        # normalizar retorno
                         if not isinstance(res, dict):
                             res = {"error": "Resposta inválida do serviço", "raw_response": str(res)}
                         res.setdefault("error", None)
                         res.setdefault("analysis_text", "")
+
                         if res.get("error"):
                             st.error(res["error"])
                         else:
                             ai_text = (res.get("analysis_text") or res.get("text") or res.get("raw_text") or "").strip()
                             if not ai_text:
                                 ai_text = f"{summary.get('name','Interpretação')}: interpretação não disponível no momento."
-                            st.success("Interpretação IA Etheria gerada")
+                            st.success("Interpretação IA gerada")
                             st.write(ai_text)
                             st.download_button("Exportar interpretação (.txt)", data=ai_text, file_name="interpretacao_ia.txt", mime="text/plain")
 
