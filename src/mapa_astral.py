@@ -1013,29 +1013,143 @@ def main():
                         fig = None
 
             # -------------------------
-            # Inserir cálculo de casas (cusp -> house) no summary.table
+            # Patch: gerar table com casas de forma unificada e persistir em summary
             # -------------------------
-            def _normalize_cusps(cusps_raw):
-                """
-                Aceita cusps com 12 ou 13 valores (algumas libs retornam índice 0 vazio).
-                Retorna lista de 12 floats (0..360) ou [] se inválido.
-                """
+
+            def _normalize_cusps_for_positions(cusps_raw):
+                """Normaliza cusps para lista de 12 floats (0..360). Aceita 12 ou 13 valores."""
                 try:
                     if not cusps_raw:
                         return []
                     cusps = list(cusps_raw)
-                    # se 13 valores (índice 0 ignorável), remover o primeiro
+                    # algumas libs retornam 13 valores com índice 0 vazio; remover se necessário
                     if len(cusps) == 13:
                         cusps = cusps[1:13]
-                    # se já 12, ok; caso contrário, invalidar
-                    if len(cusps) != 12:
+                    if len(cusps) < 12:
                         return []
-                    # normalizar para floats 0..360
-                    cusps = [float(c) % 360.0 for c in cusps]
-                    return cusps
+                    return [float(c) % 360.0 for c in cusps[:12]]
                 except Exception:
                     logger.exception("Falha ao normalizar cusps")
                     return []
+
+            def _normalize_lon(val):
+                try:
+                    if val is None:
+                        return None
+                    return float(val) % 360.0
+                except Exception:
+                    return None
+
+            def _apply_house_to_planets_from_table(summary, table_rows):
+                """Propaga house calculada na tabela para summary['planets'] quando possível."""
+                try:
+                    planets_map = summary.get("planets", {}) or {}
+                    for row in table_rows:
+                        pname = None
+                        try:
+                            # proteger acesso a row que pode não ser dict
+                            if isinstance(row, dict):
+                                pname = row.get("planet")
+                                if not pname:
+                                    continue
+                                h = row.get("house")
+                            else:
+                                # se row não for dict, pular
+                                continue
+                            if h is None:
+                                continue
+                            if pname in planets_map and isinstance(planets_map[pname], dict):
+                                planets_map[pname]["house"] = int(h)
+                        except Exception:
+                            # captura erros por linha sem interromper o loop
+                            logger.exception("Erro ao processar linha para propagar casa: %s", row)
+                            continue
+                    summary["planets"] = planets_map
+                except Exception:
+                    logger.exception("Erro ao propagar casas para summary['planets']")
+                return summary
+
+            # normalizar cusps
+            norm_cusps = _normalize_cusps_for_positions(summary.get("cusps", []) or [])
+
+            # gerar tabela usando função centralizada em astrology quando disponível
+            table = None
+            try:
+                if astrology and hasattr(astrology, "positions_table"):
+                    # positions_table aceita cusps e já tenta calcular house quando compute_house_if_missing=True
+                    table = astrology.positions_table(summary.get("planets", {}) or {}, cusps=norm_cusps, compute_house_if_missing=True)
+                else:
+                    # fallback: usar função local planets_to_table_and_longitudes e aplicar casas manualmente
+                    table = planets_to_table_and_longitudes(summary.get("planets", {}) or {})[0]
+                    if norm_cusps:
+                        # usar get_house_for_longitude se disponível (preferir a implementação central)
+                        get_house_fn = None
+                        if hasattr(astrology, "get_house_for_longitude"):
+                            get_house_fn = getattr(astrology, "get_house_for_longitude")
+                        elif "get_house_for_longitude" in globals():
+                            get_house_fn = globals().get("get_house_for_longitude")
+                        for r in table:
+                            try:
+                                lon = None
+                                for k in ("longitude", "lon", "long", "ecl_lon", "ecliptic_longitude", "deg", "degree"):
+                                    if isinstance(r, dict) and r.get(k) not in (None, ""):
+                                        lon = r.get(k)
+                                        break
+                                lon_norm = _normalize_lon(lon)
+                                if lon_norm is not None and get_house_fn:
+                                    h = get_house_fn(lon_norm, norm_cusps)
+                                    r["house"] = int(h) if h is not None else None
+                                else:
+                                    r.setdefault("house", None)
+                            except Exception:
+                                logger.exception("Erro ao calcular casa para linha da tabela: %s", r)
+            except Exception:
+                logger.exception("Erro ao gerar tabela de posições com casas; usando fallback simples")
+                try:
+                    table = planets_to_table_and_longitudes(summary.get("planets", {}) or {})[0]
+                except Exception:
+                    table = summary.get("table", []) or []
+
+            # garantir formato consistente e renomeações mínimas
+            try:
+                # se table for lista de dicts, garantir chaves esperadas
+                if isinstance(table, list):
+                    normalized_table = []
+                    for r in table:
+                        if not isinstance(r, dict):
+                            normalized_table.append({"planet": str(r)})
+                            continue
+                        # garantir longitude numérica e house int/None
+                        if r.get("longitude") is None:
+                            for k in ("lon", "long", "deg", "degree"):
+                                if r.get(k) not in (None, ""):
+                                    try:
+                                        r["longitude"] = float(r.get(k))
+                                        break
+                                    except Exception:
+                                        continue
+                        if "house" in r and r["house"] not in (None, ""):
+                            try:
+                                r["house"] = int(r["house"])
+                            except Exception:
+                                r["house"] = None
+                        else:
+                            r.setdefault("house", None)
+                        normalized_table.append(r)
+                    table = normalized_table
+            except Exception:
+                logger.exception("Erro ao normalizar table rows")
+
+            # atualizar summary com a tabela e propagar casas para summary['planets']
+            summary["table"] = table
+            summary = _apply_house_to_planets_from_table(summary, table)
+
+            # persistir summary atualizado para que a UI veja as casas imediatamente
+            try:
+                st.session_state["map_summary"] = summary
+            except Exception:
+                logger.exception("Falha ao persistir map_summary após cálculo de casas")
+
 
             def _house_for_longitude(lon_deg: float, cusps: List[float]) -> Optional[int]:
                 """
@@ -1171,6 +1285,7 @@ def main():
                 else:
                     # executar geração com tratamento de exceções
                     with st.spinner("Gerando interpretação via IA..."):
+                        res = None
                         try:
                             # alguns serviços aceitam (summary, generate_analysis, timeout_seconds)
                             # tentamos chamar de forma compatível com várias assinaturas
@@ -1185,6 +1300,8 @@ def main():
                             logger.exception("Erro ao chamar função de geração IA: %s", e)
                             st.error("Erro ao gerar interpretação IA. Verifique os logs do servidor.")
                             return
+                        finally:
+                            pass
 
                         # normalizar retorno
                         if not isinstance(res, dict):
