@@ -807,7 +807,7 @@ def main():
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
             # campo de busca (persistir query em session_state se desejar)
-            query = st.text_input("Local de nascimento (digite para buscar)", value=st.session_state.get("place_query", ""), key="place_query_input")
+            query = st.text_input("Local de nascimento", value=st.session_state.get("place_query", ""), key="place_query_input")
             st.session_state["place_query"] = query
 
             # selectbox autocomplete: filtrar CITY_NAMES por substring da query
@@ -818,11 +818,11 @@ def main():
             # garantir pelo menos uma opção vazia para evitar erro de index
             if not filtered:
                 filtered = [""]  # usuário pode digitar livremente depois
-            place_selected = st.selectbox("Escolha a cidade (autocomplete)", filtered, index=0, key="place_selectbox")
+            place_selected = st.selectbox("Ou escolha a cidade", filtered, index=0, key="place_selectbox")
             place = (place_selected or "").strip()
 
             # opção explícita para digitar livremente (se o usuário preferir)
-            free_checkbox = st.checkbox("Digitar local livremente (usar texto exato)", value=False, key="place_free_checkbox")
+            free_checkbox = st.checkbox("Digitar local livremente", value=False, key="place_free_checkbox")
             if free_checkbox:
                 place_free = st.text_input("Digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""), key="place_free_input")
                 place = place_free.strip() or place
