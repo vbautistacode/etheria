@@ -847,24 +847,24 @@ def main():
         logger.exception("Erro ao carregar cities.csv: %s", e)
         CITY_NAMES, CITY_META = [], {}
 
-    # Formulário lateral (apenas selectbox para Local de nascimento)
+    # Formulário lateral (apenas selectbox para Local de nascimento + campo Nome do consulente)
     with st.sidebar:
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
-            query = st.text_input("Local de nascimento", value=st.session_state.get("place_query", ""), key="place_query_input")
-            st.session_state["place_query"] = query
+            # Selectbox único para Local de Nascimento (query implícita; sem campo de digitação)
+            # Se houver um valor anterior em session_state["place_input"], usamos como seleção inicial
+            default_place = st.session_state.get("place_input", "")
+            # Garantir que CITY_NAMES exista
+            options = CITY_NAMES or []
+            # Se o default não estiver nas opções, não forçamos erro: adicionamos ao topo para preservá-lo
+            if default_place and default_place not in options:
+                options = [default_place] + options
 
-            # selectbox autocomplete: filtrar CITY_NAMES por substring da query
-            filtered = CITY_NAMES
-            if query:
-                q = query.strip().lower()
-                filtered = [c for c in CITY_NAMES if q in c.lower()]
+            # Se não houver opções, mostrar mensagem única
+            if not options:
+                options = ["Nenhuma correspondência"]
 
-            # se não houver correspondências, mostrar mensagem única
-            if not filtered:
-                filtered = ["Nenhuma correspondência"]
-
-            place_selected = st.selectbox("Escolha a cidade", filtered, index=0, key="place_selectbox")
+            place_selected = st.selectbox("Local de Nascimento", options, index=0 if options[0] != default_place else 0, key="place_selectbox")
             place = (place_selected or "").strip()
             if place == "Nenhuma correspondência":
                 place = ""
@@ -873,10 +873,14 @@ def main():
             if not place:
                 place = st.session_state.get("place_input", "")
 
+            # Extrair meta se existir
             meta = CITY_META.get(place) or (globals().get("CITY_MAP") or {}).get(place) or {}
             lat = meta.get("lat")
             lon = meta.get("lon")
             tz_name = meta.get("tz")
+
+            # Campo para Nome do consulente
+            consulente_name = st.text_input("Nome", value=st.session_state.get("name", ""), key="name_input")
 
             source = "swisseph"
             st.session_state["source"] = source
@@ -892,7 +896,6 @@ def main():
             use_ai = st.checkbox("Usar IA para interpretações?", value=st.session_state.get("use_ai", False))
             st.session_state["use_ai"] = use_ai
             submitted = st.form_submit_button("Gerar Mapa")
-
 
     # --- tratamento do submit ---
     if submitted:
