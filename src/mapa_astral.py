@@ -1520,6 +1520,160 @@ def main():
                                 else:
                                     st.write(text)
 
+    # -------------------------
+    # Integração: Leitura Sintética (painel esquerdo) e Interpretação Astrológica (painel central)
+    # Inserir ao final do bloco de UI já existente, após a construção das colunas
+    # -------------------------
+
+    # LEITURA SINTÉTICA (inserida no painel esquerdo, abaixo da tabela de posições)
+    with left_col:
+        st.markdown("#### Leitura Sintética")
+
+        sel_planet = st.session_state.get("selected_planet")
+        if not sel_planet or not summary:
+            st.info("Selecione um planeta na tabela para ver a leitura sintética.")
+        else:
+            try:
+                canonical, label, reading = get_reading(summary, sel_planet)
+            except Exception:
+                logger.exception("get_reading falhou na Leitura Sintética")
+                canonical, label, reading = None, None, None
+
+            if not reading:
+                st.info("Leitura ainda não gerada para este planeta; gere o mapa ou a interpretação.")
+            else:
+                try:
+                    sign, degree = normalize_degree_sign(reading)
+                except Exception:
+                    logger.exception("normalize_degree_sign falhou")
+                    sign, degree = None, None
+
+                try:
+                    house = resolve_house(reading, summary, canonical, sel_planet)
+                except Exception:
+                    logger.exception("resolve_house falhou")
+                    house = None
+
+                # construir leitura sintética curta
+                try:
+                    planet_verb, planet_core = astrology.PLANET_CORE.get(canonical or sel_planet, ("", ""))
+                except Exception:
+                    planet_verb, planet_core = "", ""
+                try:
+                    sign_noun, sign_quality = astrology.SIGN_DESCRIPTIONS.get(sign, ("", ""))
+                except Exception:
+                    sign_noun, sign_quality = "", ""
+                try:
+                    house_noun, house_theme = (astrology.HOUSE_DESCRIPTIONS.get(int(house), ("", "")) if house else ("", ""))
+                except Exception:
+                    house_noun, house_theme = "", ""
+
+                parts = [p for p in (planet_verb, sign_noun, house_noun) if p]
+                synthetic_line = " — ".join(parts) if parts else ""
+
+                # palavras-chave curtas
+                keywords = []
+                if planet_core:
+                    keywords += [k.strip() for k in str(planet_core).split(",") if k.strip()]
+                if sign_quality:
+                    keywords += [k.strip() for k in str(sign_quality).split(",") if k.strip()]
+                if house_theme:
+                    keywords += [k.strip() for k in str(house_theme).split(",") if k.strip()]
+                seen = []
+                for k in keywords:
+                    if k not in seen:
+                        seen.append(k)
+                keywords_line = ", ".join(seen[:8]) if seen else None
+
+                display_name = reading.get("planet") or label or (canonical or sel_planet)
+                st.markdown(f"**{display_name}**")
+                st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+
+                if synthetic_line:
+                    st.write(synthetic_line)
+
+                try:
+                    interp_local = astrology.interpret_planet_position(
+                        planet=canonical or sel_planet,
+                        sign=sign,
+                        degree=degree,
+                        house=house,
+                        aspects=summary.get("aspects"),
+                        context_name=reading.get("name") or summary.get("name")
+                    ) or {"short": ""}
+                except Exception:
+                    logger.exception("interpret_planet_position falhou na Leitura Sintética")
+                    interp_local = {"short": ""}
+
+                short_local = interp_local.get("short") or ""
+                if short_local:
+                    st.write(short_local)
+                elif keywords_line:
+                    st.write(f"Palavras-chave: {keywords_line}")
+                else:
+                    st.write("—")
+
+    # INTERPRETAÇÃO ASTROLÓGICA (painel central, integrado com o mapa)
+    with center_col:
+            # interpretação curta + expander para completa
+            st.markdown("### Interpretação Astrológica")
+
+            sel_planet = st.session_state.get("selected_planet")
+            try:
+                canonical, label, reading = get_reading(summary, sel_planet)
+            except Exception:
+                logger.exception("get_reading falhou no centro")
+                canonical, label, reading = None, None, None
+
+            if reading:
+                try:
+                    sign, degree = normalize_degree_sign(reading)
+                except Exception:
+                    logger.exception("normalize_degree_sign falhou no centro")
+                    sign, degree = None, None
+                try:
+                    house = resolve_house(reading, summary, canonical, sel_planet)
+                except Exception:
+                    logger.exception("resolve_house falhou no centro")
+                    house = None
+                aspects = ensure_aspects(summary)
+
+                try:
+                    interp = astrology.interpret_planet_position(
+                        planet=canonical or sel_planet,
+                        sign=sign,
+                        degree=degree,
+                        house=house,
+                        aspects=aspects,
+                        context_name=reading.get("name") or summary.get("name")
+                    ) or {"short": "", "long": ""}
+                except Exception:
+                    logger.exception("interpret_planet_position falhou no centro")
+                    interp = {"short": "", "long": ""}
+
+                # exibir curta e manter expander para completa
+                if interp.get("short"):
+                    st.write(interp.get("short"))
+                else:
+                    st.write("—")
+                with st.expander("Ver interpretação completa"):
+                    st.write(interp.get("long", ""))
+            else:
+                # fallback: classic or general message
+                if sel_planet and summary:
+                    canonical_fallback = _safe_canonical(sel_planet)
+                    classic = {}
+                    try:
+                        classic = interpretations.classic_for_planet(summary, canonical_fallback) if interpretations and hasattr(interpretations, "classic_for_planet") else {}
+                    except Exception:
+                        classic = {}
+                    st.write(classic.get("short", "") or "Interpretação não disponível.")
+                    with st.expander("Ver interpretação completa"):
+                        st.write(classic.get("long", "") or "—")
+                else:
+                    general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
+                    st.write(general)
+
 if __name__ == "__main__":
     try:
         main()
