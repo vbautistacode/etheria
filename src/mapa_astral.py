@@ -1419,73 +1419,187 @@ def main():
             return [name] if name else []
 
     def get_or_generate_reading(summary: Dict[str, Any], selected_raw: Optional[str]):
-        """
-        Tenta obter leitura existente com múltiplos fallbacks; se ausente, gera por signo
-        e salva em summary['readings'] e st.session_state['map_summary'].
-        Retorna (canonical_name, label, reading_dict_or_None)
-        """
-        if not summary or not selected_raw:
+        try:
+            if not summary or not selected_raw:
+                return None, None, None
+
+            # garantir estrutura readings
+            readings = summary.get("readings", {}) or {}
+
+            # variantes a tentar (canônico, raw, lower-case)
+            variants = _safe_selected_variants(selected_raw)
+            found_key = None
+            found_reading = None
+
+            # procurar leitura existente (direta e case-insensitive)
+            for v in variants:
+                if v in readings:
+                    found_key = v
+                    found_reading = readings[v]
+                    break
+                for k in readings.keys():
+                    try:
+                        if str(k).lower() == str(v).lower():
+                            found_key = k
+                            found_reading = readings[k]
+                            break
+                    except Exception:
+                        continue
+                if found_reading:
+                    break
+
+            if found_reading:
+                canonical = variants[0] if variants else selected_raw
+                label = found_reading.get("planet") or selected_raw
+                return canonical, label, found_reading
+
+            # não encontrou: tentar usar helper centralizado se existir
+            try:
+                if callable(globals().get("find_or_generate_and_save_reading")):
+                    generated = globals().get("find_or_generate_and_save_reading")(summary, selected_raw)
+                    if generated:
+                        canonical = variants[0] if variants else selected_raw
+                        label = generated.get("planet") or selected_raw
+                        try:
+                            st.session_state["map_summary"] = summary
+                        except Exception:
+                            logger.exception("Falha ao persistir map_summary após gerar leitura")
+                        return canonical, label, generated
+            except Exception:
+                logger.exception("Erro ao chamar find_or_generate_and_save_reading")
+
+            # se helper não existir ou não gerou, tentar gerar localmente:
+            # 1) tentar arcano por signo via interpretations.arcano_for_sign
+            generated = None
+            sign_candidate = None
+            try:
+                # procurar signo na tabela (summary['table']) ou em summary['planets']
+                for row in (summary.get("table", []) or []):
+                    try:
+                        if not isinstance(row, dict):
+                            continue
+                        pname = row.get("planet") or row.get("planet_label") or row.get("planet_label_pt")
+                        if not pname:
+                            continue
+                        if _safe_selected_variants(pname) and _safe_selected_variants(selected_raw):
+                            if _safe_selected_variants(pname)[0] == _safe_selected_variants(selected_raw)[0] or str(pname).lower() == str(selected_raw).lower():
+                                sign_candidate = row.get("sign") or row.get("zodiac") or row.get("sign_label") or row.get("sign_label_pt")
+                                break
+                        else:
+                            if str(pname).lower() == str(selected_raw).lower():
+                                sign_candidate = row.get("sign") or row.get("zodiac") or row.get("sign_label") or row.get("sign_label_pt")
+                                break
+                    except Exception:
+                        continue
+                # fallback: procurar em summary['planets']
+                if not sign_candidate:
+                    planets_map = summary.get("planets", {}) or {}
+                    key_can = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else None
+                    if key_can and key_can in planets_map:
+                        pdata = planets_map.get(key_can) or {}
+                        sign_candidate = pdata.get("sign") or pdata.get("zodiac")
+            except Exception:
+                logger.exception("Erro ao extrair signo candidato para geração de leitura")
+
+            # gerar via interpretations.arcano_for_sign se disponível
+            if sign_candidate and interpretations and hasattr(interpretations, "arcano_for_sign"):
+                try:
+                    client_name = st.session_state.get("client_name") or st.session_state.get("name") or summary.get("name")
+                    arc_res = interpretations.arcano_for_sign(sign_candidate, name=client_name)
+                    if isinstance(arc_res, dict) and not arc_res.get("error"):
+                        generated = {
+                            "planet": selected_raw,
+                            "sign": sign_candidate,
+                            "interpretation_short": arc_res.get("text") or arc_res.get("short") or "",
+                            "interpretation_long": arc_res.get("long") or arc_res.get("text") or "",
+                            "arcano_info": arc_res.get("arcano_info") or arc_res.get("arcano") or None,
+                            "source": "arcano_for_sign"
+                        }
+                except Exception:
+                    logger.exception("Erro ao gerar arcano_for_sign para %s", sign_candidate)
+
+            # se ainda nada, usar fallback via astrology.interpret_planet_position
+            if generated is None:
+                try:
+                    # tentar extrair sign/degree/house para passar ao interpretador
+                    sign = None
+                    degree = None
+                    house = None
+                    planets_map = summary.get("planets", {}) or {}
+                    key_can = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else None
+                    if key_can and key_can in planets_map:
+                        pdata = planets_map.get(key_can) or {}
+                        sign = pdata.get("sign") or sign
+                        degree = pdata.get("degree") or pdata.get("deg") or degree
+                        house = pdata.get("house") or house
+                    if not sign:
+                        for row in (summary.get("table", []) or []):
+                            try:
+                                if not isinstance(row, dict):
+                                    continue
+                                pname = row.get("planet") or row.get("planet_label") or row.get("planet_label_pt")
+                                if not pname:
+                                    continue
+                                if (key_can and _safe_selected_variants(pname) and _safe_selected_variants(pname)[0] == key_can) or str(pname).lower() == str(selected_raw).lower():
+                                    sign = row.get("sign") or row.get("zodiac") or row.get("sign_label") or row.get("sign_label_pt")
+                                    degree = row.get("degree") or row.get("deg") or degree
+                                    house = row.get("house") or house
+                                    break
+                            except Exception:
+                                continue
+
+                    interp = None
+                    if astrology and hasattr(astrology, "interpret_planet_position"):
+                        try:
+                            interp = astrology.interpret_planet_position(
+                                planet=key_can or selected_raw,
+                                sign=sign,
+                                degree=degree,
+                                house=house,
+                                aspects=summary.get("aspects"),
+                                context_name=summary.get("name")
+                            )
+                        except Exception:
+                            logger.exception("Erro ao chamar interpret_planet_position fallback")
+                    generated = {
+                        "planet": selected_raw,
+                        "sign": sign,
+                        "degree": degree,
+                        "house": house,
+                        "interpretation_short": (interp.get("short") if isinstance(interp, dict) else "") or "",
+                        "interpretation_long": (interp.get("long") if isinstance(interp, dict) else "") or "",
+                        "source": "astrology_fallback"
+                    }
+                except Exception:
+                    logger.exception("Erro ao gerar leitura sintética para %s", selected_raw)
+                    generated = None
+
+            # salvar gerado em summary['readings'] sob chave canônica preferencial
+            if generated:
+                try:
+                    key_to_save = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else selected_raw
+                    readings = summary.get("readings", {}) or {}
+                    readings[key_to_save] = generated
+                    summary["readings"] = readings
+                    try:
+                        st.session_state["map_summary"] = summary
+                    except Exception:
+                        logger.exception("Falha ao persistir map_summary após salvar leitura gerada")
+                    canonical = key_to_save
+                    label = generated.get("planet") or selected_raw
+                    return canonical, label, generated
+                except Exception:
+                    logger.exception("Erro ao salvar leitura gerada para %s", selected_raw)
+                    # mesmo que salvar falhe, retornar o gerado para exibição temporária
+                    return None, None, generated
+
+            # nada encontrado/gerado
             return None, None, None
 
-        # garantir estrutura readings
-        readings = summary.get("readings", {}) or {}
-        # tentar variantes
-        variants = _safe_selected_variants(selected_raw)
-        found_key = None
-        found_reading = None
-        for v in variants:
-            # busca direta
-            if v in readings:
-                found_key = v
-                found_reading = readings[v]
-                break
-            # busca case-insensitive
-            for k in readings.keys():
-                try:
-                    if str(k).lower() == str(v).lower():
-                        found_key = k
-                        found_reading = readings[k]
-                        break
-                except Exception:
-                    continue
-            if found_reading:
-                break
-
-        # se encontrou, retornar (canonical, label, reading)
-        if found_reading:
-            canonical = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else selected_raw
-            label = found_reading.get("planet") or selected_raw
-            return canonical, label, found_reading
-
-        # não encontrou: tentar gerar via helper já existente (find_or_generate_and_save_reading)
-        try:
-            generated = find_or_generate_and_save_reading(summary, selected_raw)
-            if generated:
-                # key usada pelo helper já salva em summary['readings']
-                # determinar chave canônica usada (prefer canônico)
-                canonical = _safe_selected_variants(selected_raw)[0] if _safe_selected_variants(selected_raw) else selected_raw
-                label = generated.get("planet") or selected_raw
-                # garantir persistência no session_state
-                try:
-                    st.session_state["map_summary"] = summary
-                except Exception:
-                    logger.exception("Falha ao persistir map_summary após gerar leitura")
-                return canonical, label, generated
         except Exception:
-            logger.exception("Erro ao gerar leitura por signo via find_or_generate_and_save_reading")
+            logger.exception("Erro em get_or_generate_reading")
+            return None, None, None
 
-        # fallback: tentar get_reading se existir (compatibilidade)
-        try:
-            if callable(globals().get("get_reading")):
-                try:
-                    can, lab, rd = globals().get("get_reading")(summary, selected_raw)
-                    return can, lab, rd
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        return None, None, None
 
     # LEFT: positions table and planet selector
     with left_col:
