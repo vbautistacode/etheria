@@ -1303,8 +1303,6 @@ def main():
             st.error("Erro ao processar dados astrológicos.")
             st.session_state["map_ready"] = False
 
-    
-
     # Render main UI (positions, map, interpretations) - refatorado e corrigido
     # -------------------------
     st.markdown("<h1 style='text-align:left'>Astrologia ♎</h1>", unsafe_allow_html=True)
@@ -1562,7 +1560,6 @@ def main():
         except Exception:
             logger.exception("Erro em get_or_generate_reading")
             return None, None, None
-
 
     # LEFT: positions table and planet selector
     with left_col:
@@ -1946,29 +1943,24 @@ def main():
 
     # INTERPRETAÇÃO ASTROLÓGICA (painel central, integrado com o mapa)
     with center_col:
-            # interpretação curta + expander para completa
             st.markdown("### Interpretação Astrológica")
 
             sel_planet = st.session_state.get("selected_planet")
+            canonical, label, reading = None, None, None
             try:
-                canonical, label, reading = get_or_generate_reading(summary, sel_planet)
+                canonical, label, reading = get_or_generate_reading(summary, sel_planet) if callable(globals().get("get_or_generate_reading")) else (None, None, None)
             except Exception:
-                logger.exception("get_or_generate_reading falhou no centro")
+                logger.exception("get_or_generate_reading falhou")
                 canonical, label, reading = None, None, None
 
-            if reading:
-                try:
-                    sign, degree = normalize_degree_sign(reading)
-                except Exception:
-                    logger.exception("normalize_degree_sign falhou no centro")
-                    sign, degree = None, None
-                try:
-                    house = resolve_house(reading, summary, canonical, sel_planet)
-                except Exception:
-                    logger.exception("resolve_house falhou no centro")
-                    house = None
-                aspects = ensure_aspects(summary)
+            # tentar extrair aspectos uma vez
+            aspects = ensure_aspects(summary)
 
+            if reading:
+                # se houver leitura persistida, usar como antes
+                sign = reading.get("sign")
+                degree = reading.get("degree") or reading.get("deg")
+                house = reading.get("house")
                 try:
                     interp = astrology.interpret_planet_position(
                         planet=canonical or sel_planet,
@@ -1979,33 +1971,81 @@ def main():
                         context_name=reading.get("name") or summary.get("name")
                     ) or {"short": "", "long": ""}
                 except Exception:
-                    logger.exception("interpret_planet_position falhou no centro")
+                    logger.exception("interpret_planet_position falhou com reading")
+                    interp = {"short": "", "long": ""}
+            else:
+                # fallback imediato: extrair posição do summary e chamar interpret_planet_position
+                sign = None
+                degree = None
+                house = None
+                try:
+                    # procurar na tabela primeiro
+                    for row in (summary.get("table") or []):
+                        try:
+                            pname = (row.get("planet") or "").lower()
+                            if pname and sel_planet and pname == str(sel_planet).lower():
+                                sign = sign or row.get("sign")
+                                degree = degree or row.get("degree") or row.get("deg")
+                                house = house or row.get("house")
+                                break
+                        except Exception:
+                            continue
+                    # fallback para summary['planets']
+                    if not sign or degree is None or house is None:
+                        planets_map = summary.get("planets", {}) or {}
+                        # tentar por chave canônica
+                        key_can = None
+                        try:
+                            key_can = _safe_selected_variants(sel_planet)[0] if sel_planet else None
+                        except Exception:
+                            key_can = None
+                        if key_can and key_can in planets_map:
+                            pdata = planets_map.get(key_can) or {}
+                            sign = sign or pdata.get("sign")
+                            degree = degree or pdata.get("degree") or pdata.get("deg")
+                            house = house or pdata.get("house")
+                        else:
+                            # tentar por nome raw
+                            for pname, pdata in planets_map.items():
+                                try:
+                                    if str(pname).lower() == str(sel_planet).lower():
+                                        sign = sign or pdata.get("sign")
+                                        degree = degree or pdata.get("degree") or pdata.get("deg")
+                                        house = house or pdata.get("house")
+                                        break
+                                except Exception:
+                                    continue
+                except Exception:
+                    logger.exception("Erro ao extrair posição para fallback")
+
+                try:
+                    interp = astrology.interpret_planet_position(
+                        planet=_safe_selected_variants(sel_planet)[0] if sel_planet else sel_planet,
+                        sign=sign,
+                        degree=degree,
+                        house=house,
+                        aspects=aspects,
+                        context_name=summary.get("name")
+                    ) or {"short": "", "long": ""}
+                except Exception:
+                    logger.exception("interpret_planet_position falhou no fallback")
                     interp = {"short": "", "long": ""}
 
-                # exibir curta e manter expander para completa
-                if interp.get("short"):
-                    st.write(interp.get("short"))
-                else:
-                    st.write("—")
+            # Exibir interpretação (short + expander long), evitando duplicação
+            short_text = (interp.get("short") or "").strip()
+            long_text = (interp.get("long") or "").strip()
+
+            if short_text:
+                st.write(short_text)
+
+            if long_text and long_text != short_text:
                 with st.expander("Ver interpretação completa"):
-                    st.write(interp.get("long", ""))
+                    st.write(long_text)
             else:
-                # fallback: classic or general message
-                if sel_planet and summary:
-                    canonical_fallback = _safe_canonical(sel_planet)
-                    classic = {}
-                    try:
-                        classic = interpretations.classic_for_planet(summary, canonical_fallback) if interpretations and hasattr(interpretations, "classic_for_planet") else {}
-                    except Exception:
-                        classic = {}
-                    st.write(classic.get("short", "") or "Interpretação não disponível.")
-                    with st.expander("Ver interpretação completa"):
-                        st.write(classic.get("long", "") or "—")
-                else:
-                    general = (summary.get("chart_interpretation") if summary else None) or "Selecione um planeta para ver a interpretação contextual. Para gerar uma interpretação geral, habilite 'Usar IA' e clique em 'Gerar interpretação IA'."
-                    st.write(general)
-    
-        # Botão robusto para gerar interpretação IA
+                with st.expander("Ver interpretação completa"):
+                    st.write(long_text or "—")
+
+    # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA Etheria"):
         if not st.session_state.get("map_ready"):
             st.error("Gere o mapa primeiro antes de pedir a interpretação.")
