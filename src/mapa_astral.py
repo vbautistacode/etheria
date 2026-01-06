@@ -29,12 +29,6 @@ try:
 except Exception:
     astrology = influences = rules = interpretations = None
 
-# Optional services
-try:
-    from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart
-except Exception:
-    generate_analysis = generate_ai_text_from_chart = None
-
 # If there's an external natal_positions implementation, prefer it; otherwise fallback to local stub defined below
 try:
     from services.swisseph_client import natal_positions as external_natal_positions  # type: ignore
