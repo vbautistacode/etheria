@@ -792,82 +792,85 @@ def main():
 
 
 
-    # Debug seguro: testar swisseph e natal_positions usando st.session_state
+    # Exemplo de natal_positions usando pyswisseph (swisseph)
     import swisseph as swe
-    import traceback
     from datetime import timezone
+    import logging, traceback
 
-    dt_local_val = st.session_state.get("dt_local")
-    lat = st.session_state.get("lat")
-    lon = st.session_state.get("lon")
+    logger = logging.getLogger(__name__)
 
-    if dt_local_val is None:
-        st.warning("dt_local não está disponível em st.session_state. Garanta que ele foi criado e salvo antes deste teste.")
-    else:
-        # Teste swisseph: converter para UTC e calcular Julian Day
+    # opcional: ajuste do caminho de efemérides se necessário
+    # swe.set_ephe_path("/path/to/ephe")
+
+    PLANET_IDS = {
+        "Sun": swe.SUN,
+        "Moon": swe.MOON,
+        "Mercury": swe.MERCURY,
+        "Venus": swe.VENUS,
+        "Mars": swe.MARS,
+        "Jupiter": swe.JUPITER,
+        "Saturn": swe.SATURN,
+        "Uranus": swe.URANUS,
+        "Neptune": swe.NEPTUNE,
+        "Pluto": swe.PLUTO,
+        # adicione outros corpos se precisar
+    }
+
+    def natal_positions(dt_local, lat, lon, house_system="P"):
+        """
+        Retorna dict com chaves:
+        - planets: {nome: {"longitude": float, "latitude": float, "distance": float, "speed": float, ...}}
+        - cusps: [cusp1_long, cusp2_long, ...]  (se calculado)
+        dt_local: datetime timezone-aware
+        lat, lon: floats
+        house_system: string (ex.: 'P' para Placidus)
+        """
         try:
-            dt_utc = dt_local_val.astimezone(timezone.utc)
+            if dt_local.tzinfo is None:
+                logger.warning("dt_local é naive; assumindo UTC")
+                dt_utc = dt_local.replace(tzinfo=timezone.utc)
+            else:
+                dt_utc = dt_local.astimezone(timezone.utc)
+
+            # hora decimal em UT
             hour_decimal = dt_utc.hour + dt_utc.minute / 60.0 + dt_utc.second / 3600.0 + dt_utc.microsecond / 3_600_000_000.0
             jd_ut = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, hour_decimal)
 
-            with st.expander("Teste swisseph (Sol)"):
-                st.write("dt_local:", dt_local_val.isoformat())
-                st.write("dt_utc:", dt_utc.isoformat())
-                st.write("Julian Day (UT):", jd_ut)
+            planets = {}
+            for name, pid in PLANET_IDS.items():
                 try:
-                    sun = swe.calc_ut(jd_ut, swe.SUN)
-                    st.write("swe.calc_ut(sun):", sun)
-                except Exception:
-                    st.error("Erro ao chamar swe.calc_ut. Verifique ephemeris e instalação do swisseph.")
-                    st.text(traceback.format_exc())
-        except Exception:
-            with st.expander("Erro swisseph (traceback)"):
-                st.text(traceback.format_exc())
+                    res, flag = swe.calc_ut(jd_ut, pid)
+                    # res: (longitude, latitude, distance, speed_long, speed_lat, speed_dist) dependendo da versão
+                    planets[name] = {
+                        "longitude": float(res[0]),
+                        "latitude": float(res[1]) if len(res) > 1 else None,
+                        "distance": float(res[2]) if len(res) > 2 else None,
+                        "speed_long": float(res[3]) if len(res) > 3 else None,
+                        "raw": res,
+                        "flag": flag
+                    }
+                except Exception as e:
+                    logger.exception("Erro ao calcular planeta %s: %s", name, e)
+                    planets[name] = {"error": str(e)}
 
-        # Testar natal_positions de forma defensiva
-        if lat is None or lon is None:
-            st.warning("Lat/Lon não disponíveis em st.session_state. Não é possível calcular posições natales sem coordenadas.")
-        else:
+            # calcular cúspides (casas) se lat/lon válidos
+            cusps = []
             try:
-                with st.spinner("Calculando posições natales..."):
-                    data = None
-                    try:
-                        data = natal_positions(dt_local_val, float(lat), float(lon), house_system=st.session_state.get("house_system", "P"))
-                    except Exception as e_inner:
-                        logger.exception("Exceção interna em natal_positions: %s", e_inner)
-                        data = None
+                # swe.houses(jd_ut, lat, lon, hsys) -> (cusps, ascmc)
+                # hsys: 'P' Placidus, 'K' Koch, 'C' Campanus, etc.
+                cusps_res, ascmc = swe.houses(jd_ut, lat, lon, house_system)
+                cusps = [float(c) for c in cusps_res]  # lista de 13 valores (1..12)
+            except Exception as e:
+                logger.exception("Erro ao calcular casas/cusps: %s", e)
+                cusps = []
 
-                    with st.expander("Debug natal_positions"):
-                        st.write("Tipo de retorno:", type(data))
-                        st.write("Conteúdo bruto:", data)
+            return {"planets": planets, "cusps": cusps, "jd_ut": jd_ut}
 
-                    planets = {}
-                    cusps = []
-                    if isinstance(data, dict):
-                        planets = data.get("planets") or {}
-                        cusps = data.get("cusps") or []
-                    elif isinstance(data, (list, tuple)) and len(data) >= 1:
-                        try:
-                            planets = data[0] or {}
-                            cusps = data[1] if len(data) > 1 else []
-                        except Exception:
-                            planets = {}
-                            cusps = []
+        except Exception as e:
+            logger.exception("Erro em natal_positions: %s", e)
+            # retornar estrutura vazia mas consistente para evitar que o app quebre
+            return {"planets": {}, "cusps": [], "error": str(e)}
 
-                    if not planets:
-                        st.warning("Não foi possível obter posições natales. Verifique logs, instalação do swisseph e efemérides.")
-                        with st.expander("Dicas de diagnóstico"):
-                            st.write("- Confirme que o pacote swisseph está instalado e importável.")
-                            st.write("- Se houver erro relacionado a efemérides, chame swe.set_ephe_path('/caminho/ephe') ou instale os arquivos de efemérides.")
-                            st.write("- Verifique se natal_positions aceita (dt, lat, lon) e retorna dict com chave 'planets'.")
-                            st.write("- Verifique os logs do servidor para tracebacks completos.")
-                    else:
-                        st.success("Posições natales obtidas com sucesso.")
-                        with st.expander("Resumo planets keys"):
-                            st.write(list(planets.keys())[:50])
-            except Exception:
-                with st.expander("Erro ao executar natal_positions (traceback)"):
-                    st.text(traceback.format_exc())
 
 
 
