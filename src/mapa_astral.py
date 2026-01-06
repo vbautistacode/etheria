@@ -1016,6 +1016,111 @@ def main():
                         logger.exception("Render fallback também falhou")
                         fig = None
 
+            # -------------------------
+            # Inserir cálculo de casas (cusp -> house) no summary.table
+            # -------------------------
+            def _normalize_cusps(cusps_raw):
+                """
+                Aceita cusps com 12 ou 13 valores (algumas libs retornam índice 0 vazio).
+                Retorna lista de 12 floats (0..360) ou [] se inválido.
+                """
+                try:
+                    if not cusps_raw:
+                        return []
+                    cusps = list(cusps_raw)
+                    # se 13 valores (índice 0 ignorável), remover o primeiro
+                    if len(cusps) == 13:
+                        cusps = cusps[1:13]
+                    # se já 12, ok; caso contrário, invalidar
+                    if len(cusps) != 12:
+                        return []
+                    # normalizar para floats 0..360
+                    cusps = [float(c) % 360.0 for c in cusps]
+                    return cusps
+                except Exception:
+                    logger.exception("Falha ao normalizar cusps")
+                    return []
+
+            def _house_for_longitude(lon_deg: float, cusps: List[float]) -> Optional[int]:
+                """
+                Retorna número da casa (1..12) para uma longitude e lista de cusps normalizada.
+                """
+                try:
+                    if not cusps:
+                        return None
+                    lon = float(lon_deg) % 360.0
+                    # percorre intervalos [cusps[i], cusps[i+1])
+                    for i in range(12):
+                        start = cusps[i]
+                        end = cusps[(i + 1) % 12]
+                        if start <= end:
+                            if start <= lon < end:
+                                return i + 1
+                        else:
+                            # wrap-around (ex.: start=300, end=30)
+                            if lon >= start or lon < end:
+                                return i + 1
+                    return None
+                except Exception:
+                    logger.exception("Erro em _house_for_longitude")
+                    return None
+
+            # aplicar ao summary.table (se existir) e também enriquecer cada linha
+            cusps_norm = _normalize_cusps(summary.get("cusps", []) or [])
+            if cusps_norm:
+                try:
+                    table_rows = summary.get("table", []) or []
+                    # se table_rows for lista de dicts com 'longitude', calcular casa
+                    updated_rows = []
+                    for row in table_rows:
+                        try:
+                            # suportar várias chaves possíveis para longitude
+                            lon = None
+                            for k in ("longitude", "lon", "long", "ecl_lon", "ecliptic_longitude", "deg"):
+                                if isinstance(row, dict) and row.get(k) is not None:
+                                    lon = row.get(k)
+                                    break
+                            house_num = _house_for_longitude(lon, cusps_norm) if lon is not None else None
+                            # preservar formato original e adicionar/atualizar chave 'house'
+                            if isinstance(row, dict):
+                                new_row = dict(row)
+                                new_row["house"] = int(house_num) if house_num is not None else None
+                            else:
+                                # se row não for dict (caso raro), criar dict mínimo
+                                new_row = {"planet": str(row), "house": int(house_num) if house_num is not None else None}
+                            updated_rows.append(new_row)
+                        except Exception:
+                            logger.exception("Erro ao processar linha da tabela para casas: %s", row)
+                            updated_rows.append(row)
+                    # atualizar summary.table com as casas
+                    summary["table"] = updated_rows
+                    # também, se summary["planets"] existir como dict, adicionar house por planeta (opcional)
+                    try:
+                        planets_map = summary.get("planets", {}) or {}
+                        for pname, pdata in planets_map.items():
+                            try:
+                                lon = None
+                                if isinstance(pdata, dict):
+                                    for k in ("longitude", "lon", "long", "ecl_lon", "ecliptic_longitude", "deg"):
+                                        if pdata.get(k) is not None:
+                                            lon = pdata.get(k)
+                                            break
+                                if lon is not None:
+                                    h = _house_for_longitude(lon, cusps_norm)
+                                    if isinstance(pdata, dict):
+                                        pdata["house"] = int(h) if h is not None else None
+                                    planets_map[pname] = pdata
+                            except Exception:
+                                continue
+                        summary["planets"] = planets_map
+                    except Exception:
+                        logger.exception("Erro ao adicionar casas em summary['planets']")
+                except Exception:
+                    logger.exception("Erro ao calcular casas para summary.table")
+            else:
+                # se não houver cusps, não alteramos a tabela; opcionalmente logar
+                logger.info("Cusps ausentes ou inválidos; pulando cálculo de casas automáticas.")
+
             st.session_state["map_fig"] = fig
             st.session_state["map_summary"] = summary
             st.session_state["map_ready"] = True
