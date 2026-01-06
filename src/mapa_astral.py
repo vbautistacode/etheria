@@ -792,25 +792,42 @@ def main():
 
 
 
+    # --- Teste swisseph seguro (substituir bloco anterior) ---
     import swisseph as swe
-    from datetime import datetime, timezone
     import traceback
+    from datetime import timezone
 
-    try:
-        # opcional: ajustar caminho de efemérides se necessário
-        # swe.set_ephe_path("/path/to/ephe")
+    # obter dt_local de forma defensiva: variável local ou session_state
+    dt_local_val = None
+    if "dt_local" in locals() and locals().get("dt_local") is not None:
+        dt_local_val = locals().get("dt_local")
+    elif st.session_state.get("dt_local") is not None:
+        dt_local_val = st.session_state.get("dt_local")
 
-        # exemplo: 1 Jan 1990 07:55 local -> converter para UTC se necessário
-        # aqui usamos dt_local já timezone-aware; converter para julian day:
-        dt = dt_local  # use o dt_local que você já tem
-        jd_ut = swe.julday(dt.year, dt.month, dt.day, dt.hour + dt.minute/60.0 + dt.second/3600.0)
-        # calcular posição do Sol (0) em longitude e latitude
-        sun = swe.calc_ut(jd_ut, swe.SUN)
-        logger.info("sun calc result: %r", sun)
-        st.write("Teste swisseph: Sun calc:", sun)
-    except Exception:
-        with st.expander("Erro swisseph (traceback)"):
-            st.text(traceback.format_exc())
+    if dt_local_val is None:
+        st.warning("dt_local não está disponível no escopo atual. Certifique-se de que o datetime foi criado antes do teste swisseph.")
+    else:
+        try:
+            # converter para UTC (swisseph espera UT)
+            dt_utc = dt_local_val.astimezone(timezone.utc)
+            hour_decimal = dt_utc.hour + dt_utc.minute / 60.0 + dt_utc.second / 3600.0 + dt_utc.microsecond / 3_600_000_000.0
+
+            # calcular Julian Day em UT
+            jd_ut = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, hour_decimal)
+
+            # exemplo: calcular posição do Sol (swe.SUN)
+            sun = swe.calc_ut(jd_ut, swe.SUN)
+
+            with st.expander("Teste swisseph: resultado (Sol)"):
+                st.write("dt_local (original):", dt_local_val.isoformat())
+                st.write("dt_utc:", dt_utc.isoformat())
+                st.write("Julian Day (UT):", jd_ut)
+                st.write("Resultado swe.calc_ut(sun):", sun)
+
+        except Exception:
+            with st.expander("Erro swisseph (traceback)"):
+                st.text(traceback.format_exc())
+
 
 
 
