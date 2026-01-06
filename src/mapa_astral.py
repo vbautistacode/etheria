@@ -12,6 +12,8 @@ from datetime import datetime, date, time as dt_time, timezone
 
 import streamlit as st
 
+from etheria.services.api_client import fetch_natal_chart_api
+
 # Project root
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -23,13 +25,13 @@ logger = logging.getLogger(__name__)
 
 # Optional project imports (defensive)
 try:
-    from etheria import astrology, influences, rules, interpretations  # type: ignore
+    from etheria import astrology, influences, rules, interpretations
 except Exception:
-    astrology = influences = rules = interpretations = None  # type: ignore
+    astrology = influences = rules = interpretations = None
 
 # Optional services
 try:
-    from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart  # type: ignore
+    from etheria.services.generator_service import generate_analysis, generate_ai_text_from_chart
 except Exception:
     generate_analysis = generate_ai_text_from_chart = None
 
@@ -755,7 +757,7 @@ if not callable(globals().get("natal_positions")) or globals().get("natal_positi
 else:
     # if natal_positions was defined earlier as stub, replace with internal if swisseph available
     try:
-        if globals().get("natal_positions") in (None, fetch_natal_chart):
+        if globals().get("natal_positions") in (None, fetch_natal_chart_api):
             natal_positions = natal_positions_internal
     except Exception:
         natal_positions = natal_positions_internal
