@@ -1341,14 +1341,6 @@ def main():
                 st.session_state["selected_planet"] = sel_raw
                 st.session_state["planet_selectbox"] = sel_label
 
-            st.selectbox(
-                "Selecionar planeta",
-                label_list,
-                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
-                key="planet_selectbox",
-                on_change=_on_select_planet
-            )
-
     # CENTER: map + interpretation
     with center_col:
         st.subheader("Mapa Astral")
@@ -1421,6 +1413,14 @@ def main():
                         st.session_state["selected_planet"] = canonical_clicked
                 except Exception:
                     logger.exception("Erro ao processar clique no gráfico")
+
+        st.selectbox(
+                "Selecionar planeta",
+                label_list,
+                index=label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0,
+                key="planet_selectbox",
+                on_change=_on_select_planet
+            )
 
     # RIGHT: interpretations and arcanos
     with right_col:
