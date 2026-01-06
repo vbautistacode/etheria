@@ -959,7 +959,7 @@ def main():
             st.session_state["map_ready"] = False
             return
 
-        st.success(f"Datetime local: {dt_local.isoformat()} (tz: {tz_ok})")
+        #st.success(f"Datetime local: {dt_local.isoformat()} (tz: {tz_ok})")
 
         # --- chamar natal_positions de forma defensiva ---
         planets = {}
