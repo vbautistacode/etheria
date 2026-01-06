@@ -1,26 +1,14 @@
-# mapa_astral.py — Versão refatorada
+# mapa_astral.py — Versão refatorada (limpa, sem debug UI)
 from __future__ import annotations
 import sys
-
-"""
-Mapa astral (refatorado)
-- Imports organizados
-- Helpers centrais: parsing, timezone, geocoding
-- Fluxo único de submissão (Streamlit)
-- Stubs seguros para funções ainda não implementadas
-- Renderização Plotly defensiva
-"""
-
 import csv
-import importlib
 import json
 import logging
 import os
 import traceback
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
-
-from datetime import datetime, date, time as dt_time
+from datetime import datetime, date, time as dt_time, timezone
 
 import streamlit as st
 
@@ -45,10 +33,11 @@ try:
 except Exception:
     generate_analysis = generate_ai_text_from_chart = None
 
+# If there's an external natal_positions implementation, prefer it; otherwise fallback to local stub defined below
 try:
-    from services.swisseph_client import natal_positions  # type: ignore
+    from services.swisseph_client import natal_positions as external_natal_positions  # type: ignore
 except Exception:
-    natal_positions = None
+    external_natal_positions = None
 
 # Optional libs detection
 try:
@@ -95,8 +84,12 @@ except Exception:
     GoogleV3 = None
     GEOPY_GOOGLE_AVAILABLE = False
 
-# Simple in-memory cache for aspects
-_aspects_cache: Dict[str, dict] = {}
+# rapidfuzz optional
+try:
+    from rapidfuzz import process as rf_process  # type: ignore
+    RAPIDFUZZ = True
+except Exception:
+    RAPIDFUZZ = False
 
 # -------------------------
 # Helpers: timezone, parsing, geocoding
@@ -105,21 +98,18 @@ def normalize_tz_name(tz_name: Optional[str]) -> Optional[str]:
     if not tz_name:
         return None
     tz = str(tz_name).strip().replace(" ", "_")
-    # zoneinfo
     try:
         from zoneinfo import ZoneInfo
         ZoneInfo(tz)
         return tz
     except Exception:
         pass
-    # pytz
     try:
         import pytz as _pytz
         if tz in getattr(_pytz, "all_timezones", []):
             return tz
     except Exception:
         pass
-    # dateutil
     try:
         from dateutil import tz as dateutil_tz
         if dateutil_tz.gettz(tz):
@@ -132,20 +122,17 @@ def make_datetime_with_tz(bdate: date, btime: dt_time, tz_name: Optional[str]) -
     if not bdate or not btime or not tz_name:
         return None
     dt_naive = datetime.combine(bdate, btime)
-    # zoneinfo
     try:
         from zoneinfo import ZoneInfo
         return dt_naive.replace(tzinfo=ZoneInfo(tz_name))
     except Exception:
         pass
-    # pytz
     try:
         import pytz as _pytz
         tz = _pytz.timezone(tz_name)
         return tz.localize(dt_naive)
     except Exception:
         pass
-    # dateutil
     try:
         from dateutil import tz as dateutil_tz
         tz = dateutil_tz.gettz(tz_name)
@@ -281,68 +268,53 @@ def geocode_place_safe(place_text: str) -> Tuple[Optional[float], Optional[float
         return None, None, None, None
 
 # -------------------------
-# City map loader
+# City map loader and fuzzy autocomplete
 # -------------------------
-# Autocomplete fuzzy com cache (substituir o selectbox atual)
 from functools import lru_cache
 import difflib
 
-# opcional: rapidfuzz é muito mais rápido/preciso; use se instalado
-try:
-    from rapidfuzz import process as rf_process  # type: ignore
-    RAPIDFUZZ = True
-except Exception:
-    RAPIDFUZZ = False
-
 @st.cache_data
 def load_city_names_and_meta(csv_path: str = "data/cities.csv"):
-    """
-    Retorna (names_list, meta_map)
-    meta_map: {name: {"lat":..., "lon":..., "tz":...}}
-    """
-    import csv, os
     names = []
     meta = {}
     if not os.path.exists(csv_path):
-        # fallback para CITY_MAP se já estiver carregado no módulo
         try:
-            for k, v in CITY_MAP.items():
+            for k, v in globals().get("CITY_MAP", {}).items():
                 names.append(k)
                 meta[k] = {"lat": v.get("lat"), "lon": v.get("lon"), "tz": v.get("tz")}
         except Exception:
             return [], {}
         return names, meta
 
-    with open(csv_path, encoding="utf-8") as f:
+    with open(csv_path, encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
         for r in reader:
             name = (r.get("name") or "").strip()
             if not name:
                 continue
             names.append(name)
-            meta[name] = {
-                "lat": float(r["lat"]) if r.get("lat") else None,
-                "lon": float(r["lon"]) if r.get("lon") else None,
-                "tz": r.get("tz") or None
-            }
+            try:
+                lat_val = float(r["lat"]) if r.get("lat") else None
+            except Exception:
+                lat_val = None
+            try:
+                lon_val = float(r["lon"]) if r.get("lon") else None
+            except Exception:
+                lon_val = None
+            meta[name] = {"lat": lat_val, "lon": lon_val, "tz": r.get("tz") or None}
     return names, meta
 
 def suggest_cities(query: str, names: list, limit: int = 12):
     if not query:
-        # retornar top por prefixo vazio: primeiras cidades (ou populares se tiver lista)
         return names[:limit]
     q = query.strip()
-    # prefix matches first (fast)
     prefix = [n for n in names if n.lower().startswith(q.lower())]
     if prefix:
         return prefix[:limit]
-    # fuzzy fallback
     if RAPIDFUZZ:
         matches = rf_process.extract(q, names, limit=limit)
-        # rapidfuzz returns tuples (name, score, idx)
         return [m[0] for m in matches]
     else:
-        # difflib fallback
         return difflib.get_close_matches(q, names, n=limit, cutoff=0.45)
 
 # -------------------------
@@ -353,7 +325,7 @@ def resolve_place_and_tz(place: str):
     tz_name = None
     address = None
     if place:
-        meta = CITY_MAP.get(place)
+        meta = (globals().get("CITY_MAP") or {}).get(place)
         if meta:
             lat = meta.get("lat")
             lon = meta.get("lon")
@@ -375,28 +347,11 @@ def to_local_datetime_wrapper(bdate: date, btime_obj: dt_time, tz_name: Optional
     dt_local = make_datetime_with_tz(bdate, btime_obj, tz_ok)
     return dt_local, tz_ok
 
-# Safe stubs for functions not yet implemented
-def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
-    return {"planets": {}, "cusps": []}
-
-def natal_positions(dt_local, lat, lon, house_system="P"):
-    return {"planets": {}, "cusps": []}
-
-def positions_table(planets):
-    return []
-
-def compute_aspects(planets):
-    return []
-
-def generate_chart_summary(planets, name, bdate):
-    return {"planets": planets}
-
-def enrich_summary_with_astrology(summary):
-    return summary
-
 # -------------------------
 # Aspects helper
 # -------------------------
+_aspects_cache: Dict[str, dict] = {}
+
 def ensure_aspects(summary_obj):
     if not summary_obj:
         return None
@@ -568,7 +523,6 @@ def render_wheel_plotly(
     marker_colors = []
     text_colors = []
 
-    # prepare sign names and symbols defensively
     try:
         canonical_signs = influences.CANONICAL_SIGNS if influences and hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
     except Exception:
@@ -583,7 +537,6 @@ def render_wheel_plotly(
             sign_names.append(s)
     sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
 
-    # pre-normalize groups
     _normalized_groups: Dict[str, List[str]] = {}
     for gname, members in (groups or {}).items():
         members_can = []
@@ -679,7 +632,6 @@ def render_wheel_plotly(
         marker_colors.append(color)
         text_colors.append(text_color)
 
-    # Build figure
     fig = go.Figure()
     thetas_deg = thetas
     try:
@@ -714,41 +666,51 @@ def render_wheel_plotly(
 
     return fig
 
-# imports necessários (adicione no topo do módulo)
-import logging
-import traceback
-from datetime import timezone, date
-import swisseph as swe
-import streamlit as st
+# -------------------------
+# Fallback implementations (mantidas conforme solicitado)
+# -------------------------
+# If an external natal_positions exists, use it; otherwise use the internal robust implementation below.
+try:
+    if external_natal_positions:
+        natal_positions = external_natal_positions  # type: ignore
+except Exception:
+    pass
 
-logger = logging.getLogger(__name__)
+# Internal robust natal_positions (kept and used if external not available)
+try:
+    import swisseph as swe  # type: ignore
+    _SWE_AVAILABLE = True
+except Exception:
+    swe = None
+    _SWE_AVAILABLE = False
 
-# ---------- natal_positions (implementação defensiva) ----------
 PLANET_IDS = {
-    "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, "Venus": swe.VENUS,
-    "Mars": swe.MARS, "Jupiter": swe.JUPITER, "Saturn": swe.SATURN,
-    "Uranus": swe.URANUS, "Neptune": swe.NEPTUNE, "Pluto": swe.PLUTO
+    "Sun": getattr(swe, "SUN", 0) if _SWE_AVAILABLE else 0,
+    "Moon": getattr(swe, "MOON", 1) if _SWE_AVAILABLE else 1,
+    "Mercury": getattr(swe, "MERCURY", 2) if _SWE_AVAILABLE else 2,
+    "Venus": getattr(swe, "VENUS", 3) if _SWE_AVAILABLE else 3,
+    "Mars": getattr(swe, "MARS", 4) if _SWE_AVAILABLE else 4,
+    "Jupiter": getattr(swe, "JUPITER", 5) if _SWE_AVAILABLE else 5,
+    "Saturn": getattr(swe, "SATURN", 6) if _SWE_AVAILABLE else 6,
+    "Uranus": getattr(swe, "URANUS", 7) if _SWE_AVAILABLE else 7,
+    "Neptune": getattr(swe, "NEPTUNE", 8) if _SWE_AVAILABLE else 8,
+    "Pluto": getattr(swe, "PLUTO", 9) if _SWE_AVAILABLE else 9
 }
 
-def natal_positions(dt_local, lat, lon, house_system="P"):
+def natal_positions_internal(dt_local, lat, lon, house_system="P"):
     """
-    Retorna dict com chaves:
-      - planets: {nome: {"longitude": float, "latitude": float, "distance": float, "speed_long": float, ...}}
-      - cusps: [cusp1_long, cusp2_long, ...]
-      - jd_ut: julian day UT usado
-    Função defensiva: captura exceções e sempre retorna estrutura consistente.
+    Internal implementation using swisseph. Returns consistent dict:
+      {"planets": {...}, "cusps": [...], "jd_ut": ...}
     """
+    if not _SWE_AVAILABLE:
+        return {"planets": {}, "cusps": [], "error": "swisseph not available"}
     try:
         if dt_local is None:
             raise ValueError("dt_local is None")
-
-        # garantir timezone-aware e converter para UTC
         if dt_local.tzinfo is None:
-            logger.warning("dt_local é naive; assumindo UTC")
             dt_utc = dt_local.replace(tzinfo=timezone.utc)
         else:
             dt_utc = dt_local.astimezone(timezone.utc)
-
         hour_decimal = dt_utc.hour + dt_utc.minute / 60.0 + dt_utc.second / 3600.0 + dt_utc.microsecond / 3_600_000_000.0
         jd_ut = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, hour_decimal)
 
@@ -761,28 +723,111 @@ def natal_positions(dt_local, lat, lon, house_system="P"):
                     "latitude": float(res[1]) if len(res) > 1 else None,
                     "distance": float(res[2]) if len(res) > 2 else None,
                     "speed_long": float(res[3]) if len(res) > 3 else None,
-                    "raw": res,
+                    "raw": list(res) if hasattr(res, "__iter__") else res,
                     "flag": flag
                 }
             except Exception as e:
                 logger.exception("Erro ao calcular planeta %s: %s", name, e)
                 planets[name] = {"error": str(e)}
 
-        # calcular casas/cusps
         cusps = []
         try:
-            cusps_res, ascmc = swe.houses(jd_ut, lat, lon, house_system)
-            cusps = [float(c) for c in cusps_res]
+            cusps_res, ascmc = swe.houses(jd_ut, float(lat), float(lon), house_system)
+            cusps = [float(c) for c in cusps_res] if cusps_res else []
         except Exception as e:
             logger.exception("Erro ao calcular casas/cusps: %s", e)
-            cusps = []
+            # fallback attempt with Placidus
+            try:
+                if house_system != "P":
+                    cusps_res, ascmc = swe.houses(jd_ut, float(lat), float(lon), "P")
+                    cusps = [float(c) for c in cusps_res] if cusps_res else []
+            except Exception:
+                cusps = []
 
         return {"planets": planets, "cusps": cusps, "jd_ut": jd_ut}
     except Exception as e:
-        logger.exception("Erro em natal_positions: %s", e)
+        logger.exception("Erro em natal_positions_internal: %s", e)
         return {"planets": {}, "cusps": [], "error": str(e)}
 
-# ---------- main (refatorado) ----------
+# Ensure natal_positions points to a working implementation
+if not callable(globals().get("natal_positions")) or globals().get("natal_positions") is None:
+    natal_positions = natal_positions_internal
+else:
+    # if natal_positions was defined earlier as stub, replace with internal if swisseph available
+    try:
+        if globals().get("natal_positions") in (None, fetch_natal_chart):
+            natal_positions = natal_positions_internal
+    except Exception:
+        natal_positions = natal_positions_internal
+
+# -------------------------
+# Utility: convert planets dict to table rows and longitudes
+# -------------------------
+def planets_to_table_and_longitudes(planets_dict: Dict[str, Any]):
+    table_rows = []
+    longitudes = []
+    sign_names = ["Áries","Touro","Gêmeos","Câncer","Leão","Virgem","Libra","Escorpião","Sagitário","Capricórnio","Aquário","Peixes"]
+    for name, info in (planets_dict or {}).items():
+        if not isinstance(info, dict) or info.get("error"):
+            continue
+        lon = info.get("longitude")
+        lat = info.get("latitude")
+        speed = info.get("speed_long") or info.get("speed")
+        if lon is None:
+            continue
+        try:
+            lon = float(lon) % 360.0
+        except Exception:
+            continue
+        longitudes.append(lon)
+        deg = int(lon)
+        minute = int((lon - deg) * 60)
+        sign_index = (deg // 30) % 12
+        sign = sign_names[sign_index]
+        row = {
+            "planet": name,
+            "longitude": lon,
+            "latitude": lat,
+            "degree": deg % 30,
+            "minute": minute,
+            "sign": sign,
+            "speed": speed
+        }
+        table_rows.append(row)
+    return table_rows, longitudes
+
+# -------------------------
+# Safe stubs for other functions (kept as requested)
+# -------------------------
+def fetch_natal_chart(name, dt_local, lat, lon, tz_name):
+    return {"planets": {}, "cusps": []}
+
+def positions_table(planets):
+    # default conversion if no project-specific implementation
+    if callable(globals().get("positions_table")) and globals().get("positions_table") is not positions_table:
+        return globals().get("positions_table")(planets)
+    table_rows, _ = planets_to_table_and_longitudes(planets)
+    return table_rows
+
+def compute_aspects(planets):
+    compute_fn = getattr(astrology, "compute_aspects", None) or globals().get("compute_aspects")
+    if callable(compute_fn):
+        try:
+            return compute_fn(planets)
+        except Exception:
+            logger.exception("compute_aspects failed")
+            return []
+    return []
+
+def generate_chart_summary(planets, name, bdate):
+    return {"planets": planets}
+
+def enrich_summary_with_astrology(summary):
+    return summary
+
+# -------------------------
+# Main UI flow (refatorado, sem debug UI)
+# -------------------------
 def main():
     # session defaults
     st.session_state.setdefault("house_system", "P")
@@ -806,7 +851,6 @@ def main():
     with st.sidebar:
         form_key = f"birth_form_sidebar_{PAGE_ID}"
         with st.form(key=form_key, clear_on_submit=False):
-            # campo de busca (persistir query em session_state se desejar)
             query = st.text_input("Local de nascimento", value=st.session_state.get("place_query", ""), key="place_query_input")
             st.session_state["place_query"] = query
 
@@ -815,29 +859,24 @@ def main():
             if query:
                 q = query.strip().lower()
                 filtered = [c for c in CITY_NAMES if q in c.lower()]
-            # garantir pelo menos uma opção vazia para evitar erro de index
             if not filtered:
                 filtered = [""]  # usuário pode digitar livremente depois
             place_selected = st.selectbox("Ou escolha a cidade", filtered, index=0, key="place_selectbox")
             place = (place_selected or "").strip()
 
-            # opção explícita para digitar livremente (se o usuário preferir)
             free_checkbox = st.checkbox("Digitar local livremente", value=False, key="place_free_checkbox")
             if free_checkbox:
                 place_free = st.text_input("Digite o local (cidade, estado, país)", value=st.session_state.get("place_input", ""), key="place_free_input")
                 place = place_free.strip() or place
 
-            # se nada selecionado e nada digitado, manter valor anterior ou vazio
             if not place:
                 place = st.session_state.get("place_input", "")
 
-            # extrair meta se existir
             meta = CITY_META.get(place) or (globals().get("CITY_MAP") or {}).get(place) or {}
             lat = meta.get("lat")
             lon = meta.get("lon")
             tz_name = meta.get("tz")
 
-            # Fonte fixa
             source = "swisseph"
             st.session_state["source"] = source
 
@@ -855,7 +894,6 @@ def main():
 
     # --- tratamento do submit ---
     if submitted:
-        # persistir entradas básicas
         st.session_state["place_input"] = place
         st.session_state["place_query"] = query
         st.session_state["bdate"] = bdate
@@ -863,7 +901,6 @@ def main():
         st.session_state["source"] = source
         st.session_state["use_ai"] = use_ai
 
-        # parse hora (função parse_time_string deve existir)
         parsed_time = parse_time_string(btime_free or st.session_state.get("btime_text", ""))
         if parsed_time is None:
             st.error("Hora de nascimento inválida ou não informada. Use formatos como '14:30' ou '2:30 PM'.")
@@ -871,7 +908,6 @@ def main():
             return
         btime = parsed_time
 
-        # resolver local: priorizar meta carregada; se faltar, tentar geocoding
         meta = CITY_META.get(place) or (globals().get("CITY_MAP") or {}).get(place) or {}
         lat = meta.get("lat")
         lon = meta.get("lon")
@@ -889,7 +925,6 @@ def main():
             if address:
                 st.session_state["address"] = address
 
-        # forçar tipos e persistir lat/lon/tz
         try:
             lat = float(lat) if lat is not None else None
             lon = float(lon) if lon is not None else None
@@ -899,7 +934,6 @@ def main():
 
         st.session_state.update({"lat": lat, "lon": lon, "tz_name": tz_name})
 
-        # validar coords
         if lat is None or lon is None:
             st.warning("Latitude/Longitude não resolvidas automaticamente. Informe um local diferente ou corrija o nome da cidade.")
             st.session_state["map_ready"] = False
@@ -909,7 +943,6 @@ def main():
             st.session_state["map_ready"] = False
             return
 
-        # criar datetime timezone-aware com fallback por coordenadas
         dt_local, tz_ok = to_local_datetime_wrapper(bdate, btime, tz_name)
         if dt_local is None:
             tz_from_coords = tz_from_latlon_cached(lat, lon)
@@ -917,7 +950,6 @@ def main():
             if tz_ok:
                 dt_local = make_datetime_with_tz(bdate, btime, tz_ok)
 
-        # persistir dt_local e tz
         st.session_state["tz_name"] = tz_ok
         st.session_state["dt_local"] = dt_local
 
@@ -936,11 +968,6 @@ def main():
 
         try:
             data = natal_positions(dt_local, lat, lon, house_system=st.session_state.get("house_system", "P"))
-            # debug: mostrar retorno bruto
-            with st.expander("Debug natal_positions (retorno bruto)"):
-                st.write("Tipo:", type(data))
-                st.write(data)
-
             if isinstance(data, dict):
                 planets = data.get("planets", {}) or {}
                 cusps = data.get("cusps", []) or []
@@ -952,19 +979,16 @@ def main():
         except Exception as e:
             logger.exception("Erro ao obter posições natales: %s", e)
             st.error("Erro ao calcular posições natales. Verifique os logs do servidor.")
-            with st.expander("Detalhes do erro (debug)"):
-                st.code(traceback.format_exc())
             st.session_state["map_ready"] = False
             return
 
-        # processar resultado
         if not planets:
             st.warning("Não foi possível obter posições natales. Verifique as entradas e tente novamente.")
             st.session_state["map_ready"] = False
             return
 
         try:
-            table = positions_table(planets) if callable(globals().get("positions_table")) else []
+            table = positions_table(planets) if callable(globals().get("positions_table")) else planets_to_table_and_longitudes(planets)[0]
             aspects = compute_aspects(planets) if callable(globals().get("compute_aspects")) else []
             summary = generate_chart_summary(planets, st.session_state.get("name") or "Consulente", bdate) if callable(globals().get("generate_chart_summary")) else {"planets": planets}
             summary["table"] = table
@@ -978,14 +1002,18 @@ def main():
             summary.setdefault("timezone", tz_ok)
             summary = enrich_summary_with_astrology(summary) if callable(globals().get("enrich_summary_with_astrology")) else summary
 
+            _, longitudes = planets_to_table_and_longitudes(planets)
             fig = None
             if callable(globals().get("render_wheel_plotly")):
                 try:
-                    longitudes = [c.get("longitude") for c in summary.get("table", [])] if summary.get("table") else []
-                    fig = render_wheel_plotly(summary.get("planets", {}), longitudes)
-                except Exception as e:
-                    logger.exception("Erro ao renderizar figura: %s", e)
-                    fig = None
+                    fig = render_wheel_plotly(summary.get("planets", {}), cusps or [], marker_scale=1.0, text_scale=1.0)
+                except Exception:
+                    logger.exception("Erro ao renderizar figura com cusps; tentando com longitudes")
+                    try:
+                        fig = render_wheel_plotly(summary.get("planets", {}), [], marker_scale=1.0, text_scale=1.0)
+                    except Exception:
+                        logger.exception("Render fallback também falhou")
+                        fig = None
 
             st.session_state["map_fig"] = fig
             st.session_state["map_summary"] = summary
