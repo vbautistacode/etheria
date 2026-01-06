@@ -789,6 +789,31 @@ def main():
             st.session_state["use_ai"] = use_ai
             submitted = st.form_submit_button("Gerar Mapa")
 
+
+
+
+    import swisseph as swe
+    from datetime import datetime, timezone
+    import traceback
+
+    try:
+        # opcional: ajustar caminho de efemérides se necessário
+        # swe.set_ephe_path("/path/to/ephe")
+
+        # exemplo: 1 Jan 1990 07:55 local -> converter para UTC se necessário
+        # aqui usamos dt_local já timezone-aware; converter para julian day:
+        dt = dt_local  # use o dt_local que você já tem
+        jd_ut = swe.julday(dt.year, dt.month, dt.day, dt.hour + dt.minute/60.0 + dt.second/3600.0)
+        # calcular posição do Sol (0) em longitude e latitude
+        sun = swe.calc_ut(jd_ut, swe.SUN)
+        logger.info("sun calc result: %r", sun)
+        st.write("Teste swisseph: Sun calc:", sun)
+    except Exception:
+        with st.expander("Erro swisseph (traceback)"):
+            st.text(traceback.format_exc())
+
+
+
     # --- tratamento do submit ---
     if submitted:
         # persistir entradas básicas
