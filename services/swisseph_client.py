@@ -77,12 +77,30 @@ def _normalize_calc_result(res) -> Tuple[List[float], Optional[int]]:
     vals = [float(v) for v in vals]
     return vals, flag
 
-def _prepare_house_system(house_system: str | bytes) -> str:
-    if isinstance(house_system, (bytes, bytearray)):
-        house_system = house_system.decode("ascii")
-    if not isinstance(house_system, str) or len(house_system) != 1:
-        raise ValueError("house_system deve ser um caractere único, ex.: 'P'")
-    return house_system
+def _prepare_house_system(house_system):
+    """
+    Normaliza house_system e retorna um byte string de comprimento 1 (ex.: b'P').
+    Aceita str (ex: 'P' ou 'Placidus') ou bytes.
+    """
+    try:
+        if isinstance(house_system, (bytes, bytearray)):
+            h = bytes(house_system)
+            return h[:1] if len(h) >= 1 else b"P"
+        if isinstance(house_system, str):
+            s = house_system.strip()
+            if not s:
+                return b"P"
+            # pegar primeiro caractere e codificar ASCII
+            try:
+                b = s[0].encode("ascii", errors="ignore")
+                return b if len(b) == 1 else b"P"
+            except Exception:
+                return b"P"
+        # fallback
+        return b"P"
+    except Exception:
+        logger.exception("Falha ao preparar house_system; usando 'P' como fallback")
+        return b"P"
 
 def _find_planet_house(planet_lon: float, cusps: List[float]) -> int:
     """
