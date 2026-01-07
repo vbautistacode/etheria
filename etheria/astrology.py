@@ -504,7 +504,7 @@ def interpret_planet_position(
     sign_noun, sign_quality = _sign_text(sign_can or "")
     house_noun, house_theme = _house_text(house)
 
-    deg_text = f"Casa {house_num}" if house_num is not None else _format_degree(degree)
+    deg_text = f"Casa {house}" if house is not None else _format_degree(degree)
     who = f"{context_name}, " if context_name else ""
 
     # Short: 1-2 frases usando rótulos PT

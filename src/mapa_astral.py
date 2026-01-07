@@ -2118,7 +2118,7 @@ def main():
                         st.write(f"- {k}")
                 else:
                     st.write("Nenhuma sugestão prática disponível.")
-                with st.expander("Interpretação completa"):
+                    st.markdown("**Interpretação Completa**")
                     st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
             else:
                 if not (canonical_selected and summary):
