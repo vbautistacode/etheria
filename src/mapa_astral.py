@@ -469,7 +469,7 @@ def render_wheel_plotly(
         if lon is None:
             invalid_planets.append((name, pdata))
         else:
-            valid_planets[name] = float(lon)
+            valid_planets[name] = float(lon) % 360.0
             planet_meta[name] = extract_meta(pdata) if isinstance(pdata, dict) else {}
 
     valid_cusps = []
@@ -479,7 +479,7 @@ def render_wheel_plotly(
             try:
                 if c is None:
                     raise ValueError("None cusp")
-                valid_cusps.append(float(c))
+                valid_cusps.append(float(c) % 360.0)
             except Exception:
                 invalid_cusps.append((i, c))
 
@@ -511,28 +511,21 @@ def render_wheel_plotly(
 
     ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
 
-    names = []
-    thetas = []
-    hover_texts = []
-    symbol_texts = []
-    lon_values = []
-    marker_sizes = []
-    text_sizes = []
-    marker_colors = []
-    text_colors = []
-
     try:
         canonical_signs = influences.CANONICAL_SIGNS if influences and hasattr(influences, "CANONICAL_SIGNS") else getattr(influences, "SIGNS", None)
     except Exception:
         canonical_signs = None
     if not canonical_signs:
         canonical_signs = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
+
     sign_names = []
     for s in canonical_signs:
         try:
             sign_names.append(influences.sign_label_pt(s) or s)
         except Exception:
             sign_names.append(s)
+
+    # símbolos dos signos (agora usados)
     sign_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
 
     _normalized_groups: Dict[str, List[str]] = {}
@@ -546,115 +539,181 @@ def render_wheel_plotly(
                 members_can.append(m)
         _normalized_groups[gname] = members_can
 
-    for name, lon in ordered:
+    # preparar rótulos PT dos signos
+    try:
+        sign_labels_pt = [influences.sign_label_pt(s) if influences and hasattr(influences, "sign_label_pt") else s for s in canonical_signs]
+    except Exception:
+        sign_labels_pt = canonical_signs
+
+    # detectar signos interceptados: contar quantas cúspides caem dentro de cada signo
+    sign_cusp_counts = [0] * 12
+    for c in valid_cusps:
         try:
-            if lon is None:
-                logger.warning("Longitude ausente para %s; pulando", name)
-                continue
-            theta = lon_to_theta(lon)
+            idx = int(c // 30) % 12
+            sign_cusp_counts[idx] += 1
         except Exception:
-            logger.warning("Falha ao converter longitude para theta: %s -> %s", name, lon)
+            continue
+    intercepted_signs = [i for i, cnt in enumerate(sign_cusp_counts) if cnt == 0]
+
+    # parâmetros visuais
+    inner_r = 0.60
+    outer_r = 1.00
+    label_r = 1.12
+    cusp_r0 = inner_r
+    cusp_r1 = outer_r + 0.05
+
+    fig = go.Figure()
+
+    base_sign_colors = ["#f7f7f7", "#efefef"]
+    intercepted_fill = "rgba(255,200,200,0.25)"
+
+    # desenhar setores de signo
+    for s_idx in range(12):
+        sign_start = (s_idx * 30.0) % 360.0
+        steps = 24
+        thetas = []
+        rs = []
+        for k in range(steps + 1):
+            frac = k / steps
+            lon = (sign_start + frac * 30.0) % 360.0
+            theta = lon_to_theta(lon)
+            thetas.append(theta)
+            rs.append(outer_r)
+        for k in range(steps, -1, -1):
+            frac = k / steps
+            lon = (sign_start + frac * 30.0) % 360.0
+            theta = lon_to_theta(lon)
+            thetas.append(theta)
+            rs.append(inner_r)
+        fillcolor = intercepted_fill if s_idx in intercepted_signs else base_sign_colors[s_idx % 2]
+        fig.add_trace(go.Scatterpolar(
+            r=rs,
+            theta=thetas,
+            mode="lines",
+            fill="toself",
+            fillcolor=fillcolor,
+            line=dict(color="rgba(0,0,0,0)"),
+            hoverinfo="none",
+            showlegend=False
+        ))
+
+    # desenhar linhas de cusp e rótulos de casa
+    for i, c in enumerate(valid_cusps):
+        try:
+            theta = lon_to_theta(c)
+            fig.add_trace(go.Scatterpolar(
+                r=[cusp_r0, cusp_r1],
+                theta=[theta, theta],
+                mode="lines",
+                line=dict(color="#444444", width=1.5),
+                hoverinfo="none",
+                showlegend=False
+            ))
+            house_num = i + 1
+            fig.add_trace(go.Scatterpolar(
+                r=[outer_r + 0.08],
+                theta=[theta],
+                mode="text",
+                text=[str(house_num)],
+                textfont=dict(size=12, color="#222222"),
+                hoverinfo="none",
+                showlegend=False
+            ))
+        except Exception:
             continue
 
-        lname = str(name).lower()
-        is_asc = lname in ("asc", "ascendant", "ascendente")
-        is_mc = lname in ("mc", "medium coeli", "meio do ceu", "meio do céu")
-
+    # rótulos dos signos no anel externo (com símbolo)
+    for s_idx in range(12):
         try:
-            sign_index = int(float(lon) // 30) % 12
-            degree_in_sign = float(lon) % 30
+            sign_mid_lon = (s_idx * 30.0 + 15.0) % 360.0
+            theta = lon_to_theta(sign_mid_lon)
+            label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
+            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
+            label_suffix = " (Interceptado)" if s_idx in intercepted_signs else ""
+            text_label = f"{symbol} {label}{label_suffix}"
+            fig.add_trace(go.Scatterpolar(
+                r=[label_r],
+                theta=[theta],
+                mode="text",
+                text=[text_label],
+                textfont=dict(size=12 * text_scale, color="#333333"),
+                hoverinfo="none",
+                showlegend=False
+            ))
         except Exception:
-            sign_index = 0
-            degree_in_sign = 0.0
+            continue
 
-        meta = planet_meta.get(name, {}) or {}
-        meta_sign = meta.get("sign")
-        meta_house = meta.get("house")
+    # adicionar planetas
+    ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
+    names = []
+    thetas = []
+    hover_texts = []
+    symbol_texts = []
+    lon_values = []
+    marker_sizes = []
+    marker_colors = []
+    text_colors = []
 
-        sign_short = sign_names[sign_index] if 0 <= sign_index < len(sign_names) else canonical_signs[sign_index % 12]
-
+    for name, lon in ordered:
+        try:
+            theta = lon_to_theta(lon)
+        except Exception:
+            continue
         try:
             display_planet = influences.planet_label_pt(influences.to_canonical(name)) if influences and hasattr(influences, "planet_label_pt") else name
         except Exception:
             display_planet = name
-
-        hover_parts = [
-            f"<b>{display_planet}</b>",
-            f"{float(lon):.2f}° eclíptico",
-            f"{degree_in_sign:.1f}° no signo",
-            f"Signo (calc): {sign_short}"
-        ]
-        if meta_sign:
-            try:
-                meta_sign_can = influences.sign_to_canonical(meta_sign) if influences and hasattr(influences, "sign_to_canonical") else meta_sign
-                meta_sign_label = influences.sign_label_pt(meta_sign_can) if influences and hasattr(influences, "sign_label_pt") else (meta_sign)
-            except Exception:
-                meta_sign_label = meta_sign
-            hover_parts.append(f"Signo (meta): {meta_sign_label}")
-        if meta_house:
-            hover_parts.append(f"Casa (meta): {meta_house}")
-        hover_text = "<br>".join(hover_parts)
-
-        try:
-            symbol = planet_symbols.get(name) or planet_symbols.get(name.capitalize()) or planet_symbols.get(influences.to_canonical(name) if influences else name, name)
-        except Exception:
-            symbol = planet_symbols.get(name, name)
-
-        base_marker = 26 * marker_scale
-        base_text = 16 * text_scale
-        size = base_marker * (1.6 if is_asc or is_mc else 1.0)
-        text_size = base_text * (1.4 if is_asc or is_mc else 1.0)
-
-        color = colors.get("default")
+        meta = planet_meta.get(name, {}) or {}
+        degree_in_sign = (lon % 30.0)
+        sign_index = int(lon // 30) % 12
+        sign_label = sign_labels_pt[sign_index] if 0 <= sign_index < len(sign_labels_pt) else canonical_signs[sign_index % 12]
+        sign_symbol = sign_symbols[sign_index] if 0 <= sign_index < len(sign_symbols) else ""
+        hover = f"<b>{display_planet}</b><br>{float(lon):.2f}° eclíptico<br>{degree_in_sign:.1f}° no signo {sign_symbol} {sign_label}"
+        if meta.get("house"):
+            hover += f"<br>Casa: {meta.get('house')}"
+        symbol = planet_symbols.get(name) or planet_symbols.get(name.capitalize()) or (display_planet[:2] if display_planet else name)
         try:
             name_can = influences.to_canonical(name) if influences and hasattr(influences, "to_canonical") else name
-            for gname, members_can in _normalized_groups.items():
-                if name_can in members_can:
-                    color = _color_for_group(gname)
-                    break
+            color = colors.get(name_can, colors.get("default"))
         except Exception:
-            for gname, members in (groups or {}).items():
-                if name in members:
-                    color = _color_for_group(gname)
-                    break
-
-        text_color = color
-
+            color = colors.get("default")
+        size = int(max(8, 18 * marker_scale))
         names.append(display_planet)
         thetas.append(theta)
-        lon_values.append(float(lon))
-        hover_texts.append(hover_text)
+        hover_texts.append(hover)
         symbol_texts.append(symbol)
+        lon_values.append(float(lon))
         marker_sizes.append(size)
-        text_sizes.append(text_size)
         marker_colors.append(color)
-        text_colors.append(text_color)
+        text_colors.append(color)
 
-    fig = go.Figure()
-    thetas_deg = thetas
     try:
         fig.add_trace(go.Scatterpolar(
-            r=[1.0] * len(thetas_deg),
-            theta=thetas_deg,
+            r=[outer_r] * len(thetas),
+            theta=thetas,
             mode="markers+text",
-            marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors),
-            text=[planet_symbols.get(n, n) for n in names],
+            marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
+            text=symbol_texts,
             textposition="middle center",
             hovertext=hover_texts,
-            hoverinfo="text"
+            hoverinfo="text",
+            showlegend=False
         ))
+    except Exception as e:
+        logger.exception("Erro ao adicionar trace de planetas: %s", e)
+
+    try:
         fig.update_layout(
             polar=dict(
                 radialaxis=dict(visible=False),
-                angularaxis=dict(direction="clockwise", rotation=90)
+                angularaxis=dict(direction="clockwise", rotation=90, showticklabels=False)
             ),
             showlegend=False,
             margin=dict(l=10, r=10, t=10, b=10),
             template="plotly_white"
         )
-    except Exception as e:
-        logger.exception("Erro ao construir figura Plotly: %s", e)
-        return None
+    except Exception:
+        pass
 
     if export_png:
         try:
@@ -2050,8 +2109,8 @@ def main():
             except Exception:
                 display_name = label or (canonical or sel_planet)
 
-            st.markdown(f"**{display_name}**")
-            st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
+            #st.markdown(f"**{display_name}**")
+            #st.write(f"Signo: **{sign or '—'}**  •  Grau: **{degree or '—'}°**  •  Casa: **{house or '—'}**")
 
             if synthetic_line:
                 st.write(synthetic_line)
