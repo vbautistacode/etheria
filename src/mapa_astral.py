@@ -2104,7 +2104,7 @@ def main():
                 arc = reading.get("arcano_info") or reading.get("arcano")
                 if arc:
                     if isinstance(arc, dict):
-                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
+                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano')}"
                         arc_num = arc.get("arcano") or arc.get("value")
                         st.write(f"{arc_name} (#{arc_num})")
                     else:
