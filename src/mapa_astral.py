@@ -1834,14 +1834,14 @@ def main():
             else:
                 st.info("Nenhum planeta disponível para seleção.")
 
-    # RIGHT: interpretations and arcanos (refatorado, defensivo)
+    # RIGHT: interpretations and arcanos
     with right_col:
         st.subheader("Interpretação dos Arcanos")
         st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores.")
         tabs = st.tabs(["Planeta", "Signo"])
 
         selected_raw = st.session_state.get("selected_planet")
-        canonical_selected = label_selected = None
+        canonical_selected, label_selected = (None, None)
         try:
             if selected_raw:
                 canonical_selected = _safe_canonical(selected_raw)
@@ -1849,51 +1849,25 @@ def main():
         except Exception:
             canonical_selected, label_selected = (selected_raw, selected_raw)
 
-        # tentar obter leitura existente sem forçar geração automática
+        # buscar ou gerar leitura usando helper (find_or_generate_and_save_reading deve existir no módulo principal)
         reading = None
         if summary and selected_raw:
             try:
-                # preferir função que apenas busca/gera de forma controlada
-                if callable(globals().get("get_or_generate_reading")):
-                    canonical_tmp, label_tmp, reading = get_or_generate_reading(summary, selected_raw)
-                else:
-                    # se não existir, tentar buscar diretamente em summary['readings']
-                    readings_map = (summary.get("readings") or {}) if isinstance(summary, dict) else {}
-                    key_try = canonical_selected or selected_raw
-                    # busca case-insensitive
-                    for k, v in readings_map.items():
-                        try:
-                            if str(k).lower() == str(key_try).lower() or str(k).lower() == str(selected_raw).lower():
-                                reading = v
-                                break
-                        except Exception:
-                            continue
+                reading = find_or_generate_and_save_reading(summary, selected_raw)
             except Exception:
-                logger.exception("Erro ao buscar leitura existente para o planeta selecionado")
-                reading = None
+                logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
 
-        # Aba Planeta
         with tabs[0]:
             if reading:
-                # exibir leitura já gerada
-                try:
-                    planet_label = (influences.CANONICAL_TO_PT.get(canonical_selected) if influences and hasattr(influences, "CANONICAL_TO_PT") else canonical_selected) or (label_selected or "—")
-                except Exception:
-                    planet_label = label_selected or canonical_selected or "—"
-
+                planet_label = (influences.CANONICAL_TO_PT.get(canonical_selected) if influences and hasattr(influences, "CANONICAL_TO_PT") else canonical_selected) or (label_selected or "—")
                 raw_sign = reading.get("sign")
                 try:
                     sign_canonical = influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign
                 except Exception:
                     sign_canonical = raw_sign
-                try:
-                    sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
-                except Exception:
-                    sign_label = sign_canonical or raw_sign or "—"
-
+                sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
                 degree = reading.get("degree") or reading.get("deg") or "—"
                 st.markdown(f"#### {planet_label} em {sign_label} {degree}°")
-
                 st.markdown("**Arcano Correspondente**")
                 arc = reading.get("arcano_info") or reading.get("arcano")
                 if arc:
@@ -1903,10 +1877,8 @@ def main():
                         st.write(f"{arc_name} (#{arc_num})")
                     else:
                         st.write(f"Arcano {arc}")
-
                 st.markdown("**Resumo**")
                 st.write(reading.get("interpretation_short") or "Resumo não disponível.")
-
                 st.markdown("**Sugestões práticas**")
                 kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
                 if kw:
@@ -1914,40 +1886,14 @@ def main():
                         st.write(f"- {k}")
                 else:
                     st.write("Nenhuma sugestão prática disponível.")
-
                 with st.expander("Interpretação completa"):
                     st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
             else:
-                # sem leitura persistida: oferecer ação controlada ao usuário
                 if not (canonical_selected and summary):
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
                 else:
-                    st.info("Nenhuma leitura pré-gerada encontrada para este planeta.")
-                    col_gen1, col_gen2 = st.columns([1, 2])
-                    with col_gen1:
-                        if st.button("Gerar leitura (Planeta)", key=f"gen_planet_{selected_raw}"):
-                            try:
-                                # chamar helper que gera e salva (se existir)
-                                if callable(globals().get("find_or_generate_and_save_reading")):
-                                    gen = find_or_generate_and_save_reading(summary, selected_raw)
-                                    if gen:
-                                        # atualizar summary na sessão e recarregar para refletir a nova leitura
-                                        try:
-                                            st.session_state["map_summary"] = summary
-                                        except Exception:
-                                            logger.exception("Falha ao persistir map_summary após gerar leitura")
-                                        st.experimental_rerun()
-                                    else:
-                                        st.warning("Não foi possível gerar a leitura automaticamente.")
-                                else:
-                                    st.warning("Gerador automático não disponível no ambiente.")
-                            except Exception:
-                                logger.exception("Erro ao gerar leitura para o planeta selecionado")
-                                st.warning("Erro ao gerar leitura. Verifique os logs.")
-                    with col_gen2:
-                        st.caption("Ou vá para a aba 'Signo' para gerar interpretações por signo (arcano).")
+                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
-        # Aba Signo
         with tabs[1]:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
@@ -1965,24 +1911,11 @@ def main():
                         norm = raw
                     if not norm:
                         continue
-                    # preservar a primeira aparição do signo (raw) para exibição
                     if norm not in sign_map:
                         sign_map[norm] = raw
-
                 if not sign_map:
                     st.info("Nenhum signo detectado no mapa.")
                 else:
-                    # botão para gerar todas as interpretações por signo (opcional)
-                    if st.button("Gerar interpretações por signo", key="gen_all_signs"):
-                        for norm, raw_sign in sign_map.items():
-                            try:
-                                if interpretations and hasattr(interpretations, "arcano_for_sign"):
-                                    interpretations.arcano_for_sign(raw_sign, name=client_name)
-                            except Exception:
-                                logger.exception("Erro ao pré-gerar arcano para signo %s", raw_sign)
-                        st.success("Geração por signo solicitada. Atualize a aba se necessário.")
-                        st.experimental_rerun()
-
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
                         with st.expander(f"**{display_sign}**"):
@@ -1998,7 +1931,6 @@ def main():
                                     st.write("Interpretação não disponível para este signo no momento.")
                                 else:
                                     st.write(text)
-
 
     # -------------------------
     # Integração: Leitura Sintética (painel esquerdo) e Interpretação Astrológica (painel central)
