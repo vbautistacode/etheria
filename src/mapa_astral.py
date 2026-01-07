@@ -2144,7 +2144,7 @@ def main():
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
                 # Tudo apresentado dentro de um expander aberto
-                with st.expander("Interpretação completa", expanded=True):
+                with st.expander("Interpretação", expanded=True):
                     st.markdown("**Arcano Correspondente**")
                     arc = reading.get("arcano_info") or reading.get("arcano")
                     if arc:
