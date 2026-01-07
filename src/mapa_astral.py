@@ -2158,15 +2158,16 @@ def main():
                 if kw:
                     for k in kw:
                         st.write(f"- {k}")
+                    else:
+                        with st.expander("Interpretação completa"):
+                            st.write("Nenhuma sugestão prática disponível.")
+                            #st.markdown("**Interpretação Completa**")
+                            st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
                 else:
-                    st.write("Nenhuma sugestão prática disponível.")
-                    st.markdown("**Interpretação Completa**")
-                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
-            else:
-                if not (canonical_selected and summary):
-                    st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
-                else:
-                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
+                    if not (canonical_selected and summary):
+                        st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
+                    else:
+                        st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
         with tabs[1]:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
@@ -2345,12 +2346,13 @@ def main():
                 interp_local = {"short": ""}
 
             short_local = (interp_local.get("short") or "").strip()
-            if short_local:
-                st.write(short_local)
-            elif keywords_line:
-                st.write(f"Palavras-chave: {keywords_line}")
-            else:
-                st.write("—")
+            with st.expander("Interpretação"):
+                if short_local:
+                    st.write(short_local)
+                elif keywords_line:
+                    st.write(f"Palavras-chave: {keywords_line}")
+                else:
+                    st.write("—")
 
     # INTERPRETAÇÃO ASTROLÓGICA (painel central, integrado com o mapa)
     with center_col:
@@ -2442,9 +2444,10 @@ def main():
                     logger.exception("interpret_planet_position falhou no fallback")
                     interp = {"short": "", "long": ""}
 
-                # Exibir apenas a interpretação longa
+                # Exibir apenas a interpretação longa dentro de um expander
                 long_text = (interp.get("long") or "").strip()
-                st.write(long_text or "—")
+                with st.expander("Interpretação"):
+                    st.write(long_text or "—")
 
     # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA Etheria"):
