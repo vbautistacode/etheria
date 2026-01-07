@@ -2142,32 +2142,36 @@ def main():
                 sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
                 degree = reading.get("degree") or reading.get("deg") or "—"
                 st.markdown(f"#### {planet_label} em {sign_label}")
-                st.markdown("**Arcano Correspondente**")
-                arc = reading.get("arcano_info") or reading.get("arcano")
-                if arc:
-                    if isinstance(arc, dict):
-                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
-                        #arc_num = arc.get("arcano") or arc.get("value")
-                        st.write(f"{arc_name}")
+
+                # Tudo apresentado dentro de um expander aberto
+                with st.expander("Interpretação completa", expanded=True):
+                    st.markdown("**Arcano Correspondente**")
+                    arc = reading.get("arcano_info") or reading.get("arcano")
+                    if arc:
+                        if isinstance(arc, dict):
+                            arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
+                            st.write(f"{arc_name}")
+                        else:
+                            st.write(f"Arcano {arc}")
+
+                    st.markdown("**Resumo**")
+                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+
+                    st.markdown("**Sugestões práticas**")
+                    kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
+                    if kw:
+                        for k in kw:
+                            st.write(f"- {k}")
                     else:
-                        st.write(f"Arcano {arc}")
-                st.markdown("**Resumo**")
-                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
-                st.markdown("**Sugestões práticas**")
-                kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
-                if kw:
-                    for k in kw:
-                        st.write(f"- {k}")
-                    else:
-                        with st.expander("Interpretação completa"):
-                            st.write("Nenhuma sugestão prática disponível.")
-                            #st.markdown("**Interpretação Completa**")
-                            st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
+                        st.write("Nenhuma sugestão prática disponível.")
+
+                    st.markdown("**Interpretação Completa**")
+                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
+            else:
+                if not (canonical_selected and summary):
+                    st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
                 else:
-                    if not (canonical_selected and summary):
-                        st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
-                    else:
-                        st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
+                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
         with tabs[1]:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
