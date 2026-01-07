@@ -2099,7 +2099,7 @@ def main():
                     sign_canonical = raw_sign
                 sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
                 degree = reading.get("degree") or reading.get("deg") or "—"
-                st.markdown(f"#### {planet_label} em {sign_label} {degree}°")
+                st.markdown(f"#### {planet_label} em {sign_label}")
                 st.markdown("**Arcano Correspondente**")
                 arc = reading.get("arcano_info") or reading.get("arcano")
                 if arc:

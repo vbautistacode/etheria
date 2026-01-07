@@ -232,6 +232,20 @@ def compute_aspects(positions: Dict[str, Dict[str, float]], orb: float = 6.0) ->
                     })
     return aspects
 
+def _normalize_house_index(h):
+    """
+    Normaliza índice de casa para 1..12.
+    Aceita int/float/str; mapeia 13->1, 0->12 e normaliza via módulo.
+    Retorna None se inválido.
+    """
+    try:
+        if h is None or h == "":
+            return None
+        hi = int(float(h))
+        return ((hi - 1) % 12) + 1
+    except Exception:
+        return None
+
 def positions_table(
     planets: Dict[str, Dict[str, float]],
     cusps: Optional[List[float]] = None,
@@ -309,13 +323,14 @@ def positions_table(
             h_raw = v.get("house") or v.get("casa")
             if h_raw not in (None, "", "None"):
                 try:
-                    house = int(float(h_raw))
+                    house = _normalize_house_index(h_raw)
                 except Exception:
                     house = None
+
         if house is None and compute_house_if_missing and norm_cusps:
             try:
                 calc = get_house_for_longitude(lon, norm_cusps)
-                house = int(calc) if calc else None
+                house = _normalize_house_index(calc)
             except Exception:
                 house = None
 
@@ -489,12 +504,12 @@ def interpret_planet_position(
     sign_noun, sign_quality = _sign_text(sign_can or "")
     house_noun, house_theme = _house_text(house)
 
-    deg_text = house_noun if house_noun else _format_degree(degree)
+    deg_text = f"Casa {house_num}" if house_num is not None else _format_degree(degree)
     who = f"{context_name}, " if context_name else ""
 
     # Short: 1-2 frases usando rótulos PT
     short = (
-        f"{who}{planet_label_pt} em {sign_label_pt or '—'} {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
+        f"{who}{planet_label_pt} em {sign_label_pt or '—'} na {deg_text} fala sobre {pcore.lower()} conectando {sign_quality.lower()}. "
         f"Resumo prático: {verb.lower()} no campo do(a) {house_noun.lower()}."
     )
 
