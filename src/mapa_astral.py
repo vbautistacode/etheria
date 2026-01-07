@@ -2104,9 +2104,9 @@ def main():
                 arc = reading.get("arcano_info") or reading.get("arcano")
                 if arc:
                     if isinstance(arc, dict):
-                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano')}"
-                        arc_num = arc.get("arcano") or arc.get("value")
-                        st.write(f"{arc_name} (#{arc_num})")
+                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
+                        #arc_num = arc.get("arcano") or arc.get("value")
+                        st.write(f"{arc_name}")
                     else:
                         st.write(f"Arcano {arc}")
                 st.markdown("**Resumo**")
@@ -2400,19 +2400,9 @@ def main():
                     logger.exception("interpret_planet_position falhou no fallback")
                     interp = {"short": "", "long": ""}
 
-            # Exibir interpretação (short + expander long), evitando duplicação
-            short_text = (interp.get("short") or "").strip()
-            long_text = (interp.get("long") or "").strip()
-
-            if short_text:
-                st.write(short_text)
-
-            if long_text and long_text != short_text:
-                with st.expander("Ver interpretação completa"):
-                    st.write(long_text)
-            else:
-                with st.expander("Ver interpretação completa"):
-                    st.write(long_text or "—")
+                # Exibir apenas a interpretação longa
+                long_text = (interp.get("long") or "").strip()
+                st.write(long_text or "—")
 
     # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA Etheria"):
