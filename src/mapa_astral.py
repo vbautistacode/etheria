@@ -882,8 +882,173 @@ def generate_chart_summary(planets, name, bdate):
 def enrich_summary_with_astrology(summary):
     return summary
 
-def find_or_generate_and_save_reading(summary, selected_raw):
-    raise NotImplementedError
+def find_or_generate_and_save_reading(summary: dict, selected_raw: str):
+    """
+    Busca uma leitura existente em summary['readings'] para selected_raw.
+    Se não existir, tenta gerar um fallback (arcano por signo ou interpretação por posição),
+    persiste em summary['readings'] e atualiza st.session_state['map_summary'].
+    Retorna o dict da leitura ou None.
+    """
+    try:
+        logger = logging.getLogger("find_or_generate_and_save_reading")
+    except Exception:
+        logger = None
+
+    if not summary or not selected_raw:
+        return None
+
+    # helpers internos
+    def _safe_key_variants(name):
+        """Retorna lista de chaves candidatas: canônico, raw, lower-case raw."""
+        keys = []
+        try:
+            if influences and hasattr(influences, "to_canonical"):
+                can = influences.to_canonical(name)
+                if can:
+                    keys.append(can)
+        except Exception:
+            pass
+        keys.append(selected_raw)
+        try:
+            keys.append(str(selected_raw).lower())
+        except Exception:
+            pass
+        return [k for k in keys if k is not None]
+
+    def _find_reading(summary_obj, name):
+        readings = (summary_obj.get("readings") or {}) if isinstance(summary_obj, dict) else {}
+        if not isinstance(readings, dict):
+            return None, None
+        # tentar variantes diretas
+        for cand in _safe_key_variants(name):
+            if cand in readings:
+                return cand, readings[cand]
+        # busca case-insensitive entre chaves existentes
+        for k, v in readings.items():
+            try:
+                if str(k).lower() == str(name).lower():
+                    return k, v
+            except Exception:
+                continue
+        return None, None
+
+    # 1) procurar leitura existente
+    try:
+        key_found, reading = _find_reading(summary, selected_raw)
+        if reading:
+            return reading
+    except Exception:
+        if logger:
+            logger.exception("Erro ao procurar leitura existente")
+
+    # 2) tentar gerar e persistir (fallback controlado)
+    generated = None
+    try:
+        # tentar gerar via arcano por signo (preferível se interpretations disponível)
+        sign = None
+        # extrair signo da tabela se possível
+        try:
+            for row in (summary.get("table") or []):
+                try:
+                    pname = (row.get("planet") or "").strip()
+                    if pname and str(pname).lower() == str(selected_raw).lower():
+                        sign = row.get("sign") or row.get("zodiac")
+                        break
+                except Exception:
+                    continue
+        except Exception:
+            sign = None
+
+        # 2a: usar interpretations.arcano_for_sign quando disponível e sign conhecido
+        if sign and interpretations and hasattr(interpretations, "arcano_for_sign"):
+            try:
+                arc = interpretations.arcano_for_sign(sign, name=summary.get("name"))
+                if arc and not arc.get("error"):
+                    generated = {
+                        "planet": selected_raw,
+                        "sign": sign,
+                        "interpretation_short": arc.get("text") or arc.get("short") or "",
+                        "interpretation_long": arc.get("long") or arc.get("text") or "",
+                        "arcano_info": arc
+                    }
+            except Exception:
+                if logger:
+                    logger.exception("Erro ao gerar arcano_for_sign fallback")
+
+        # 2b: fallback para astrology.interpret_planet_position
+        if not generated and astrology and hasattr(astrology, "interpret_planet_position"):
+            try:
+                # tentar extrair degree/house da tabela ou summary['planets']
+                deg = None
+                house = None
+                try:
+                    # procurar na tabela
+                    for row in (summary.get("table") or []):
+                        try:
+                            pname = (row.get("planet") or "").strip()
+                            if pname and str(pname).lower() == str(selected_raw).lower():
+                                deg = row.get("degree") or row.get("deg")
+                                house = row.get("house")
+                                break
+                        except Exception:
+                            continue
+                except Exception:
+                    pass
+                interp = astrology.interpret_planet_position(
+                    planet=_safe_key_variants(selected_raw)[0] if _safe_key_variants(selected_raw) else selected_raw,
+                    sign=sign,
+                    degree=deg,
+                    house=house,
+                    aspects=summary.get("aspects"),
+                    context_name=summary.get("name")
+                ) or {}
+                generated = {
+                    "planet": selected_raw,
+                    "sign": sign,
+                    "degree": deg,
+                    "house": house,
+                    "interpretation_short": interp.get("short") or "",
+                    "interpretation_long": interp.get("long") or ""
+                }
+            except Exception:
+                if logger:
+                    logger.exception("Erro ao gerar interpret_planet_position fallback")
+
+    except Exception:
+        if logger:
+            logger.exception("Erro geral ao tentar gerar leitura fallback")
+
+    # 3) persistir se gerado
+    if generated:
+        try:
+            readings = summary.get("readings") or {}
+            if not isinstance(readings, dict):
+                readings = {}
+            # escolher chave para salvar: canônico se possível, senão raw
+            save_key = None
+            try:
+                if influences and hasattr(influences, "to_canonical"):
+                    save_key = influences.to_canonical(selected_raw)
+            except Exception:
+                save_key = None
+            if not save_key:
+                save_key = selected_raw
+            readings[save_key] = generated
+            summary["readings"] = readings
+            # atualizar session_state para UI
+            try:
+                st.session_state["map_summary"] = summary
+            except Exception:
+                if logger:
+                    logger.exception("Falha ao atualizar st.session_state['map_summary'] após salvar leitura")
+            return generated
+        except Exception:
+            if logger:
+                logger.exception("Falha ao persistir leitura gerada")
+            return generated
+
+    # nada encontrado nem gerado
+    return None
 
 def normalize_degree_sign(reading):
     raise NotImplementedError
