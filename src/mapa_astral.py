@@ -2131,6 +2131,7 @@ def main():
             except Exception:
                 logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
 
+        # Planeta
         with tabs[0]:
             if reading:
                 planet_label = (
@@ -2157,10 +2158,10 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
+                # EXPANDER: toda a interpretação do planeta fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
 
-                    # Arcano do planeta (prioritário)
+                    # Arcano do planeta (prioritário) — apenas planeta, sem referência ao signo
                     st.markdown("**Arcano correspondente ao planeta**")
                     arc_planet = (
                         reading.get("arcano_planeta")
@@ -2175,26 +2176,15 @@ def main():
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
-                    # Arcano do signo (se houver) — exibido separadamente, sem conflitar
-                    arc_sign = reading.get("arcano_signo") or reading.get("arcano_sign")
-                    if arc_sign:
-                        st.markdown("**Arcano correspondente ao signo**")
-                        if isinstance(arc_sign, dict):
-                            arc_sign_name = arc_sign.get("name") or f"Arcano {arc_sign.get('arcano') or arc_sign.get('value')}"
-                            st.write(arc_sign_name)
-                        else:
-                            st.write(f"Arcano {arc_sign}")
-
-                    # Resumo curto
+                    # Resumo curto do planeta
                     st.markdown("**Resumo**")
-                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
+                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
-                    # Sugestões práticas: preferir keywords do arcano do planeta
+                    # Sugestões práticas: preferir keywords do arcano do planeta, senão campos em reading
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
                     if isinstance(arc_planet, dict):
                         suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
-                    # fallback: tentar campo direto em reading
                     if not suggestions:
                         suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
@@ -2204,13 +2194,17 @@ def main():
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
 
+                    # Interpretação longa do planeta (apenas aqui)
+                    st.markdown("**Interpretação completa**")
+                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
+
             else:
                 if not (canonical_selected and summary):
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
                 else:
                     st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
-
+        #Signo
         with tabs[1]:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
