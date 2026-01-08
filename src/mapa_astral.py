@@ -2187,7 +2187,7 @@ def main():
 
                     # Resumo curto
                     st.markdown("**Resumo**")
-                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
 
                     # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
@@ -2203,10 +2203,6 @@ def main():
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
-
-                    # Interpretação longa (apenas aqui, uma vez)
-                    st.markdown("**Interpretação completa**")
-                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
 
             else:
                 if not (canonical_selected and summary):
