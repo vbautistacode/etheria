@@ -564,7 +564,7 @@ def render_wheel_plotly(
 
     fig = go.Figure()
 
-    base_sign_colors = ["#f7f7f7", "#cec5c5"]
+    base_sign_colors = ["#d6d6d6", "#cec5c5"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
     # desenhar setores de signo
