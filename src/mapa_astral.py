@@ -2069,9 +2069,11 @@ def main():
                 # determinar label padrão (priorizar selected_planet se já definido)
                 current_raw = st.session_state.get("selected_planet")
                 default_label = None
+
                 if current_raw:
                     for lab, raw in label_to_raw.items():
                         try:
+                            # comparar variantes normalizadas quando disponível
                             if raw == current_raw or _safe_selected_variants(raw)[0] == _safe_selected_variants(current_raw)[0]:
                                 default_label = lab
                                 break
@@ -2079,6 +2081,7 @@ def main():
                             if str(raw).lower() == str(current_raw).lower():
                                 default_label = lab
                                 break
+
                 if not default_label:
                     default_label = label_list[0]
 
