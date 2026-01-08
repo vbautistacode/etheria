@@ -927,8 +927,8 @@ def enrich_summary_with_astrology(summary):
 def find_or_generate_and_save_reading(summary: dict, selected_raw: str):
     """
     Busca uma leitura existente em summary['readings'] para selected_raw.
-    Se não existir, gera fallback, preenche sign/house/degree, persiste em summary['readings']
-    usando uma chave normalizada (preferencialmente canônica) e atualiza st.session_state['map_summary'].
+    Se não existir, tenta gerar um fallback (arcano por signo ou interpretação por posição),
+    persiste em summary['readings'] e atualiza st.session_state['map_summary'].
     Retorna o dict da leitura ou None.
     """
     try:
@@ -937,206 +937,6 @@ def find_or_generate_and_save_reading(summary: dict, selected_raw: str):
         logger = None
 
     if not summary or not selected_raw:
-        return None
-
-    try:
-        readings_map = summary.get("readings") if isinstance(summary, dict) else {}
-        if readings_map is None:
-            readings_map = {}
-            if isinstance(summary, dict):
-                summary["readings"] = readings_map
-
-        # 1) localizar leitura existente (literal -> case-insensitive -> por campo 'planet')
-        found = None
-        try:
-            if selected_raw in readings_map:
-                found = readings_map[selected_raw]
-        except Exception:
-            found = None
-
-        if not found and isinstance(readings_map, dict):
-            try:
-                key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
-                key_match = key_map_lower.get(str(selected_raw).lower())
-                if key_match is not None:
-                    found = readings_map.get(key_match)
-            except Exception:
-                found = None
-
-        if not found and isinstance(readings_map, dict):
-            try:
-                for k, v in readings_map.items():
-                    if not isinstance(v, dict):
-                        continue
-                    p = (v.get("planet") or v.get("name") or "").strip()
-                    if p and str(p).lower() == str(selected_raw).lower():
-                        found = v
-                        break
-            except Exception:
-                found = None
-
-        if found:
-            try:
-                logger and logger.debug("Leitura encontrada para %s (key)", selected_raw)
-            except Exception:
-                pass
-            return found
-
-        # --- gerar fallback ---
-        try:
-            logger and logger.debug("Nenhuma leitura encontrada para %s — gerando fallback", selected_raw)
-        except Exception:
-            pass
-
-        generated: dict = {"planet": selected_raw}
-
-        # preencher posição/sign/house/degree a partir de rules.get_position_from_summary ou summary['table']
-        pos = None
-        try:
-            if rules and hasattr(rules, "get_position_from_summary"):
-                pos = rules.get_position_from_summary(summary, selected_raw)
-        except Exception:
-            pos = None
-
-        if not pos:
-            # tentar extrair da tabela summary['table']
-            try:
-                table = summary.get("table") or []
-                for row in table:
-                    try:
-                        pname = (row.get("planet") or row.get("name") or "").strip()
-                        if pname and str(pname).lower() == str(selected_raw).lower():
-                            pos = {
-                                "sign": row.get("sign") or row.get("zodiac") or row.get("sign_name"),
-                                "house": row.get("house") or row.get("casa") or row.get("house_number"),
-                                "degree": row.get("degree") or row.get("deg") or row.get("longitude")
-                            }
-                            break
-                    except Exception:
-                        continue
-            except Exception:
-                pos = None
-
-        if isinstance(pos, dict):
-            # normalizar e salvar campos úteis
-            if pos.get("sign"):
-                generated["sign"] = pos.get("sign")
-            if pos.get("house") is not None:
-                generated["house"] = pos.get("house")
-            if pos.get("degree") is not None:
-                generated["degree"] = pos.get("degree")
-
-        # 1) obter arcano via interpretations.safe_arcano_for_planet quando disponível
-        arc_info = None
-        try:
-            if interpretations and hasattr(interpretations, "safe_arcano_for_planet"):
-                arc_info = interpretations.safe_arcano_for_planet(summary, selected_raw) or {}
-            elif interpretations and hasattr(interpretations, "arcano_for_planet"):
-                arc_info = interpretations.arcano_for_planet(summary, selected_raw) or {}
-        except Exception:
-            arc_info = None
-
-        if isinstance(arc_info, dict) and arc_info:
-            # garantir que arc_info contenha arcano normalizado
-            generated["arcano_info"] = arc_info
-            try:
-                a = arc_info.get("arcano")
-                if a is not None:
-                    generated["arcano"] = a
-            except Exception:
-                pass
-            # se arc_info traz texto, usar como interpretação longa
-            try:
-                txt = arc_info.get("text") or arc_info.get("interpretation") or ""
-                if txt:
-                    generated["interpretation_long"] = txt
-            except Exception:
-                pass
-
-        # 2) fallback clássico (short/long)
-        try:
-            if interpretations and hasattr(interpretations, "classic_for_planet"):
-                classic = interpretations.classic_for_planet(summary, selected_raw) or {}
-                if classic:
-                    if not generated.get("interpretation_long"):
-                        generated["interpretation_long"] = classic.get("long") or classic.get("short") or ""
-                    generated["interpretation_short"] = classic.get("short") or generated.get("interpretation_short") or ""
-        except Exception:
-            pass
-
-        # 3) gerar interpretação via generate_interpretation se ainda não houver long
-        try:
-            if (not generated.get("interpretation_long")) and interpretations and hasattr(interpretations, "generate_interpretation"):
-                try:
-                    arc_key = None
-                    if isinstance(generated.get("arcano_info"), dict):
-                        arc_key = generated["arcano_info"].get("arcano")
-                    elif generated.get("arcano"):
-                        arc_key = generated.get("arcano")
-                    gen_text = interpretations.generate_interpretation(generated, arcano_key=arc_key, length="long")
-                    if gen_text:
-                        generated["interpretation_long"] = gen_text
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # 4) sugestões práticas
-        try:
-            suggestions = []
-            if isinstance(generated.get("arcano_info"), dict):
-                suggestions = generated["arcano_info"].get("keywords") or generated["arcano_info"].get("practical") or []
-            if not suggestions:
-                suggestions = generated.get("suggestions") or generated.get("keywords") or []
-            if suggestions:
-                generated["suggestions"] = suggestions
-        except Exception:
-            pass
-
-        # garantir campos mínimos
-        if "interpretation_short" not in generated:
-            generated["interpretation_short"] = (generated.get("interpretation_long") or "")[:200] if generated.get("interpretation_long") else ""
-        if "interpretation_long" not in generated:
-            generated["interpretation_long"] = generated.get("interpretation_short") or ""
-
-        # escolher chave para persistir: preferir canônico quando disponível para evitar mismatch
-        save_key = selected_raw
-        try:
-            if influences and hasattr(influences, "to_canonical"):
-                can = influences.to_canonical(selected_raw)
-                if can:
-                    save_key = can
-        except Exception:
-            pass
-
-        # persistir em summary['readings'] usando save_key
-        try:
-            if isinstance(summary, dict):
-                if not isinstance(summary.get("readings"), dict):
-                    summary["readings"] = {}
-                summary["readings"][save_key] = generated
-                # também manter uma cópia sob selected_raw se diferente (opcional, evita perda)
-                if save_key != selected_raw:
-                    try:
-                        summary["readings"][selected_raw] = generated
-                    except Exception:
-                        pass
-                # atualizar estado da sessão (se disponível)
-                try:
-                    st.session_state["map_summary"] = summary
-                except Exception:
-                    pass
-                logger and logger.debug("Leitura gerada e salva para %s (save_key=%s)", selected_raw, save_key)
-        except Exception:
-            logger and logger.exception("Erro ao persistir leitura gerada para %s", selected_raw)
-
-        return generated
-
-    except Exception as e:
-        try:
-            logger and logger.exception("Erro inesperado em find_or_generate_and_save_reading: %s", e)
-        except Exception:
-            pass
         return None
 
     # helpers internos
@@ -2329,78 +2129,10 @@ def main():
         # buscar ou gerar leitura usando helper (find_or_generate_and_save_reading deve existir no módulo principal)
         reading = None
         if summary and selected_raw:
-            # Revalidar reading a partir de summary['readings'] para garantir que usamos o objeto persistido
             try:
-                readings_map = summary.get("readings") if isinstance(summary, dict) else None
+                reading = find_or_generate_and_save_reading(summary, selected_raw)
             except Exception:
-                readings_map = None
-
-            if isinstance(readings_map, dict):
-                found = None
-                # candidatos: selected_raw (passado), session_state selected_planet (raw sincronizado), label_selected, canonical_selected
-                candidates = []
-                try:
-                    candidates.append(selected_raw)
-                except Exception:
-                    pass
-                try:
-                    candidates.append(st.session_state.get("selected_planet"))
-                except Exception:
-                    pass
-                try:
-                    candidates.append(label_selected)
-                except Exception:
-                    pass
-                try:
-                    candidates.append(canonical_selected)
-                except Exception:
-                    pass
-
-                # normalizar e deduplicar candidatos
-                uniq = []
-                for c in candidates:
-                    if not c:
-                        continue
-                    s = str(c)
-                    if s not in uniq:
-                        uniq.append(s)
-                # tentar literal e lower-case
-                for cand in uniq + [c.lower() for c in uniq]:
-                    if cand in readings_map:
-                        found = readings_map[cand]
-                        break
-
-                # fallback: case-insensitive comparando chaves existentes
-                if not found:
-                    try:
-                        key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
-                        for cand in uniq:
-                            key_match = key_map_lower.get(str(cand).lower())
-                            if key_match is not None:
-                                found = readings_map[key_match]
-                                break
-                    except Exception:
-                        found = None
-
-                # último recurso: procurar por campo 'planet' ou 'name' dentro das leituras
-                if not found:
-                    try:
-                        for k, v in readings_map.items():
-                            if not isinstance(v, dict):
-                                continue
-                            p = (v.get("planet") or v.get("name") or "").strip()
-                            if p and selected_raw and str(p).lower() == str(selected_raw).lower():
-                                found = v
-                                break
-                    except Exception:
-                        found = None
-
-                if found:
-                    reading = found
-                    logger.debug("Planeta: usando leitura persistida em summary['readings'] para %s (chave encontrada)", selected_raw)
-                else:
-                    logger.debug("Planeta: nenhuma leitura persistida encontrada para %s; mantendo reading retornado pela função", selected_raw)
-
+                logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
 
         #Planeta
         with tabs[0]:
@@ -2433,24 +2165,12 @@ def main():
                 with st.expander("Interpretação", expanded=False):
 
                     # Arcano do planeta
-                    # Arcano do planeta — priorizar campos explícitos do planeta
                     st.markdown("**Arcano correspondente ao planeta**")
-                    arc_planet = None
-                    for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet"):
-                        try:
-                            val = reading.get(key) if isinstance(reading, dict) else None
-                            if val:
-                                arc_planet = val
-                                logger.debug("Arcano do planeta encontrado no campo: %s", key)
-                                break
-                        except Exception:
-                            continue
-
-                    # fallback controlado para arcano_info / arcano
-                    if not arc_planet:
-                        arc_planet = reading.get("arcano_info") or reading.get("arcano")
-
-                    # exibir arcano
+                    arc_planet = (
+                        reading.get("arcano_planeta")
+                        or reading.get("arcano_info")
+                        or reading.get("arcano")
+                    )
                     if isinstance(arc_planet, dict):
                         arc_planet_name = arc_planet.get("name") or f"Arcano {arc_planet.get('arcano') or arc_planet.get('value')}"
                         st.write(arc_planet_name)
@@ -2459,23 +2179,24 @@ def main():
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
-                    # Resumo e sugestões (mantendo prioridade por arcano do planeta)
+                    # Interpretação longa
                     st.markdown("**Resumo**")
                     st.write(reading.get("interpretation_long") or "Resumo não disponível.")
 
+                    # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
                     if isinstance(arc_planet, dict):
-                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or arc_planet.get("suggestions") or []
+                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
+                    # fallback: tentar campo direto em reading
                     if not suggestions:
-                        suggestions = reading.get("suggestions") or reading.get("keywords") or reading.get("practical") or []
+                        suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
                     if suggestions:
                         for k in suggestions:
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
-
 
             else:
                 if not (canonical_selected and summary):
