@@ -574,7 +574,8 @@ def render_wheel_plotly(
     # desenhar setores de signo
     for s_idx in range(12):
         sign_start = (s_idx * 30.0) % 360.0
-        steps = 24
+        center = (sign_start + 15.0) % 360.0
+        steps = 12
         thetas = []
         rs = []
         for k in range(steps + 1):
@@ -1329,28 +1330,67 @@ def main():
             # Patch: gerar table com casas de forma unificada e persistir em summary
             # -------------------------
             # Compatibilidade: garantir que _normalize_cusps exista
-            def _normalize_cusps(cusps_raw):
-                """
-                Wrapper compatível para normalizar cusps.
-                Se existir _normalize_cusps_for_positions, delega para ela; caso contrário,
-                aplica a normalização mínima (aceita 12 ou 13 valores e retorna 12 floats).
-                """
-                try:
-                    # delegar se a função mais explícita existir
-                    if "_normalize_cusps_for_positions" in globals() and callable(globals().get("_normalize_cusps_for_positions")):
-                        return globals().get("_normalize_cusps_for_positions")(cusps_raw)
-                    # fallback local: aceitar 12 ou 13 valores (remover índice 0 se houver 13)
-                    if not cusps_raw:
-                        return []
-                    cusps = list(cusps_raw)
-                    if len(cusps) == 13:
-                        cusps = cusps[1:13]
-                    if len(cusps) < 12:
-                        return []
-                    return [float(c) % 360.0 for c in cusps[:12]]
-                except Exception:
-                    logger.exception("Falha em _normalize_cusps; retornando lista vazia")
+            # --- normalizar cusps e garantir ordem circular começando no Ascendente ---
+            def normalize_cusps(valid_cusps, summary=None):
+                raw = [float(c) % 360.0 for c in (valid_cusps or [])[:12]]
+                if not raw:
                     return []
+
+                # tentar obter ascendente do summary (se disponível) para rotacionar corretamente
+                asc = None
+                try:
+                    if isinstance(summary, dict):
+                        asc = summary.get("ascendant") or summary.get("asc") or summary.get("house1")
+                        if asc is not None:
+                            asc = float(asc) % 360.0
+                except Exception:
+                    asc = None
+
+                # se a lista já estiver em ordem circular crescente, mantê-la
+                def is_circular_increasing(arr):
+                    for i in range(len(arr)):
+                        a = arr[i]
+                        b = arr[(i + 1) % len(arr)]
+                        if ((b - a) % 360.0) <= 0:
+                            return False
+                    return True
+
+                if is_circular_increasing(raw):
+                    ordered = raw
+                else:
+                    # ordenar por ângulo e, se tivermos ascendente, rotacionar para que o cusp mais próximo de asc seja o primeiro
+                    ordered = sorted(raw)
+                    if asc is not None:
+                        # encontrar índice do cusp mais próximo ao ascendente (menor diferença positiva)
+                        diffs = [((c - asc) % 360.0) for c in ordered]
+                        min_idx = int(min(range(len(diffs)), key=lambda i: diffs[i]))
+                        ordered = ordered[min_idx:] + ordered[:min_idx]
+                return ordered
+
+            cusps_sorted = normalize_cusps(valid_cusps, summary)
+
+            def find_house_for_lon(lon, cusps):
+                """
+                Retorna índice da casa (1..12) para longitude lon (0..360),
+                assumindo cusps é lista de 12 ângulos ordenados circularmente representando início de cada casa.
+                A cúspide pertence à casa que começa nela (start inclusive, end exclusive).
+                """
+                if not cusps:
+                    return None
+                lon = float(lon) % 360.0
+                n = len(cusps)
+                for i in range(n):
+                    start = cusps[i] % 360.0
+                    end = cusps[(i + 1) % n] % 360.0
+                    if start < end:
+                        if start <= lon < end:
+                            return i + 1
+                    else:
+                        # wrap (ex.: start=330, end=30)
+                        if lon >= start or lon < end:
+                            return i + 1
+                # fallback
+                return 1
 
             # -------------------------
             # Helpers de normalização (reutilizáveis)
