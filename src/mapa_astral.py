@@ -2467,22 +2467,36 @@ def main():
                 except Exception:
                     logger.exception("Erro ao extrair posição para fallback")
 
-                try:
-                    interp = astrology.interpret_planet_position(
-                        planet=_safe_selected_variants(sel_planet)[0] if sel_planet else sel_planet,
-                        sign=sign,
-                        degree=degree,
-                        house=house,
-                        aspects=aspects,
-                        context_name=summary.get("name")
-                    ) or {"short": "", "long": ""}
-                except Exception:
-                    logger.exception("interpret_planet_position falhou no fallback")
+                # preparar valores seguros
+                sel_planet_safe = _safe_selected_variants(sel_planet)[0] if sel_planet else None
+                context_name = None
+                if isinstance(summary, dict):
+                    try:
+                        context_name = summary.get("name")
+                    except Exception:
+                        context_name = None
+
+                # se não houver planeta selecionado ou summary válido, não chamar o interpretador
+                if not sel_planet_safe or not isinstance(summary, dict):
+                    logger.debug("interpret_planet_position: sem planeta selecionado ou summary inválido (sel_planet=%r summary=%r)", sel_planet_safe, bool(summary))
                     interp = {"short": "", "long": ""}
+                else:
+                    try:
+                        interp = astrology.interpret_planet_position(
+                            planet=sel_planet_safe,
+                            sign=sign,
+                            degree=degree,
+                            house=house,
+                            aspects=aspects,
+                            context_name=context_name
+                        ) or {"short": "", "long": ""}
+                    except Exception:
+                        logger.exception("interpret_planet_position falhou no fallback")
+                        interp = {"short": "", "long": ""}
 
                 # Exibir apenas a interpretação longa dentro de um expander
-                if not sel_planet or not summary:
-                        st.info("Selecione um planeta na tabela para ver a interpretação astrológica.")
+                if not sel_planet_safe or not isinstance(summary, dict):
+                    st.info("Selecione um planeta na tabela e gere o resumo do mapa para ver a interpretação astrológica.")
                 long_text = (interp.get("long") or "").strip()
                 with st.expander("Interpretação"):
                     st.write(long_text or "—")
