@@ -2158,74 +2158,16 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # EXPANDER: toda a interpretação do planeta fica aqui (evita duplicações)
+                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
 
-                    # Arcano do planeta (prioritário)
+                    # Arcano do planeta
                     st.markdown("**Arcano correspondente ao planeta**")
-
-                    # --- Garantir que 'reading' corresponde ao planeta selecionado ---
-                    # Não usar conversões canônico/PT aqui; procurar apenas por chaves literais
-                    try:
-                        readings_map = summary.get("readings") if isinstance(summary, dict) else None
-                    except Exception:
-                        readings_map = None
-
-                    # candidate_keys: label_selected (bruto), canonical_selected (bruto), e suas versões lower-case
-                    candidates = []
-                    try:
-                        if label_selected:
-                            candidates.append(str(label_selected))
-                    except Exception:
-                        pass
-                    try:
-                        if canonical_selected:
-                            candidates.append(str(canonical_selected))
-                    except Exception:
-                        pass
-                    # adicionar lower-case para robustez sem conversões externas
-                    candidates += [c.lower() for c in candidates if isinstance(c, str)]
-
-                    # tentar localizar leitura exata em readings_map sem transformar chaves
-                    found_reading = None
-                    if isinstance(readings_map, dict) and candidates:
-                        # busca literal primeiro
-                        for cand in candidates:
-                            if cand in readings_map:
-                                found_reading = readings_map[cand]
-                                break
-                        # fallback case-insensitive: mapear chaves existentes para lower-case
-                        if not found_reading:
-                            try:
-                                key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
-                                for cand in candidates:
-                                    key_match = key_map_lower.get(str(cand).lower())
-                                    if key_match is not None:
-                                        found_reading = readings_map[key_match]
-                                        break
-                            except Exception:
-                                found_reading = None
-
-                    # se encontramos uma leitura específica para o planeta, use-a
-                    if found_reading:
-                        reading = found_reading
-                        logger.debug("Usando reading encontrado em summary['readings'] para planeta: %s", getattr(canonical_selected, "__str__", lambda: canonical_selected)())
-                    else:
-                        logger.debug("Mantendo reading atual; candidates=%s reading_keys=%s", candidates, list(readings_map.keys()) if isinstance(readings_map, dict) else None)
-
-                    # --- Extrair arcano do planeta a partir da leitura (prioridade de campos) ---
-                    arc_planet = None
-                    for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet", "arcano_info", "arcano"):
-                        try:
-                            val = reading.get(key) if isinstance(reading, dict) else None
-                            if val:
-                                arc_planet = val
-                                logger.debug("Encontrado arcano do planeta no campo: %s", key)
-                                break
-                        except Exception:
-                            continue
-
-                    # Exibir nome do arcano do planeta (somente este)
+                    arc_planet = (
+                        reading.get("arcano_planeta")
+                        or reading.get("arcano_info")
+                        or reading.get("arcano")
+                    )
                     if isinstance(arc_planet, dict):
                         arc_planet_name = arc_planet.get("name") or f"Arcano {arc_planet.get('arcano') or arc_planet.get('value')}"
                         st.write(arc_planet_name)
@@ -2233,15 +2175,19 @@ def main():
                         st.write(f"Arcano {arc_planet}")
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
-                        logger.debug("Nenhum arcano_planeta encontrado em reading; reading_keys=%s", list(reading.keys()) if isinstance(reading, dict) else None)
 
-                    # Sugestões práticas: extrair do arcano do planeta ou de campos diretos da leitura
+                    # Interpretação longa
+                    st.markdown("**Resumo**")
+                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
+
+                    # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
                     if isinstance(arc_planet, dict):
-                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or arc_planet.get("suggestions") or []
+                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
+                    # fallback: tentar campo direto em reading
                     if not suggestions:
-                        suggestions = reading.get("suggestions") or reading.get("keywords") or reading.get("practical") or []
+                        suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
                     if suggestions:
                         for k in suggestions:
