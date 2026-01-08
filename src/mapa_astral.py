@@ -2163,11 +2163,63 @@ def main():
 
                     # Arcano do planeta (prioritário)
                     st.markdown("**Arcano correspondente ao planeta**")
-                    arc_planet = (
-                        reading.get("arcano_planeta")
-                        or reading.get("arcano_info")
-                        or reading.get("arcano")
-                    )
+
+                    # Se o reading atual não corresponder ao planeta selecionado, tentar localizar a leitura correta
+                    arc_planet = None
+                    try:
+                        # se reading indicar explicitamente o planeta, comparar
+                        reading_planet_key = None
+                        try:
+                            reading_planet_key = (reading.get("planet") or reading.get("name") or "").strip()
+                        except Exception:
+                            reading_planet_key = None
+
+                        # se reading parecer ser de outro item, tentar buscar em summary['readings']
+                        if reading_planet_key and canonical_selected and str(reading_planet_key).lower() != str(canonical_selected).lower():
+                            # procurar variantes na coleção de leituras (se disponível)
+                            try:
+                                readings_map = summary.get("readings") if isinstance(summary, dict) else None
+                                if isinstance(readings_map, dict):
+                                    # chaves candidatas: canônico, raw, lower-case
+                                    candidates = []
+                                    try:
+                                        candidates.append(canonical_selected)
+                                    except Exception:
+                                        pass
+                                    try:
+                                        candidates.append(label_selected)
+                                    except Exception:
+                                        pass
+                                    try:
+                                        candidates.append(str(canonical_selected).lower())
+                                    except Exception:
+                                        pass
+                                    found = None
+                                    for cand in candidates:
+                                        if cand in readings_map:
+                                            found = readings_map[cand]
+                                            break
+                                    if found:
+                                        # usar a leitura correta do planeta
+                                        reading = found
+                            except Exception:
+                                # se falhar, manter o reading atual
+                                pass
+
+                        # agora extrair o arcano do planeta a partir da leitura (prioridade de campos)
+                        # aceitar várias chaves possíveis para compatibilidade
+                        for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet", "arcano_info", "arcano"):
+                            try:
+                                val = reading.get(key)
+                                if val:
+                                    arc_planet = val
+                                    break
+                            except Exception:
+                                continue
+                    except Exception:
+                        arc_planet = None
+
+                    # Exibir nome do arcano do planeta (somente este)
                     if isinstance(arc_planet, dict):
                         arc_planet_name = arc_planet.get("name") or f"Arcano {arc_planet.get('arcano') or arc_planet.get('value')}"
                         st.write(arc_planet_name)
@@ -2176,32 +2228,20 @@ def main():
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
-                 
-
-                    # Interpretação longa
-                    st.markdown("**Resumo**")
-                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
-
-                    # Sugestões práticas: preferir keywords do arcano do planeta
+                    # Sugestões práticas: extrair do arcano do planeta ou de campos diretos da leitura
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
                     if isinstance(arc_planet, dict):
-                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
-                    # fallback: tentar campo direto em reading
+                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or arc_planet.get("suggestions") or []
                     if not suggestions:
-                        suggestions = reading.get("suggestions") or reading.get("keywords") or []
+                        # fallback para campos em reading que possam conter sugestões
+                        suggestions = reading.get("suggestions") or reading.get("keywords") or reading.get("practical") or []
 
                     if suggestions:
                         for k in suggestions:
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
-
-            else:
-                if not (canonical_selected and summary):
-                    st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
-                else:
-                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
         #Signo
         with tabs[1]:
