@@ -2157,52 +2157,55 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # ---------------------------
-                # EXPANDER DA INTERPRETAÇÃO
-                # ---------------------------
+                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
 
-                    # ---------------------------
-                    # ARCANO CORRESPONDENTE AO PLANETA
-                    # ---------------------------
-                    st.markdown("**Arcano Correspondente ao Planeta**")
-
-                    arc = reading.get("arcano_planeta") or reading.get("arcano_info") or reading.get("arcano")
-
-                    if isinstance(arc, dict):
-                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
-                        st.write(arc_name)
-                    elif arc:
-                        st.write(f"Arcano {arc}")
+                    # Arcano do planeta (prioritário)
+                    st.markdown("**Arcano correspondente ao planeta**")
+                    arc_planet = (
+                        reading.get("arcano_planeta")
+                        or reading.get("arcano_info")
+                        or reading.get("arcano")
+                    )
+                    if isinstance(arc_planet, dict):
+                        arc_planet_name = arc_planet.get("name") or f"Arcano {arc_planet.get('arcano') or arc_planet.get('value')}"
+                        st.write(arc_planet_name)
+                    elif arc_planet:
+                        st.write(f"Arcano {arc_planet}")
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
-                    # ---------------------------
-                    # RESUMO
-                    # ---------------------------
+                    # Arcano do signo (se houver) — exibido separadamente, sem conflitar
+                    arc_sign = reading.get("arcano_signo") or reading.get("arcano_sign")
+                    if arc_sign:
+                        st.markdown("**Arcano correspondente ao signo**")
+                        if isinstance(arc_sign, dict):
+                            arc_sign_name = arc_sign.get("name") or f"Arcano {arc_sign.get('arcano') or arc_sign.get('value')}"
+                            st.write(arc_sign_name)
+                        else:
+                            st.write(f"Arcano {arc_sign}")
+
+                    # Resumo curto
                     st.markdown("**Resumo**")
                     st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
-                    # ---------------------------
-                    # SUGESTÕES PRÁTICAS (DO ARCANO DO PLANETA)
-                    # ---------------------------
+                    # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
+                    suggestions = []
+                    if isinstance(arc_planet, dict):
+                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
+                    # fallback: tentar campo direto em reading
+                    if not suggestions:
+                        suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
-                    # keywords do arcano do planeta
-                    kw = []
-                    if isinstance(arc, dict):
-                        kw = arc.get("keywords") or arc.get("practical") or []
-
-                    if kw:
-                        for k in kw:
+                    if suggestions:
+                        for k in suggestions:
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
 
-                    # ---------------------------
-                    # INTERPRETAÇÃO COMPLETA
-                    # ---------------------------
-                    st.markdown("**Interpretação Completa**")
+                    # Interpretação longa (apenas aqui, uma vez)
+                    st.markdown("**Interpretação completa**")
                     st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
 
             else:
@@ -2210,6 +2213,7 @@ def main():
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
                 else:
                     st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
+
 
         with tabs[1]:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
