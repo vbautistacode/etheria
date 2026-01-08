@@ -2333,7 +2333,7 @@ def main():
             st.write(f"Planeta: **{display_name or '—'}**  •  Signo: **{sign or '—'}**  •  Casa: **{house or '—'}**")
 
             if synthetic_line:
-                st.write(synthetic_line)
+                st.write(f"Significado: {synthetic_line}")
 
             # interpretar localmente (defensivo)
             try:
