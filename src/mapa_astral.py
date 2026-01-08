@@ -568,7 +568,7 @@ def render_wheel_plotly(
 
     fig = go.Figure()
 
-    base_sign_colors = ["#dbf1ff", "#dcf1ff"]
+    base_sign_colors = ["#c7d6ff", "#dcf1ff"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
     # desenhar setores de signo
@@ -608,8 +608,26 @@ def render_wheel_plotly(
 
     # destacar casas como setores (entre cada cusp)
     if valid_cusps and len(valid_cusps) >= 12:
-        # garantir ordem dos cusps (usar a ordem fornecida; assumimos que representam casas 1..12)
-        cusps_sorted = [float(c) % 360.0 for c in valid_cusps[:12]]
+        # garantir que temos 12 cusps e convertê-los para float 0..360
+        raw_cusps = [float(c) % 360.0 for c in valid_cusps[:12]]
+
+        # Se os cusps vierem fora de ordem, tentar ordenar circularmente mantendo a sequência de casas.
+        # Assumimos que a lista representa casas 1..12 em ordem; se não for o caso, ordenamos por ângulo.
+        # Preferimos manter a ordem original quando ela já é circular crescente.
+        def is_circular_increasing(arr):
+            diffs = []
+            for i in range(len(arr)):
+                a = arr[i]
+                b = arr[(i + 1) % len(arr)]
+                diffs.append((b - a) % 360.0)
+            # se todos os spans forem > 0 e soma ~360, consideramos circular crescente
+            return all(d > 0 for d in diffs)
+
+        if not is_circular_increasing(raw_cusps):
+            cusps_sorted = sorted(raw_cusps)
+        else:
+            cusps_sorted = raw_cusps
+
         # opções visuais para casas
         house_fill_colors = ["rgba(220,230,255,0.14)", "rgba(230,245,230,0.10)"]  # alterna cores por casa
         house_border_color = "rgba(80,80,80,0.18)"
