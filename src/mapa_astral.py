@@ -2165,8 +2165,8 @@ def main():
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
 
-                    st.markdown("**Interpretação Completa**")
-                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
+                    #st.markdown("**Interpretação Completa**")
+                    #st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
             else:
                 if not (canonical_selected and summary):
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
