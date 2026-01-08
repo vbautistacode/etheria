@@ -568,13 +568,13 @@ def render_wheel_plotly(
 
     fig = go.Figure()
 
-    base_sign_colors = ["#d7e1ff", "#e8f6ff"]
+    base_sign_colors = ["#e7edff", "#eff9ff"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
     # desenhar setores de signo
     for s_idx in range(12):
         sign_start = (s_idx * 30.0) % 360.0
-        steps = 12
+        steps = 36
         thetas = []
         rs = []
         for k in range(steps + 1):
