@@ -2484,6 +2484,8 @@ def main():
                 long_text = (interp.get("long") or "").strip()
                 with st.expander("Interpretação"):
                     st.write(long_text or "—")
+                    if not sel_planet or not summary:
+                        st.info("Selecione um planeta na tabela para ver a interpretação astrológica.")
 
     # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA Etheria"):
