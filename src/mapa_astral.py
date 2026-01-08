@@ -2473,8 +2473,6 @@ def main():
                                         break
                                 except Exception:
                                     continue
-                except Exception:
-                    logger.exception("Erro ao extrair posição para fallback")
 
                 # preparar valores seguros (conforme já feito)
                 sel_planet_safe = _safe_selected_variants(sel_planet)[0] if sel_planet else None
