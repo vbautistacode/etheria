@@ -2330,7 +2330,7 @@ def main():
                 display_name = label or (canonical or sel_planet)
 
             #st.markdown(f"**{display_name}**")
-            st.write(f"Planeta: **{display_name or '—'}**  •  Signo: **{sign or '—'}**  •  Casa: **{house or '—'}**")
+            st.write(f"Planeta: **{canonical or '—'}**  •  Signo: **{sign or '—'}**  •  Casa: **{house or '—'}**")
 
             if synthetic_line:
                 st.write(f"Significado: {synthetic_line}")
