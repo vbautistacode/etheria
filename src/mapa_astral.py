@@ -556,9 +556,13 @@ def render_wheel_plotly(
     intercepted_signs = [i for i, cnt in enumerate(sign_cusp_counts) if cnt == 0]
 
     # parâmetros visuais
-    inner_r = 0.60
+    inner_r = 0.56          # planetas mais internos (antes 0.60)
     outer_r = 1.00
     label_r = 1.12
+    # raio onde os planetas serão desenhados (mais interno que outer_r)
+    planet_r = inner_r + (outer_r - inner_r) * 0.28  # ~0.64
+    # rótulo das casas (um pouco mais interno para evitar sobreposição com símbolos)
+    house_label_r = outer_r - 0.16 if house_label_position == "inner" else outer_r + 0.06
     cusp_r0 = inner_r
     cusp_r1 = outer_r + 0.05
 
