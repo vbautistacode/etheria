@@ -2158,94 +2158,72 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
+                # EXPANDER: toda a interpretação do planeta fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
 
                     # Arcano do planeta (prioritário)
                     st.markdown("**Arcano correspondente ao planeta**")
 
-                    # Se o reading atual não corresponder ao planeta selecionado, tentar localizar a leitura correta
-                    arc_planet = None
+                    # --- Garantir que 'reading' corresponde ao planeta selecionado ---
+                    # Não usar conversões canônico/PT aqui; procurar apenas por chaves literais
                     try:
-                        # se reading indicar explicitamente o planeta, comparar
-                        reading_planet_key = None
-                        try:
-                            reading_planet_key = (reading.get("planet") or reading.get("name") or "").strip()
-                        except Exception:
-                            reading_planet_key = None
-
-                        # se reading parecer ser de outro item, tentar buscar em summary['readings']
-                        if reading_planet_key and canonical_selected and str(reading_planet_key).lower() != str(canonical_selected).lower():
-                            try:
-                                readings_map = summary.get("readings") if isinstance(summary, dict) else None
-                                if isinstance(readings_map, dict):
-                                    # localizar leitura do planeta usando apenas chaves literais (raw / label / lower-case)
-                                    candidates = []
-                                    try:
-                                        if label_selected:
-                                            candidates.append(str(label_selected))
-                                    except Exception:
-                                        pass
-                                    try:
-                                        if canonical_selected:
-                                            candidates.append(str(canonical_selected))
-                                    except Exception:
-                                        pass
-                                    try:
-                                        if reading_planet_key:
-                                            candidates.append(str(reading_planet_key))
-                                    except Exception:
-                                        pass
-
-                                    # adicionar versões lower-case para robustez
-                                    candidates += [c.lower() for c in candidates if isinstance(c, str)]
-
-                                    # remover duplicatas mantendo ordem
-                                    seen = set()
-                                    uniq_candidates = []
-                                    for c in candidates:
-                                        if c not in seen:
-                                            seen.add(c)
-                                            uniq_candidates.append(c)
-
-                                    found = None
-                                    # busca por correspondência literal primeiro
-                                    for cand in uniq_candidates:
-                                        if cand in readings_map:
-                                            found = readings_map[cand]
-                                            break
-
-                                    # se não encontrado, tentativa case-insensitive comparando chaves existentes
-                                    if not found:
-                                        try:
-                                            key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
-                                            for cand in uniq_candidates:
-                                                key_match = key_map_lower.get(str(cand).lower())
-                                                if key_match is not None:
-                                                    found = readings_map[key_match]
-                                                    break
-                                        except Exception:
-                                            found = None
-
-                                    if found:
-                                        # usar a leitura correta do planeta
-                                        reading = found
-                            except Exception:
-                                # se falhar, manter o reading atual
-                                logger.debug("Erro ao buscar leitura literal em summary['readings']", exc_info=True)
-
-                        # agora extrair o arcano do planeta a partir da leitura (prioridade de campos)
-                        # aceitar várias chaves possíveis para compatibilidade
-                        for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet", "arcano_info", "arcano"):
-                            try:
-                                val = reading.get(key)
-                                if val:
-                                    arc_planet = val
-                                    break
-                            except Exception:
-                                continue
+                        readings_map = summary.get("readings") if isinstance(summary, dict) else None
                     except Exception:
-                        arc_planet = None
+                        readings_map = None
+
+                    # candidate_keys: label_selected (bruto), canonical_selected (bruto), e suas versões lower-case
+                    candidates = []
+                    try:
+                        if label_selected:
+                            candidates.append(str(label_selected))
+                    except Exception:
+                        pass
+                    try:
+                        if canonical_selected:
+                            candidates.append(str(canonical_selected))
+                    except Exception:
+                        pass
+                    # adicionar lower-case para robustez sem conversões externas
+                    candidates += [c.lower() for c in candidates if isinstance(c, str)]
+
+                    # tentar localizar leitura exata em readings_map sem transformar chaves
+                    found_reading = None
+                    if isinstance(readings_map, dict) and candidates:
+                        # busca literal primeiro
+                        for cand in candidates:
+                            if cand in readings_map:
+                                found_reading = readings_map[cand]
+                                break
+                        # fallback case-insensitive: mapear chaves existentes para lower-case
+                        if not found_reading:
+                            try:
+                                key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
+                                for cand in candidates:
+                                    key_match = key_map_lower.get(str(cand).lower())
+                                    if key_match is not None:
+                                        found_reading = readings_map[key_match]
+                                        break
+                            except Exception:
+                                found_reading = None
+
+                    # se encontramos uma leitura específica para o planeta, use-a
+                    if found_reading:
+                        reading = found_reading
+                        logger.debug("Usando reading encontrado em summary['readings'] para planeta: %s", getattr(canonical_selected, "__str__", lambda: canonical_selected)())
+                    else:
+                        logger.debug("Mantendo reading atual; candidates=%s reading_keys=%s", candidates, list(readings_map.keys()) if isinstance(readings_map, dict) else None)
+
+                    # --- Extrair arcano do planeta a partir da leitura (prioridade de campos) ---
+                    arc_planet = None
+                    for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet", "arcano_info", "arcano"):
+                        try:
+                            val = reading.get(key) if isinstance(reading, dict) else None
+                            if val:
+                                arc_planet = val
+                                logger.debug("Encontrado arcano do planeta no campo: %s", key)
+                                break
+                        except Exception:
+                            continue
 
                     # Exibir nome do arcano do planeta (somente este)
                     if isinstance(arc_planet, dict):
@@ -2255,6 +2233,7 @@ def main():
                         st.write(f"Arcano {arc_planet}")
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
+                        logger.debug("Nenhum arcano_planeta encontrado em reading; reading_keys=%s", list(reading.keys()) if isinstance(reading, dict) else None)
 
                     # Sugestões práticas: extrair do arcano do planeta ou de campos diretos da leitura
                     st.markdown("**Sugestões práticas**")
@@ -2262,7 +2241,6 @@ def main():
                     if isinstance(arc_planet, dict):
                         suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or arc_planet.get("suggestions") or []
                     if not suggestions:
-                        # fallback para campos em reading que possam conter sugestões
                         suggestions = reading.get("suggestions") or reading.get("keywords") or reading.get("practical") or []
 
                     if suggestions:
@@ -2270,6 +2248,7 @@ def main():
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
+
             else:
                 if not (canonical_selected and summary):
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
