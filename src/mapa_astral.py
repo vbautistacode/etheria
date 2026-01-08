@@ -2329,8 +2329,8 @@ def main():
             except Exception:
                 display_name = label or (canonical or sel_planet)
 
-            st.markdown(f"**{display_name}**") 
-            st.write(f"Signo: **{sign or '—'}**  •  Casa: **{house or '—'}**")
+            #st.markdown(f"**{display_name}**")
+            st.write(f"Planeta: **{display_name or '—'}**  •  Signo: **{sign or '—'}**  •  Casa: **{house or '—'}**")
 
             if synthetic_line:
                 st.write(synthetic_line)
