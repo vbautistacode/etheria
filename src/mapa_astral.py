@@ -546,7 +546,7 @@ def render_wheel_plotly(
         sign_labels_pt = canonical_signs
 
     # detectar signos interceptados: contar quantas cúspides caem dentro de cada signo
-    sign_cusp_counts = [1] * 12
+    sign_cusp_counts = [0] * 12
     for c in valid_cusps:
         try:
             idx = int(c // 30) % 12
@@ -564,7 +564,7 @@ def render_wheel_plotly(
 
     fig = go.Figure()
 
-    base_sign_colors = ["#f7f7f7", "#efefef"]
+    base_sign_colors = ["#f7f7f7", "#cec5c5"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
     # desenhar setores de signo
