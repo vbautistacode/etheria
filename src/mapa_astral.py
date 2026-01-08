@@ -939,6 +939,160 @@ def find_or_generate_and_save_reading(summary: dict, selected_raw: str):
     if not summary or not selected_raw:
         return None
 
+    try:
+        # garantir estrutura de readings
+        readings_map = summary.get("readings") if isinstance(summary, dict) else None
+        if readings_map is None:
+            readings_map = {}
+            if isinstance(summary, dict):
+                summary["readings"] = readings_map
+
+        # 1) tentativa direta: chave literal (exata)
+        found = None
+        try:
+            if selected_raw in readings_map:
+                found = readings_map[selected_raw]
+        except Exception:
+            found = None
+
+        # 2) tentativa com variantes lower-case (case-insensitive lookup)
+        if not found and isinstance(readings_map, dict):
+            try:
+                key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
+                key_match = key_map_lower.get(str(selected_raw).lower())
+                if key_match is not None:
+                    found = readings_map.get(key_match)
+            except Exception:
+                found = None
+
+        # 3) último recurso: procurar por campo 'planet' / 'name' dentro das leituras
+        if not found and isinstance(readings_map, dict):
+            try:
+                for k, v in readings_map.items():
+                    if not isinstance(v, dict):
+                        continue
+                    p = (v.get("planet") or v.get("name") or "").strip()
+                    if p and str(p).lower() == str(selected_raw).lower():
+                        found = v
+                        break
+            except Exception:
+                found = None
+
+        # se encontramos, retornamos (mantendo o objeto encontrado)
+        if found:
+            try:
+                logger and logger.debug("find_or_generate_and_save_reading: leitura encontrada para %s (chave)", selected_raw)
+            except Exception:
+                pass
+            return found
+
+        # --- gerar fallback quando não há leitura pré-existente ---
+        try:
+            logger and logger.debug("find_or_generate_and_save_reading: nenhuma leitura encontrada para %s — gerando fallback", selected_raw)
+        except Exception:
+            pass
+
+        generated: dict = {"planet": selected_raw}
+
+        # 1) tentar obter arcano via interpretations.safe_arcano_for_planet (se disponível)
+        arc_info = None
+        try:
+            if interpretations and hasattr(interpretations, "safe_arcano_for_planet"):
+                arc_info = interpretations.safe_arcano_for_planet(summary, selected_raw) or {}
+            elif interpretations and hasattr(interpretations, "arcano_for_planet"):
+                arc_info = interpretations.arcano_for_planet(summary, selected_raw) or {}
+        except Exception:
+            arc_info = None
+
+        # normalizar arcano em formato útil
+        if isinstance(arc_info, dict) and arc_info:
+            # arc_info pode ter 'arcano' (str/int), 'influence', 'text'
+            generated["arcano_info"] = arc_info
+            # também popular campo simples 'arcano' para compatibilidade
+            try:
+                a = arc_info.get("arcano")
+                if a is not None:
+                    generated["arcano"] = a
+            except Exception:
+                pass
+            # texto do arcano (influência + casa)
+            try:
+                txt = arc_info.get("text") or arc_info.get("interpretation") or ""
+                if txt:
+                    generated["interpretation_long"] = txt
+            except Exception:
+                pass
+
+        # 2) fallback clássico: interpretações clássicas por planeta (short/long)
+        try:
+            if interpretations and hasattr(interpretations, "classic_for_planet"):
+                classic = interpretations.classic_for_planet(summary, selected_raw) or {}
+                # preencher short/long se ainda não houver
+                if classic:
+                    if not generated.get("interpretation_long"):
+                        generated["interpretation_long"] = classic.get("long") or classic.get("short") or ""
+                    generated["interpretation_short"] = classic.get("short") or generated.get("interpretation_short") or ""
+        except Exception:
+            pass
+
+        # 3) se ainda não houver interpretação longa, tentar gerar via generate_interpretation (se disponível)
+        try:
+            if (not generated.get("interpretation_long")) and interpretations and hasattr(interpretations, "generate_interpretation"):
+                # generate_interpretation espera um reading-like dict; passamos generated (pode usar numerology se houver)
+                try:
+                    gen_text = interpretations.generate_interpretation(generated, arcano_key=(generated.get("arcano") or generated.get("arcano_info", {}).get("arcano") if isinstance(generated.get("arcano_info"), dict) else None), length="long")
+                    if gen_text:
+                        generated["interpretation_long"] = gen_text
+                except Exception:
+                    # se falhar, ignorar
+                    pass
+        except Exception:
+            pass
+
+        # 4) sugestões práticas: tentar extrair de arcano_info.keywords ou deixar vazio
+        try:
+            suggestions = []
+            if isinstance(generated.get("arcano_info"), dict):
+                suggestions = generated["arcano_info"].get("keywords") or generated["arcano_info"].get("practical") or []
+            if not suggestions:
+                # tentar campos alternativos
+                suggestions = generated.get("suggestions") or generated.get("keywords") or []
+            if suggestions:
+                generated["suggestions"] = suggestions
+        except Exception:
+            pass
+
+        # garantir campos mínimos
+        if "interpretation_short" not in generated:
+            generated["interpretation_short"] = (generated.get("interpretation_long") or "")[:200] if generated.get("interpretation_long") else ""
+        if "interpretation_long" not in generated:
+            generated["interpretation_long"] = generated.get("interpretation_short") or ""
+
+        # persistir em summary['readings'] usando a chave literal selected_raw
+        try:
+            if isinstance(summary, dict):
+                if not isinstance(summary.get("readings"), dict):
+                    summary["readings"] = {}
+                summary["readings"][selected_raw] = generated
+                # atualizar estado da sessão (se estiver disponível)
+                try:
+                    st.session_state["map_summary"] = summary
+                except Exception:
+                    # se st não estiver disponível no contexto de execução, ignorar
+                    pass
+                logger and logger.debug("find_or_generate_and_save_reading: leitura gerada e salva para %s", selected_raw)
+        except Exception:
+            logger and logger.exception("Erro ao persistir leitura gerada para %s", selected_raw)
+
+        return generated
+
+    except Exception as e:
+        try:
+            logger and logger.exception("Erro inesperado em find_or_generate_and_save_reading: %s", e)
+        except Exception:
+            pass
+        return None
+
     # helpers internos
     def _safe_key_variants(name):
         """Retorna lista de chaves candidatas: canônico, raw, lower-case raw."""
