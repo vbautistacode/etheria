@@ -2133,37 +2133,77 @@ def main():
 
         with tabs[0]:
             if reading:
-                planet_label = (influences.CANONICAL_TO_PT.get(canonical_selected) if influences and hasattr(influences, "CANONICAL_TO_PT") else canonical_selected) or (label_selected or "—")
+                planet_label = (
+                    influences.CANONICAL_TO_PT.get(canonical_selected)
+                    if influences and hasattr(influences, "CANONICAL_TO_PT")
+                    else canonical_selected
+                ) or (label_selected or "—")
+
                 raw_sign = reading.get("sign")
                 try:
-                    sign_canonical = influences.sign_to_canonical(raw_sign) if influences and hasattr(influences, "sign_to_canonical") else raw_sign
+                    sign_canonical = (
+                        influences.sign_to_canonical(raw_sign)
+                        if influences and hasattr(influences, "sign_to_canonical")
+                        else raw_sign
+                    )
                 except Exception:
                     sign_canonical = raw_sign
-                sign_label = influences.sign_label_pt(sign_canonical) if influences and hasattr(influences, "sign_label_pt") else (sign_canonical or raw_sign or "—")
-                degree = reading.get("degree") or reading.get("deg") or "—"
+
+                sign_label = (
+                    influences.sign_label_pt(sign_canonical)
+                    if influences and hasattr(influences, "sign_label_pt")
+                    else (sign_canonical or raw_sign or "—")
+                )
+
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # Tudo apresentado dentro de um expander aberto
+                # ---------------------------
+                # EXPANDER DA INTERPRETAÇÃO
+                # ---------------------------
                 with st.expander("Interpretação", expanded=False):
-                    st.markdown("**Arcano Correspondente**")
-                    arc = reading.get("arcano_info") or reading.get("arcano")
-                    if arc:
-                        if isinstance(arc, dict):
-                            arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
-                            st.write(f"{arc_name}")
-                        else:
-                            st.write(f"Arcano {arc}")
 
+                    # ---------------------------
+                    # ARCANO CORRESPONDENTE AO PLANETA
+                    # ---------------------------
+                    st.markdown("**Arcano Correspondente ao Planeta**")
+
+                    arc = reading.get("arcano_planeta") or reading.get("arcano_info") or reading.get("arcano")
+
+                    if isinstance(arc, dict):
+                        arc_name = arc.get("name") or f"Arcano {arc.get('arcano') or arc.get('value')}"
+                        st.write(arc_name)
+                    elif arc:
+                        st.write(f"Arcano {arc}")
+                    else:
+                        st.write("— Nenhum arcano associado ao planeta —")
+
+                    # ---------------------------
+                    # RESUMO
+                    # ---------------------------
                     st.markdown("**Resumo**")
                     st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
+                    # ---------------------------
+                    # SUGESTÕES PRÁTICAS (DO ARCANO DO PLANETA)
+                    # ---------------------------
                     st.markdown("**Sugestões práticas**")
-                    kw = (arc.get("keywords") if isinstance(arc, dict) else []) if arc else []
+
+                    # keywords do arcano do planeta
+                    kw = []
+                    if isinstance(arc, dict):
+                        kw = arc.get("keywords") or arc.get("practical") or []
+
                     if kw:
                         for k in kw:
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
+
+                    # ---------------------------
+                    # INTERPRETAÇÃO COMPLETA
+                    # ---------------------------
+                    st.markdown("**Interpretação Completa**")
+                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
 
             else:
                 if not (canonical_selected and summary):
