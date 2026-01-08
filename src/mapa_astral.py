@@ -2427,18 +2427,27 @@ def main():
                 sign = None
                 degree = None
                 house = None
+                # Extrair tabela de posições de forma segura
                 try:
-                    # procurar na tabela primeiro
-                    for row in (summary.get("table") or []):
-                        try:
-                            pname = (row.get("planet") or "").lower()
-                            if pname and sel_planet and pname == str(sel_planet).lower():
-                                sign = sign or row.get("sign")
-                                degree = degree or row.get("degree") or row.get("deg")
-                                house = house or row.get("house")
-                                break
-                        except Exception:
-                            continue
+                    if not isinstance(summary, dict):
+                        logger.warning("Resumo do mapa (summary) ausente ou inválido ao tentar extrair posição para fallback")
+                        table_rows = []
+                    else:
+                        table_rows = summary.get("table") or []
+                except Exception:
+                    logger.exception("Erro ao acessar summary para extrair table")
+                    table_rows = []
+
+                # iterar sobre table_rows (seguro mesmo se summary for None)
+                for row in table_rows:
+                    try:
+                        # seu processamento existente aqui, por exemplo:
+                        pname = row.get("planet") or row.get("name")
+                        # ... resto do código que usa row ...
+                    except Exception:
+                        logger.exception("Erro ao processar linha da tabela de fallback: %r", row)
+                        continue
+
                     # fallback para summary['planets']
                     if not sign or degree is None or house is None:
                         planets_map = summary.get("planets", {}) or {}
@@ -2467,20 +2476,12 @@ def main():
                 except Exception:
                     logger.exception("Erro ao extrair posição para fallback")
 
-                # preparar valores seguros
+                # preparar valores seguros (conforme já feito)
                 sel_planet_safe = _safe_selected_variants(sel_planet)[0] if sel_planet else None
-                context_name = None
-                if isinstance(summary, dict):
-                    try:
-                        context_name = summary.get("name")
-                    except Exception:
-                        context_name = None
+                context_name = summary.get("name") if isinstance(summary, dict) else None
 
-                # se não houver planeta selecionado ou summary válido, não chamar o interpretador
-                if not sel_planet_safe or not isinstance(summary, dict):
-                    logger.debug("interpret_planet_position: sem planeta selecionado ou summary inválido (sel_planet=%r summary=%r)", sel_planet_safe, bool(summary))
-                    interp = {"short": "", "long": ""}
-                else:
+                # chamar interpretador apenas quando houver dados suficientes
+                if sel_planet_safe and isinstance(summary, dict):
                     try:
                         interp = astrology.interpret_planet_position(
                             planet=sel_planet_safe,
@@ -2494,12 +2495,11 @@ def main():
                         logger.exception("interpret_planet_position falhou no fallback")
                         interp = {"short": "", "long": ""}
 
-                # Exibir apenas a interpretação longa dentro de um expander
-                if not sel_planet_safe or not isinstance(summary, dict):
+                    long_text = (interp.get("long") or "").strip()
+                    with st.expander("Interpretação"):
+                        st.write(long_text or "—")
+                else:
                     st.info("Selecione um planeta na tabela e gere o resumo do mapa para ver a interpretação astrológica.")
-                long_text = (interp.get("long") or "").strip()
-                with st.expander("Interpretação"):
-                    st.write(long_text or "—")
 
     # Botão robusto para gerar interpretação IA
     if st.sidebar.button("Gerar interpretação IA Etheria"):
