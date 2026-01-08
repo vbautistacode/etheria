@@ -628,60 +628,73 @@ def render_wheel_plotly(
         else:
             cusps_sorted = raw_cusps
 
-        # opções visuais para casas
-        house_fill_colors = ["rgba(220,230,255,0.14)", "rgba(230,245,230,0.10)"]  # alterna cores por casa
-        house_border_color = "rgba(80,80,80,0.18)"
-        house_label_r = outer_r - 0.12 if house_label_position == "inner" else outer_r + 0.06
+            # opções visuais para casas
+            house_fill_colors = ["rgba(220,230,255,0.14)", "rgba(230,245,230,0.10)"]
+            house_border_color = "rgba(80,80,80,0.18)"
 
-        for i in range(len(cusps_sorted)):
-            try:
-                start = cusps_sorted[i]
-                end = cusps_sorted[(i + 1) % len(cusps_sorted)]
-                # calcular arco span corretamente (considerando wrap)
-                span = (end - start) % 360.0
-                # construir anel (outer_r .. inner_r) para o setor da casa
-                steps = 18
-                thetas = []
-                rs = []
-                # arco externo
-                for k in range(steps + 1):
-                    frac = k / steps
-                    lon = (start + frac * span) % 360.0
-                    thetas.append(lon_to_theta(lon))
-                    rs.append(outer_r)
-                # arco interno (volta)
-                for k in range(steps, -1, -1):
-                    frac = k / steps
-                    lon = (start + frac * span) % 360.0
-                    thetas.append(lon_to_theta(lon))
-                    rs.append(inner_r)
-                fillcolor = house_fill_colors[i % len(house_fill_colors)]
-                fig.add_trace(go.Scatterpolar(
-                    r=rs,
-                    theta=thetas,
-                    mode="lines",
-                    fill="toself",
-                    fillcolor=fillcolor,
-                    line=dict(color=house_border_color, width=0.6),
-                    hoverinfo="none",
-                    showlegend=False
-                ))
-                # rótulo do número da casa no meio do setor
-                mid = (start + span / 2.0) % 360.0
-                theta_mid = lon_to_theta(mid)
-                house_label = str(i + 1)
-                fig.add_trace(go.Scatterpolar(
-                    r=[house_label_r],
-                    theta=[theta_mid],
-                    mode="text",
-                    text=[house_label],
-                    textfont=dict(size=11 * text_scale, color="#222222"),
-                    hoverinfo="none",
-                    showlegend=False
-                ))
-            except Exception:
-                logger.exception("Erro ao desenhar setor da casa %s", i + 1)
-                continue
+            for i in range(len(cusps_sorted)):
+                try:
+                    start = cusps_sorted[i]
+                    end = cusps_sorted[(i + 1) % len(cusps_sorted)]
+                    # calcular arco span corretamente (considerando wrap)
+                    span = (end - start) % 360.0
+                    # pular spans muito pequenos (evita demarcações estranhas)
+                    if span < 0.5:  # threshold em graus
+                        logger.debug("Pulando setor degenerado da casa %s (span muito pequeno: %s°)", i + 1, span)
+                        continue
+
+                    # construir anel (outer_r .. inner_r) para o setor da casa
+                    steps = 18
+                    thetas = []
+                    rs = []
+                    # arco externo
+                    for k in range(steps + 1):
+                        frac = k / steps
+                        lon = (start + frac * span) % 360.0
+                        thetas.append(lon_to_theta(lon))
+                        rs.append(outer_r)
+                    # arco interno (volta)
+                    for k in range(steps, -1, -1):
+                        frac = k / steps
+                        lon = (start + frac * span) % 360.0
+                        thetas.append(lon_to_theta(lon))
+                        rs.append(inner_r)
+
+                    # evitar desenhar borda visível entre casa 12 e 1: se i == 11 (última casa),
+                    # usar linha width 0 para suavizar a junção
+                    line_width = 0.6
+                    if i == len(cusps_sorted) - 1:
+                        line_width = 0.0
+
+                    fillcolor = house_fill_colors[i % len(house_fill_colors)]
+                    fig.add_trace(go.Scatterpolar(
+                        r=rs,
+                        theta=thetas,
+                        mode="lines",
+                        fill="toself",
+                        fillcolor=fillcolor,
+                        line=dict(color=house_border_color, width=line_width),
+                        hoverinfo="none",
+                        showlegend=False
+                    ))
+
+                    # rótulo do número da casa no meio do setor (midpoint calculado com wrap seguro)
+                    mid = (start + span / 2.0) % 360.0
+                    theta_mid = lon_to_theta(mid)
+                    house_label = str(i + 1)
+                    fig.add_trace(go.Scatterpolar(
+                        r=[house_label_r],
+                        theta=[theta_mid],
+                        mode="text",
+                        text=[house_label],
+                        textfont=dict(size=11 * text_scale, color="#222222"),
+                        hoverinfo="none",
+                        showlegend=False
+                    ))
+                except Exception:
+                    logger.exception("Erro ao desenhar setor da casa %s", i + 1)
+                    continue
+
     else:
         # se não houver cusps válidos, manter comportamento anterior (sem setores)
         logger.debug("Nenhum cusp válido para desenhar setores de casa: %s", valid_cusps)
