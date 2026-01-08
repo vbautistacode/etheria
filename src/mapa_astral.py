@@ -671,7 +671,7 @@ def render_wheel_plotly(
             theta = lon_to_theta(sign_mid_lon)
             label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
             symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-            label_suffix = " (Interceptado)" if s_idx in intercepted_signs else ""
+            label_suffix = "Int" if s_idx in intercepted_signs else ""
             text_label = f"{symbol} {label}{label_suffix}"
             fig.add_trace(go.Scatterpolar(
                 r=[label_r],
