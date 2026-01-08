@@ -2131,7 +2131,7 @@ def main():
             except Exception:
                 logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
 
-        # Planeta
+        #Planeta
         with tabs[0]:
             if reading:
                 planet_label = (
@@ -2158,10 +2158,10 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # EXPANDER: toda a interpretação do planeta fica aqui (evita duplicações)
+                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
 
-                    # Arcano do planeta (prioritário) — apenas planeta, sem referência ao signo
+                    # Arcano do planeta (prioritário)
                     st.markdown("**Arcano correspondente ao planeta**")
                     arc_planet = (
                         reading.get("arcano_planeta")
@@ -2176,15 +2176,18 @@ def main():
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
-                    # Resumo curto do planeta
-                    st.markdown("**Resumo**")
-                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+                 
 
-                    # Sugestões práticas: preferir keywords do arcano do planeta, senão campos em reading
+                    # Interpretação longa
+                    st.markdown("**Resumo**")
+                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
+
+                    # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
                     if isinstance(arc_planet, dict):
                         suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
+                    # fallback: tentar campo direto em reading
                     if not suggestions:
                         suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
@@ -2193,10 +2196,6 @@ def main():
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
-
-                    # Interpretação longa do planeta (apenas aqui)
-                    st.markdown("**Interpretação completa**")
-                    st.write(reading.get("interpretation_long") or "Interpretação completa não disponível.")
 
             else:
                 if not (canonical_selected and summary):
