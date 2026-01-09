@@ -598,54 +598,12 @@ def render_wheel_plotly(
         if sign_label_r is None:
             sign_label_r = inner_r + (outer_r - inner_r) * 0.12  # rótulo mais para o lado interno
 
-        # RÓTULOS DOS SIGNOS COM FUNDO (substituir o loop original)
         for s_idx in range(12):
-            try:
-                sign_mid_lon = (s_idx * 30.0 + 15.0) % 360.0
-                theta = lon_to_theta(sign_mid_lon)
-                label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
-                symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-                label_suffix = " (Int)" if s_idx in intercepted_signs else ""
-                text_label = f"{symbol} {label}{label_suffix}"
-
-                # Aparência do badge (fundo) e do texto
-                bgcolor = "#dcdcdc"           # fundo cinza
-                text_color = "#000000"        # texto preto
-                badge_padding_px = int(6 * text_scale)   # padding em px
-                approx_char_width = 7 * text_scale      # largura aproximada por caractere
-                # estimativa de tamanho do badge em pixels (ajustável)
-                badge_size = max(20, int((len(label) + (1 if symbol else 0)) * approx_char_width + badge_padding_px * 2))
-                badge_size = min(badge_size, 180)  # limitar tamanho máximo
-
-                # 1) trace do badge (marcador quadrado) como fundo
-                fig.add_trace(go.Scatterpolar(
-                    r=[label_r],
-                    theta=[theta],
-                    mode="markers",
-                    marker=dict(
-                        size=[badge_size],
-                        color=bgcolor,
-                        symbol="square",
-                        line=dict(color="rgba(0,0,0,0)", width=0)
-                    ),
-                    hoverinfo="none",
-                    showlegend=False
-                ))
-
-                # 2) trace do texto (símbolo + nome) sobre o badge
-                fig.add_trace(go.Scatterpolar(
-                    r=[label_r],
-                    theta=[theta],
-                    mode="text",
-                    text=[text_label],
-                    textfont=dict(size=int(12 * text_scale), color=text_color, family="sans-serif"),
-                    textposition="middle center",
-                    hoverinfo="none",
-                    showlegend=False
-                ))
-
-            except Exception:
-                continue
+            sign_start = (s_idx * 30.0) % 360.0
+            sign_end = (sign_start + 30.0) % 360.0
+            # construir pontos do arco externo (start -> end) e interno (end -> start)
+            thetas = []
+            rs = []
 
             # arco externo do setor
             for k in range(steps + 1):
@@ -678,31 +636,49 @@ def render_wheel_plotly(
             # rótulo do signo: centro do setor (start + 15°), posicionado mais internamente
             center_lon = (sign_start + 15.0) % 360.0
             theta_center = lon_to_theta(center_lon)
+            # manter label original em PT
             label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
+            # símbolo do signo (mantém array sign_symbols definido acima)
+            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
+            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
+            # texto final que será exibido (símbolo + nome)
+            text_label = f"{symbol} {label}{label_suffix}".strip()
 
-            # configurar aparência do badge (fundo) e do texto
+            # Aparência do badge (fundo) e do texto
             bgcolor = "#dcdcdc"           # fundo cinza
             text_color = "#000000"        # texto preto
-            # padding aproximado em pixels (aumente para badges maiores)
-            pad_px = int(4 * text_scale)
-            # estimativa de largura do badge baseada no comprimento do texto
-            approx_char_width = 6 * text_scale
-            badge_size = max(14, int((len(label) * approx_char_width) + pad_px * 2))
-            # garantir tamanho razoável para mobile/desktop
-            badge_size = min(max(badge_size, 10), 100)
+            pad_px = int(4 * text_scale)  # padding aproximado em px
+            approx_char_width = 6 * text_scale  # largura aproximada por caractere em px
 
+            # estimativa do tamanho do badge em pixels (ajustável)
+            # consideramos comprimento do label + 1 para o símbolo
+            est_chars = max(1, len(label) + (1 if symbol else 0))
+            badge_size = int(est_chars * approx_char_width + pad_px * 2)
+            # limitar tamanho mínimo/máximo para evitar extremos
+            badge_size = max(14, min(badge_size, 140))
+
+            # 1) trace do badge (marcador quadrado) como fundo
             fig.add_trace(go.Scatterpolar(
                 r=[sign_label_r],
                 theta=[theta_center],
-                mode="markers+text",
+                mode="markers",
                 marker=dict(
                     size=[badge_size],
                     color=bgcolor,
                     symbol="square",
                     line=dict(color="rgba(0,0,0,0)", width=0)
                 ),
-                text=[label],
-                textfont=dict(size=int(8 * text_scale), color=text_color, family="sans-serif", weight="bold"),
+                hoverinfo="none",
+                showlegend=False
+            ))
+
+            # 2) trace do texto (símbolo + nome) sobre o badge
+            fig.add_trace(go.Scatterpolar(
+                r=[sign_label_r],
+                theta=[theta_center],
+                mode="text",
+                text=[text_label],
+                textfont=dict(size=int(10 * text_scale), color=text_color, family="sans-serif"),
                 textposition="middle center",
                 hoverinfo="none",
                 showlegend=False
