@@ -822,7 +822,7 @@ def render_wheel_plotly(
             fig.add_trace(go.Scatterpolar(
                 r=[label_r],
                 theta=[theta],
-                mode="text",
+                #mode="text",
                 text=[text_label],
                 textfont=dict(size=12 * text_scale, color="#333333"),
                 hoverinfo="none",
