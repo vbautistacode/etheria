@@ -632,7 +632,7 @@ def render_wheel_plotly(
                 r=[sign_label_r],
                 theta=[theta_center],
                 mode="text",
-                text=[label],
+                
                 textfont=dict(size=int(12 * text_scale), color="#222222"),
                 hoverinfo="none",
                 showlegend=False
