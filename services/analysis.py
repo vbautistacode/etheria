@@ -53,7 +53,9 @@ PLANET_ARCANO: Dict[str, Dict[str, Any]] = {
     # signos mapeados como arcanos (quando relevante)
     "Libra": {"arcano": 12, "name": "Libra", "keywords": ["Equilíbrio","Parcerias"]},
     "Escorpio": {"arcano": 14, "name": "Escorpião", "keywords": ["Transformação","Profundidade"]},
+    "Scorpio": {"arcano": 14, "name": "Escorpião", "keywords": ["Transformação","Profundidade"]},
     "Sagitarius": {"arcano": 15, "name": "Sagitário", "keywords": ["Busca","Expansão"]},
+    "Sagittarius": {"arcano": 15, "name": "Sagitário", "keywords": ["Busca","Expansão"]},
 
     # restantes conforme sua lista (nomes em PT/EN)
     "Aries": {"arcano": 5, "name": "Áries", "keywords": ["Iniciativa","Coragem"]},
