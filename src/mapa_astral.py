@@ -647,7 +647,7 @@ def render_wheel_plotly(
             approx_char_width = 6 * text_scale
             badge_size = max(14, int((len(label) * approx_char_width) + pad_px * 2))
             # garantir tamanho razoável para mobile/desktop
-            badge_size = min(max(badge_size, 18), 130)
+            badge_size = min(max(badge_size, 10), 100)
 
             fig.add_trace(go.Scatterpolar(
                 r=[sign_label_r],
