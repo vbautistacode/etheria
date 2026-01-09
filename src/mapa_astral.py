@@ -881,7 +881,7 @@ def render_wheel_plotly(
                 r=[planet_r] * len(thetas),
                 theta=thetas,
                 mode="markers+text",
-                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#ffffff", width=1)),
+                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#000000", width=1)),
                 text=symbol_texts,
                 textposition="middle center",
                 hovertext=hover_texts,
