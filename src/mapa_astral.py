@@ -644,23 +644,49 @@ def render_wheel_plotly(
             # texto final que será exibido (símbolo + nome)
             text_label = f"{symbol} {label}{label_suffix}".strip()
 
+            import math
             # Aparência do badge (fundo) e do texto
-            bgcolor = "#dcdcdc"           # fundo cinza
-            text_color = "#000000"        # texto preto
-            pad_px = int(4 * text_scale)  # padding aproximado em px
-            approx_char_width = 6 * text_scale  # largura aproximada por caractere em px
-
-            # estimativa do tamanho do badge em pixels (ajustável)
-            # consideramos comprimento do label + 1 para o símbolo
+            bgcolor = "#dcdcdc"
+            text_color = "#000000"
+            pad_px = int(4 * text_scale)
+            approx_char_width = 6 * text_scale
             est_chars = max(1, len(label) + (1 if symbol else 0))
             badge_size = int(est_chars * approx_char_width + pad_px * 2)
-            # limitar tamanho mínimo/máximo para evitar extremos
             badge_size = max(14, min(badge_size, 140))
 
-            # 1) trace do badge (marcador quadrado) como fundo
+            # --- detectar se o rótulo está em uma "extremidade" (próximo às bordas do plot)
+            # converter center_lon para radianos no sistema padrão (0° = 0 rad, aumenta no sentido horário)
+            # lon_to_theta já inverteu o sentido; para cálculo trig usamos center_lon original
+            angle_rad = math.radians(center_lon)  # center_lon em graus (0..360)
+            # componentes cartesianas unitárias
+            cx = math.cos(angle_rad)
+            cy = math.sin(angle_rad)
+
+            # threshold para considerar "extremidade" (ajuste se necessário)
+            edge_threshold = 0.92  # valores próximos de 1.0 significam eixo X/Y quase alinhado com borda
+
+            # deslocamento radial em unidades de raio (ex.: 0.06 move para dentro)
+            delta_r = 0.06 * (1.0 if outer_r <= 1.5 else 1.0)
+
+            # calcular label_r ajustado: se estiver muito à direita/esquerda/embaixo/cima, mover para dentro
+            adjusted_label_r = sign_label_r
+            # se estiver muito próximo do eixo X (direita/esquerda) ou Y (cima/baixo), reduzir radialmente
+            if abs(cx) >= edge_threshold or abs(cy) >= edge_threshold:
+                # mover para dentro proporcionalmente ao quão extremo é o ângulo
+                factor = max(abs(cx), abs(cy))
+                adjusted_label_r = sign_label_r - delta_r * (0.9 + 0.2 * (factor - edge_threshold) / (1.0 - edge_threshold))
+                # garantir limites razoáveis
+                adjusted_label_r = max(inner_r + 0.02, min(adjusted_label_r, outer_r + 0.12))
+
+            # alternativa: reduzir badge_size para extremos (opcional)
+            if abs(cx) >= edge_threshold or abs(cy) >= edge_threshold:
+                badge_size = int(badge_size * 0.85)
+                badge_size = max(12, badge_size)
+
+            # 1) badge (fundo)
             fig.add_trace(go.Scatterpolar(
-                r=[sign_label_r],
-                theta=[theta_center],
+                r=[adjusted_label_r],
+                theta=[lon_to_theta(center_lon)],
                 mode="markers",
                 marker=dict(
                     size=[badge_size],
@@ -672,10 +698,10 @@ def render_wheel_plotly(
                 showlegend=False
             ))
 
-            # 2) trace do texto (símbolo + nome) sobre o badge
+            # 2) texto sobre o badge
             fig.add_trace(go.Scatterpolar(
-                r=[sign_label_r],
-                theta=[theta_center],
+                r=[adjusted_label_r],
+                theta=[lon_to_theta(center_lon)],
                 mode="text",
                 text=[text_label],
                 textfont=dict(size=int(10 * text_scale), color=text_color, family="sans-serif"),
@@ -683,6 +709,7 @@ def render_wheel_plotly(
                 hoverinfo="none",
                 showlegend=False
             ))
+
 
     # chamada (exemplo) — ajuste variáveis conforme seu contexto
     draw_sign_sectors(
