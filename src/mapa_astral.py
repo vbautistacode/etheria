@@ -637,12 +637,31 @@ def render_wheel_plotly(
             center_lon = (sign_start + 15.0) % 360.0
             theta_center = lon_to_theta(center_lon)
             label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
+
+            # configurar aparência do badge (fundo) e do texto
+            bgcolor = "#dcdcdc"           # fundo cinza
+            text_color = "#000000"        # texto preto
+            # padding aproximado em pixels (aumente para badges maiores)
+            pad_px = int(6 * text_scale)
+            # estimativa de largura do badge baseada no comprimento do texto
+            approx_char_width = 7 * text_scale
+            badge_size = max(18, int((len(label) * approx_char_width) + pad_px * 2))
+            # garantir tamanho razoável para mobile/desktop
+            badge_size = min(max(badge_size, 20), 160)
+
             fig.add_trace(go.Scatterpolar(
                 r=[sign_label_r],
                 theta=[theta_center],
-                mode="text",
-                #text=[label],
-                textfont=dict(size=int(12 * text_scale), color="#222222"),
+                mode="markers+text",
+                marker=dict(
+                    size=[badge_size],
+                    color=bgcolor,
+                    symbol="square",
+                    line=dict(color="rgba(0,0,0,0)", width=0)
+                ),
+                text=[label],
+                textfont=dict(size=int(12 * text_scale), color=text_color, family="sans-serif", weight="bold"),
+                textposition="middle center",
                 hoverinfo="none",
                 showlegend=False
             ))
