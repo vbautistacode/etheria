@@ -632,7 +632,7 @@ def render_wheel_plotly(
                 r=[sign_label_r],
                 theta=[theta_center],
                 mode="text",
-                
+                #text=[label],
                 textfont=dict(size=int(12 * text_scale), color="#222222"),
                 hoverinfo="none",
                 showlegend=False
@@ -686,8 +686,8 @@ def render_wheel_plotly(
 
             for i in range(len(cusps_sorted)):
                 try:
-                    start = cusps_sorted[i]
-                    end = cusps_sorted[(i + 1) % len(cusps_sorted)]
+                    start = float(cusps_sorted[i]) % 360.0 
+                    end = float(cusps_sorted[(i + 1) % 12]) % 360.0
                     # calcular arco span corretamente (considerando wrap)
                     span = (end - start) % 360.0
                     # pular spans muito pequenos (evita demarcações estranhas)
