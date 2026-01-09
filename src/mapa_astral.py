@@ -716,7 +716,7 @@ def render_wheel_plotly(
                     # usar linha width 0 para suavizar a junção
                     line_width = 0.6
                     if i == len(cusps_sorted) - 1:
-                        line_width = 0.0
+                        line_width = 0.10
 
                     fillcolor = house_fill_colors[i % len(house_fill_colors)]
                     fig.add_trace(go.Scatterpolar(
@@ -731,7 +731,7 @@ def render_wheel_plotly(
                     ))
 
                     # rótulo do número da casa no meio do setor (midpoint calculado com wrap seguro)
-                    mid = (start + span / 0.99) % 360.0 #label das casas um pouco deslocado para evitar sobreposição
+                    mid = (start + span / -0.90) % 360.0 #label das casas um pouco deslocado para evitar sobreposição
                     theta_mid = lon_to_theta(mid)
                     house_label = str(i + 1)
                     fig.add_trace(go.Scatterpolar(
