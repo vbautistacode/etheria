@@ -716,7 +716,7 @@ def render_wheel_plotly(
 
             # opções visuais para casas (fallback)
             house_fill_colors = ["rgba(220,230,255,0.30)", "rgba(230,245,230,0.30)"]
-            house_border_color = "rgba(80,80,80,0.30s)"
+            house_border_color = "rgba(80,80,80,0.30)"
 
             # mapear planetas para casas
             planets_in_house = {i: [] for i in range(12)}
