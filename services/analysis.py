@@ -29,68 +29,68 @@ except Exception as e_pkg:
 # Chaves aceitam nomes em inglês e português
 # -------------------------
 PLANET_ARCANO: Dict[str, Dict[str, Any]] = {
-    "Moon": {"arcano": 2, "name": "Lua", "keywords": ["intuição","ciclos","sensibilidade"]},
-    "Lua": {"arcano": 2, "name": "Lua", "keywords": ["intuição","ciclos","sensibilidade"]},
+    "Moon": {"arcano": 2, "name": "Lua", "keywords": ["Intuição","Ciclos","Sensibilidade"]},
+    "Lua": {"arcano": 2, "name": "Lua", "keywords": ["Intuição","Ciclos","Sensibilidade"]},
 
-    "Mars": {"arcano": 11, "name": "Marte", "keywords": ["ação","coragem","conflito"]},
-    "Marte": {"arcano": 11, "name": "Marte", "keywords": ["ação","coragem","conflito"]},
+    "Mars": {"arcano": 11, "name": "Marte", "keywords": ["Ação","Coragem","Conflito"]},
+    "Marte": {"arcano": 11, "name": "Marte", "keywords": ["Ação","Coragem","Conflito"]},
 
-    "Saturn": {"arcano": 20, "name": "Saturno", "keywords": ["limites","estrutura","responsabilidade"]},
-    "Saturno": {"arcano": 20, "name": "Saturno", "keywords": ["limites","estrutura","responsabilidade"]},
+    "Saturn": {"arcano": 20, "name": "Saturno", "keywords": ["Limites","Estrutura","Responsabilidade"]},
+    "Saturno": {"arcano": 20, "name": "Saturno", "keywords": ["Limites","Estrutura","Responsabilidade"]},
 
-    "Sun": {"arcano": 22, "name": "Sol", "keywords": ["identidade","vitalidade","expressão"]},
-    "Sol": {"arcano": 22, "name": "Sol", "keywords": ["identidade","vitalidade","expressão"]},
+    "Sun": {"arcano": 22, "name": "Sol", "keywords": ["Identidade","Vitalidade","Expressão"]},
+    "Sol": {"arcano": 22, "name": "Sol", "keywords": ["Identidade","Vitalidade","Expressão"]},
 
-    "Venus": {"arcano": 3, "name": "Vênus", "keywords": ["afeto","valores","beleza"]},
-    "Vênus": {"arcano": 3, "name": "Vênus", "keywords": ["afeto","valores","beleza"]},
+    "Venus": {"arcano": 3, "name": "Vênus", "keywords": ["Afeto","Valores","Beleza"]},
+    "Vênus": {"arcano": 3, "name": "Vênus", "keywords": ["Afeto","Valores","Beleza"]},
 
-    "Jupiter": {"arcano": 4, "name": "Júpiter", "keywords": ["expansão","sorte","crescimento"]},
-    "Júpiter": {"arcano": 4, "name": "Júpiter", "keywords": ["expansão","sorte","crescimento"]},
+    "Jupiter": {"arcano": 4, "name": "Júpiter", "keywords": ["Expansão","Sorte","Crescimento"]},
+    "Júpiter": {"arcano": 4, "name": "Júpiter", "keywords": ["Expansão","Sorte","Crescimento"]},
 
-    "Mercury": {"arcano": 17, "name": "Mercúrio", "keywords": ["comunicação","mente","movimento"]},
-    "Mercúrio": {"arcano": 17, "name": "Mercúrio", "keywords": ["comunicação","mente","movimento"]},
+    "Mercury": {"arcano": 17, "name": "Mercúrio", "keywords": ["Comunicação","Mente","Movimento"]},
+    "Mercúrio": {"arcano": 17, "name": "Mercúrio", "keywords": ["Comunicação","Mente","Movimento"]},
 
     # signos mapeados como arcanos (quando relevante)
-    "Libra": {"arcano": 12, "name": "Libra", "keywords": ["equilíbrio","parcerias"]},
-    "Escorpio": {"arcano": 14, "name": "Escorpião", "keywords": ["transformação","profundidade"]},
-    "Sagitarius": {"arcano": 15, "name": "Sagitário", "keywords": ["busca","expansão"]},
+    "Libra": {"arcano": 12, "name": "Libra", "keywords": ["Equilíbrio","Parcerias"]},
+    "Escorpio": {"arcano": 14, "name": "Escorpião", "keywords": ["Transformação","Profundidade"]},
+    "Sagitarius": {"arcano": 15, "name": "Sagitário", "keywords": ["Busca","Expansão"]},
 
     # restantes conforme sua lista (nomes em PT/EN)
-    "Aries": {"arcano": 5, "name": "Áries", "keywords": ["iniciativa","coragem"]},
-    "Áries": {"arcano": 5, "name": "Áries", "keywords": ["iniciativa","coragem"]},
+    "Aries": {"arcano": 5, "name": "Áries", "keywords": ["Iniciativa","Coragem"]},
+    "Áries": {"arcano": 5, "name": "Áries", "keywords": ["Iniciativa","Coragem"]},
 
-    "Gemini": {"arcano": 7, "name": "Gêmeos", "keywords": ["curiosidade","comunicação"]},
-    "Gêmeos": {"arcano": 7, "name": "Gêmeos", "keywords": ["curiosidade","comunicação"]},
+    "Gemini": {"arcano": 7, "name": "Gêmeos", "keywords": ["Curiosidade","Comunicação"]},
+    "Gêmeos": {"arcano": 7, "name": "Gêmeos", "keywords": ["Curiosidade","Comunicação"]},
 
-    "Cancer": {"arcano": 8, "name": "Câncer", "keywords": ["cuidado","memória"]},
-    "Câncer": {"arcano": 8, "name": "Câncer", "keywords": ["cuidado","memória"]},
+    "Cancer": {"arcano": 8, "name": "Câncer", "keywords": ["Cuidado","Memória"]},
+    "Câncer": {"arcano": 8, "name": "Câncer", "keywords": ["Cuidado","Memória"]},
 
-    "Leo": {"arcano": 9, "name": "Leão", "keywords": ["expressão","liderança"]},
-    "Leão": {"arcano": 9, "name": "Leão", "keywords": ["expressão","liderança"]},
+    "Leo": {"arcano": 9, "name": "Leão", "keywords": ["Expressão","Liderança"]},
+    "Leão": {"arcano": 9, "name": "Leão", "keywords": ["Expressão","Liderança"]},
 
-    "Aquarius": {"arcano": 18, "name": "Aquário", "keywords": ["visão","inovação"]},
-    "Aquário": {"arcano": 18, "name": "Aquário", "keywords": ["visão","inovação"]},
+    "Aquarius": {"arcano": 18, "name": "Aquário", "keywords": ["Visão","Inovação"]},
+    "Aquário": {"arcano": 18, "name": "Aquário", "keywords": ["Visão","Inovação"]},
 
-    "Pisces": {"arcano": 19, "name": "Peixes", "keywords": ["imaginação","compaixão"]},
-    "Peixes": {"arcano": 19, "name": "Peixes", "keywords": ["imaginação","compaixão"]},
+    "Pisces": {"arcano": 19, "name": "Peixes", "keywords": ["Imaginação","Compaixão"]},
+    "Peixes": {"arcano": 19, "name": "Peixes", "keywords": ["Imaginação","Compaixão"]},
 
-    "Capricorn": {"arcano": 16, "name": "Capricórnio", "keywords": ["disciplina","ambição"]},
-    "Capricórnio": {"arcano": 16, "name": "Capricórnio", "keywords": ["disciplina","ambição"]},
+    "Capricorn": {"arcano": 16, "name": "Capricórnio", "keywords": ["Disciplina","Ambição"]},
+    "Capricórnio": {"arcano": 16, "name": "Capricórnio", "keywords": ["Disciplina","Ambição"]},
 
-    "Virgo": {"arcano": 10, "name": "Virgem", "keywords": ["serviço","detalhe"]},
-    "Virgem": {"arcano": 10, "name": "Virgem", "keywords": ["serviço","detalhe"]},
+    "Virgo": {"arcano": 10, "name": "Virgem", "keywords": ["Serviço","Detalhe"]},
+    "Virgem": {"arcano": 10, "name": "Virgem", "keywords": ["Serviço","Detalhe"]},
 
-    "Taurus": {"arcano": 6, "name": "Touro", "keywords": ["valores","estabilidade"]},
-    "Touro": {"arcano": 6, "name": "Touro", "keywords": ["valores","estabilidade"]},
+    "Taurus": {"arcano": 6, "name": "Touro", "keywords": ["Valores","Estabilidade"]},
+    "Touro": {"arcano": 6, "name": "Touro", "keywords": ["Valores","Estabilidade"]},
 
-    "Uranus": {"arcano": 1, "name": "Urano", "keywords": ["ruptura","inovação"]},
-    "Urano": {"arcano": 1, "name": "Urano", "keywords": ["ruptura","inovação"]},
+    "Uranus": {"arcano": 1, "name": "Urano", "keywords": ["Ruptura","Inovação"]},
+    "Urano": {"arcano": 1, "name": "Urano", "keywords": ["Ruptura","Inovação"]},
 
-    "Pluto": {"arcano": 13, "name": "Plutão", "keywords": ["transformação profunda"]},
-    "Plutão": {"arcano": 13, "name": "Plutão", "keywords": ["transformação profunda"]},
+    "Pluto": {"arcano": 13, "name": "Plutão", "keywords": ["Transformação Profunda"]},
+    "Plutão": {"arcano": 13, "name": "Plutão", "keywords": ["Transformação Profunda"]},
 
-    "Neptune": {"arcano": 21, "name": "Netuno", "keywords": ["sonho","espiritualidade"]},
-    "Netuno": {"arcano": 21, "name": "Netuno", "keywords": ["sonho","espiritualidade"]},
+    "Neptune": {"arcano": 21, "name": "Netuno", "keywords": ["Sonho","Espiritualidade"]},
+    "Netuno": {"arcano": 21, "name": "Netuno", "keywords": ["Sonho","Espiritualidade"]},
 }
 
 # -------------------------
