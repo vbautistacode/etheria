@@ -598,54 +598,40 @@ def render_wheel_plotly(
         if sign_label_r is None:
             sign_label_r = inner_r + (outer_r - inner_r) * 0.12  # rótulo mais para o lado interno
 
-        # RÓTULOS DOS SIGNOS COM FUNDO (substituir o loop original)
         for s_idx in range(12):
-            try:
-                sign_mid_lon = (s_idx * 30.0 + 15.0) % 360.0
-                theta = lon_to_theta(sign_mid_lon)
-                label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
-                symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-                label_suffix = " (Int)" if s_idx in intercepted_signs else ""
-                text_label = f"{symbol} {label}{label_suffix}"
+            sign_start = (s_idx * 30.0) % 360.0
+            sign_end = (sign_start + 30.0) % 360.0
+            # construir pontos do arco externo (start -> end) e interno (end -> start)
+            thetas = []
+            rs = []
 
-                # Aparência do badge (fundo) e do texto
-                bgcolor = "#dcdcdc"           # fundo cinza
-                text_color = "#000000"        # texto preto
-                badge_padding_px = int(6 * text_scale)   # padding em px
-                approx_char_width = 7 * text_scale      # largura aproximada por caractere
-                # estimativa de tamanho do badge em pixels (ajustável)
-                badge_size = max(20, int((len(label) + (1 if symbol else 0)) * approx_char_width + badge_padding_px * 2))
-                badge_size = min(badge_size, 180)  # limitar tamanho máximo
+            # arco externo do setor
+            for k in range(steps + 1):
+                frac = k / steps
+                lon = (sign_start + frac * 30.0) % 360.0
+                thetas.append(lon_to_theta(lon))
+                rs.append(outer_r)
 
-                # 1) trace do badge (marcador quadrado) como fundo
-                fig.add_trace(go.Scatterpolar(
-                    r=[label_r],
-                    theta=[theta],
-                    mode="markers",
-                    marker=dict(
-                        size=[badge_size],
-                        color=bgcolor,
-                        symbol="square",
-                        line=dict(color="rgba(0,0,0,0)", width=0)
-                    ),
-                    hoverinfo="none",
-                    showlegend=False
-                ))
+            # arco interno (volta) do setor
+            for k in range(steps, -1, -1):
+                frac = k / steps
+                lon = (sign_start + frac * 30.0) % 360.0
+                thetas.append(lon_to_theta(lon))
+                rs.append(inner_r)
 
-                # 2) trace do texto (símbolo + nome) sobre o badge
-                fig.add_trace(go.Scatterpolar(
-                    r=[label_r],
-                    theta=[theta],
-                    mode="text",
-                    text=[text_label],
-                    textfont=dict(size=int(12 * text_scale), color=text_color, family="sans-serif"),
-                    textposition="middle center",
-                    hoverinfo="none",
-                    showlegend=False
-                ))
+            # escolher cor de preenchimento
+            fillcolor = intercepted_fill if s_idx in (intercepted_signs or []) else base_sign_colors[s_idx % len(base_sign_colors)]
 
-            except Exception:
-                continue
+            fig.add_trace(go.Scatterpolar(
+                r=rs,
+                theta=thetas,
+                mode="lines",
+                fill="toself",
+                fillcolor=fillcolor,
+                line=dict(color="rgba(0,0,0,0)"),
+                hoverinfo="none",
+                showlegend=False
+            ))
 
             # rótulo do signo: centro do setor (start + 15°), posicionado mais internamente
             center_lon = (sign_start + 15.0) % 360.0
