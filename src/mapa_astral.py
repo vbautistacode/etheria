@@ -2455,7 +2455,9 @@ def main():
 
         # Planeta tab
         with tab_planeta:
-            client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
+            # cria o input e garante que st.session_state["name"] exista
+            st.text_input("Nome do consulente", key="name", value=st.session_state.get("name", ""))
+
             if reading:
                 planet_label = (
                     influences.CANONICAL_TO_PT.get(canonical_selected)
