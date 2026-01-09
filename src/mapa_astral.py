@@ -2524,7 +2524,7 @@ def main():
                     )
 
                     st.markdown(f"#### {planet_label} em {sign_label}")
-                    st.markdown("**Resumo**")
+                    st.markdown("**Arcano correspondente ao planeta:**")
                     st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
                     # EXPANDER: interpretação completa
@@ -2578,8 +2578,7 @@ def main():
                             except Exception:
                                 logger.debug("Gerador de arcano dinâmico falhou", exc_info=True)
 
-                        # exibir arcano legível
-                        st.markdown("**Arcano correspondente ao planeta**")
+                        # exibir arcano legível                        
                         if arc_struct and arc_struct.get("name"):
                             st.write(arc_struct["name"])
                         elif arc_struct and arc_struct.get("arcano"):
@@ -2595,7 +2594,6 @@ def main():
                             st.write("— Nenhum arcano associado ao planeta —")
 
                         # Interpretação longa / texto do arcano (preferir reading, depois arc_struct.text)
-                        st.markdown("**O que é**")
                         long_text = reading.get("interpretation_long") or (arc_struct.get("text") if arc_struct else "")
                         # se o texto for template que precisa do nome, formatar com client_name quando aplicável
                         try:
