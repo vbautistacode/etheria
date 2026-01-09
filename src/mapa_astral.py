@@ -817,7 +817,7 @@ def render_wheel_plotly(
             theta = lon_to_theta(sign_mid_lon)
             label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
             symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-            #label_suffix = " (Int)" if s_idx in intercepted_signs else ""
+            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
             text_label = f"{symbol} {label}{label_suffix}"
             fig.add_trace(go.Scatterpolar(
                 r=[label_r],
@@ -831,10 +831,8 @@ def render_wheel_plotly(
         except Exception:
             continue
 
-    # --- adicionar planetas: marcadores externos sem label + símbolos agrupados por casa ---
+    # adicionar planetas
     ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
-
-    # preparar arrays para marcadores externos (mantemos hover)
     names = []
     thetas = []
     hover_texts = []
@@ -868,7 +866,6 @@ def render_wheel_plotly(
         except Exception:
             color = colors.get("default")
         size = int(max(8, 18 * marker_scale))
-
         names.append(display_planet)
         thetas.append(theta)
         hover_texts.append(hover)
@@ -878,89 +875,21 @@ def render_wheel_plotly(
         marker_colors.append(color)
         text_colors.append(color)
 
-    # 1) desenhar marcadores externos sem texto (mantém hover)
-    try:
-        fig.add_trace(go.Scatterpolar(
-            r=[planet_r] * len(thetas),
-            theta=thetas,
-            mode="markers",
-            marker=dict(
-                size=[max(6, int(ms)) for ms in marker_sizes],
-                color=marker_colors,
-                line=dict(color="#222", width=1)
-            ),
-            hovertext=hover_texts,
-            hoverinfo="text",
-            showlegend=False
-        ))
-    except Exception as e:
-        logger.exception("Erro ao adicionar trace de planetas (marcadores): %s", e)
-
-    # 2) agrupar símbolos por casa e desenhar no interior do setor
-    # (usa cusps_sorted se disponível; senão, divide por 30°)
-    def planet_to_house_index(lon_deg, cusps_sorted=None):
-        lon = float(lon_deg) % 360.0
-        if cusps_sorted and len(cusps_sorted) >= 12:
-            for idx in range(len(cusps_sorted)):
-                start = float(cusps_sorted[idx]) % 360.0
-                end = float(cusps_sorted[(idx + 1) % 12]) % 360.0
-                span = (end - start) % 360.0
-                diff = (lon - start) % 360.0
-                if diff >= 0 and diff < span:
-                    return idx
-        return int(lon // 30) % 12
-
-    # construir mapa house_index -> [símbolos]
-    planets_in_house = {i: [] for i in range(12)}
-    for pname, lon in valid_planets.items():
+        # adicionar planetas (usar planet_r para posicionamento radial)
         try:
-            hidx = planet_to_house_index(lon, cusps_sorted if 'cusps_sorted' in locals() else None)
-            sym = planet_symbols.get(pname) or planet_symbols.get(pname.capitalize()) or (pname[:2] if pname else pname)
-            planets_in_house.setdefault(hidx, []).append(sym)
-        except Exception:
-            continue
-
-    # desenhar símbolos agrupados no interior de cada casa
-    for i in range(12):
-        try:
-            # calcular midpoint do setor (fallback para divisão por 30° se cusps_sorted ausente)
-            if 'cusps_sorted' in locals() and len(cusps_sorted) >= 12:
-                start = float(cusps_sorted[i]) % 360.0
-                end = float(cusps_sorted[(i + 1) % 12]) % 360.0
-                span = (end - start) % 360.0
-                mid = (start + span / 2.0) % 360.0
-            else:
-                mid = (i * 30.0 + 15.0) % 360.0
-
-            theta_mid = lon_to_theta(mid)
-            syms = planets_in_house.get(i) or []
-            if not syms:
-                continue
-
-            # montar texto com símbolos; quebra em duas linhas se muitos
-            if len(syms) <= 4:
-                text_sym = " ".join(syms)
-            else:
-                half = (len(syms) + 1) // 2
-                text_sym = " ".join(syms[:half]) + "<br>" + " ".join(syms[half:])
-
-            # posição radial: um pouco mais interno que house_label_r para ficar dentro do setor
-            inner_text_r = house_label_r - 0.06
-            inner_text_r = max(inner_r + 0.02, inner_text_r)
-
             fig.add_trace(go.Scatterpolar(
-                r=[inner_text_r],
-                theta=[theta_mid],
-                mode="text",
-                text=[text_sym],
-                textfont=dict(size=int(12 * text_scale), color="#111111", family="sans-serif"),
-                hoverinfo="none",
+                r=[planet_r] * len(thetas),
+                theta=thetas,
+                mode="markers+text",
+                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
+                text=symbol_texts,
+                textposition="middle center",
+                hovertext=hover_texts,
+                hoverinfo="text",
                 showlegend=False
             ))
-        except Exception:
-            logger.exception("Erro ao adicionar símbolos no interior da casa %s", i + 1)
-            continue
-
+        except Exception as e:
+            logger.exception("Erro ao adicionar trace de planetas: %s", e)
 
     try:
         fig.update_layout(
