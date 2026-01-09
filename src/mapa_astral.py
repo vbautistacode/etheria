@@ -660,7 +660,7 @@ def render_wheel_plotly(
                     line=dict(color="rgba(0,0,0,0)", width=0)
                 ),
                 text=[label],
-                textfont=dict(size=int(12 * text_scale), color=text_color, family="sans-serif", weight="bold"),
+                textfont=dict(size=int(8 * text_scale), color=text_color, family="sans-serif", weight="bold"),
                 textposition="middle center",
                 hoverinfo="none",
                 showlegend=False
