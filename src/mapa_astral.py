@@ -2453,11 +2453,17 @@ def main():
             # fallback: tentar usar reading['arcano_info'] ou reading['arcano']
             return None, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
 
-        # Planeta (refatorado para usar client_name e garantir preenchimento do nome)
+        # Planeta (refatorado para usar client_name e persistir o nome)
         with tab_planeta:
             st.caption("Interpretação associada ao planeta selecionado.")
             # resolver client_name do mesmo modo que na aba Signo
-            client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
+            client_name = st.session_state.get("name") or (summary.get("name") if summary else None) or "Consulente"
+            # garantir que o session_state tenha a chave canonical "name"
+            try:
+                if not st.session_state.get("name"):
+                    st.session_state["name"] = client_name
+            except Exception:
+                pass
 
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a análise por planeta.")
@@ -2502,8 +2508,24 @@ def main():
                 else:
                     # garantir que reading contenha o nome do consulente para geradores/templates
                     try:
-                        if isinstance(reading, dict) and not reading.get("name"):
-                            reading["name"] = client_name
+                        if isinstance(reading, dict):
+                            if not reading.get("name"):
+                                reading["name"] = client_name
+                            # persistir o name na estrutura summary['readings'] quando possível
+                            try:
+                                if save_key:
+                                    if not isinstance(summary.get("readings"), dict):
+                                        summary["readings"] = {}
+                                    summary["readings"].setdefault(save_key, {}).update({"name": client_name})
+                                    # também manter sob selected_raw para compatibilidade
+                                    summary["readings"].setdefault(selected_raw, {}).update({"name": client_name})
+                                    # atualizar session_state para UI
+                                    try:
+                                        st.session_state["map_summary"] = summary
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                logger.debug("Não foi possível persistir name em summary['readings']", exc_info=True)
                     except Exception:
                         pass
 
@@ -2532,7 +2554,14 @@ def main():
 
                     st.markdown(f"#### {planet_label} em {sign_label}")
                     st.markdown("**Arcano correspondente ao planeta:**")
-                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+                    # exibir resumo curto (formatar com nome quando aplicável)
+                    short_text = reading.get("interpretation_short") or ""
+                    try:
+                        if isinstance(short_text, str) and "{name}" in short_text:
+                            short_text = short_text.format(name=client_name)
+                    except Exception:
+                        pass
+                    st.write(short_text or "Resumo não disponível.")
 
                     # EXPANDER: interpretação completa
                     with st.expander("Interpretação", expanded=False):
@@ -2561,13 +2590,11 @@ def main():
                         # se arc_struct ausente ou sem texto, tentar gerar texto dinâmico passando client_name
                         if (not arc_struct or not arc_struct.get("text")) and interpretations and hasattr(interpretations, "arcano_for_planet"):
                             try:
-                                # chamar wrapper seguro quando disponível
+                                # chamar wrapper seguro quando disponível; passar name defensivamente
                                 arc_res = None
                                 if hasattr(interpretations, "safe_arcano_for_planet"):
-                                    # safe wrapper normalmente não aceita name, mas retorna texto consistente
                                     arc_res = interpretations.safe_arcano_for_planet(summary, selected_raw)
                                 else:
-                                    # tentar passar name defensivamente
                                     try:
                                         arc_res = interpretations.arcano_for_planet(summary, selected_raw, name=client_name)
                                     except TypeError:
