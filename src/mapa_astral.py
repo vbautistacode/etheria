@@ -1402,8 +1402,7 @@ def main():
             tz_name = meta.get("tz")
 
             # Campo para Nome do consulente
-            # cria o input e armazena diretamente em st.session_state["name"]
-            st.text_input("Nome do consulente", value=st.session_state.get("name", ""), key="name")
+            consulente_name = st.text_input("Nome do consulente", value=st.session_state.get("name", ""), key="name_input")
 
             source = "swisseph"
             st.session_state["source"] = source
