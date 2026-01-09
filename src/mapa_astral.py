@@ -2626,11 +2626,11 @@ def main():
                         else:
                             st.write("Nenhuma sugestão prática disponível.")
 
-
-        #Signo
+        # Signo (atualizado: mostra keyword no título e interpretation_short)
         with tab_signo:
             st.caption("Interpretação associada ao signo onde o planeta está posicionado. Se não há planeta no signo, não há influência direta.")
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
+
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
             else:
@@ -2648,25 +2648,85 @@ def main():
                         continue
                     if norm not in sign_map:
                         sign_map[norm] = raw
+
                 if not sign_map:
                     st.info("Nenhum signo detectado no mapa.")
                 else:
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
-                        with st.expander(f"**{display_sign}**"): #trazer também a keyword para o título do expander de analysis.py
+
+                        # tentar obter keyword representativa (defensivo)
+                        keyword_label = None
+                        try:
+                            # 1) services_analysis pode conter mapeamento com keywords para signos
+                            if 'services_analysis' in globals() and services_analysis and hasattr(services_analysis, "PLANET_ARCANO"):
+                                # tentar chaves variadas: raw, norm, capitalized
+                                sa_map = getattr(services_analysis, "PLANET_ARCANO", {}) or {}
+                                # checar várias formas
+                                candidates = [display_sign, str(norm), str(norm).capitalize()]
+                                for c in candidates:
+                                    if c in sa_map and isinstance(sa_map[c], dict):
+                                        kws = sa_map[c].get("keywords") or []
+                                        if kws:
+                                            keyword_label = kws[0]
+                                            break
+                            # 2) fallback: tentar extrair de interpretations.arcano_for_sign (se retornar keywords)
+                            if not keyword_label and interpretations and hasattr(interpretations, "arcano_for_sign"):
+                                try:
+                                    arc_preview = interpretations.arcano_for_sign(raw_sign, name=client_name, length="short")
+                                    if isinstance(arc_preview, dict):
+                                        kw = arc_preview.get("keywords") or arc_preview.get("tags") or []
+                                        if kw:
+                                            keyword_label = kw[0]
+                                except Exception:
+                                    pass
+                        except Exception:
+                            # não falhar por causa da keyword
+                            keyword_label = None
+
+                        # montar título do expander incluindo keyword quando disponível
+                        expander_title = f"**{display_sign}**"
+                        if keyword_label:
+                            expander_title = f"**{display_sign} — {keyword_label}**"
+
+                        with st.expander(expander_title):
                             try:
-                                arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name) if interpretations and hasattr(interpretations, "arcano_for_sign") else {"error": "serviço de arcano não disponível"}
-                            except Exception as e:
-                                arc_res = {"error": str(e)}
-                            if arc_res.get("error"):
-                                st.warning("Não foi possível gerar interpretação por signo: " + str(arc_res.get("error")))
-                            else:
-                                text = arc_res.get("text") or ""
-                                if not text.strip():
-                                    st.write("Interpretação não disponível para este signo no momento.")
+                                # gerar interpretação longa e curta (defensivo)
+                                if interpretations and hasattr(interpretations, "arcano_for_sign"):
+                                    try:
+                                        arc_long = interpretations.arcano_for_sign(raw_sign, name=client_name, length="long")
+                                    except TypeError:
+                                        arc_long = interpretations.arcano_for_sign(raw_sign, name=client_name)
+                                    try:
+                                        arc_short = interpretations.arcano_for_sign(raw_sign, name=client_name, length="short")
+                                    except TypeError:
+                                        # se a função não aceitar length, reutilizar arc_long as fallback
+                                        arc_short = arc_long or {}
                                 else:
-                                    st.write(text)
-                                    #trazer também a interpretation_short, como na aba planeta
+                                    arc_long = {"error": "serviço de arcano não disponível"}
+                                    arc_short = {"error": "serviço de arcano não disponível"}
+                            except Exception as e:
+                                arc_long = {"error": str(e)}
+                                arc_short = {"error": str(e)}
+
+                            # tratar erros
+                            if arc_long.get("error"):
+                                st.warning("Não foi possível gerar interpretação por signo: " + str(arc_long.get("error")))
+                                continue
+
+                            # exibir resumo curto (quando disponível)
+                            short_text = arc_short.get("text") or arc_short.get("short") or ""
+                            if short_text and short_text.strip():
+                                st.markdown("**Resumo**")
+                                st.write(short_text)
+                            # exibir texto longo
+                            long_text = arc_long.get("text") or arc_long.get("long") or ""
+                            if not long_text.strip():
+                                st.write("Interpretação não disponível para este signo no momento.")
+                            else:
+                                st.markdown("**Interpretação**")
+                                st.write(long_text)
+
     # -------------------------
     # Integração: Leitura Sintética (painel esquerdo) e Interpretação Astrológica (painel central)
     # Inserir ao final do bloco de UI já existente, após a construção das colunas
