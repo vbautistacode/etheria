@@ -1015,17 +1015,211 @@ def enrich_summary_with_astrology(summary):
 def find_or_generate_and_save_reading(summary: dict, selected_raw: str):
     """
     Busca uma leitura existente em summary['readings'] para selected_raw.
-    Se não existir, tenta gerar um fallback (arcano por signo ou interpretação por posição),
-    persiste em summary['readings'] e atualiza st.session_state['map_summary'].
-    Retorna o dict da leitura ou None.
+    Se não existir, gera um fallback (preenchendo sign/house/degree quando possível,
+    obtendo arcano específico do planeta e interpretações), persiste em summary['readings']
+    usando uma chave normalizada (preferencialmente canônica) e atualiza
+    st.session_state['map_summary'].
+    Retorna uma tupla (reading, save_key) quando bem-sucedido, ou (None, None).
     """
     try:
         logger = logging.getLogger("find_or_generate_and_save_reading")
     except Exception:
         logger = None
 
-    if not summary or not selected_raw:
-        return None
+    # validação inicial
+    if not isinstance(summary, dict) or not selected_raw:
+        return None, None
+
+    try:
+        readings_map = summary.get("readings") or {}
+        if readings_map is None:
+            readings_map = {}
+            summary["readings"] = readings_map
+
+        # 1) procurar leitura existente (literal -> case-insensitive -> por campo planet/name)
+        found_key = None
+        found = None
+
+        # literal
+        if selected_raw in readings_map:
+            found_key = selected_raw
+            found = readings_map[found_key]
+
+        # case-insensitive
+        if not found:
+            try:
+                key_map_lower = {str(k).lower(): k for k in readings_map.keys()}
+                match = key_map_lower.get(str(selected_raw).lower())
+                if match is not None:
+                    found_key = match
+                    found = readings_map[found_key]
+            except Exception:
+                found = None
+
+        # procurar por campo 'planet' ou 'name' dentro das leituras
+        if not found:
+            try:
+                for k, v in readings_map.items():
+                    if not isinstance(v, dict):
+                        continue
+                    p = (v.get("planet") or v.get("name") or "").strip()
+                    if p and str(p).lower() == str(selected_raw).lower():
+                        found_key = k
+                        found = v
+                        break
+            except Exception:
+                found = None
+
+        if found:
+            # retornar leitura persistida e sua chave
+            return found, found_key
+
+        # --- gerar fallback quando não existe leitura ---
+        generated = {"planet": selected_raw}
+
+        # 2) preencher posição (sign/house/degree) a partir de rules ou summary['table']
+        pos = None
+        try:
+            if 'rules' in globals() and hasattr(rules, "get_position_from_summary"):
+                pos = rules.get_position_from_summary(summary, selected_raw)
+        except Exception:
+            pos = None
+
+        if not pos:
+            try:
+                table = summary.get("table") or []
+                for row in table:
+                    try:
+                        pname = (row.get("planet") or row.get("name") or "").strip()
+                        if pname and str(pname).lower() == str(selected_raw).lower():
+                            pos = {
+                                "sign": row.get("sign") or row.get("zodiac") or row.get("sign_name"),
+                                "house": row.get("house") or row.get("casa") or row.get("house_number"),
+                                "degree": row.get("degree") or row.get("deg") or row.get("longitude")
+                            }
+                            break
+                    except Exception:
+                        continue
+            except Exception:
+                pos = None
+
+        if isinstance(pos, dict):
+            if pos.get("sign"):
+                generated["sign"] = pos.get("sign")
+            if pos.get("house") is not None:
+                generated["house"] = pos.get("house")
+            if pos.get("degree") is not None:
+                generated["degree"] = pos.get("degree")
+
+        # 3) obter arcano específico do planeta via interpretations.safe_arcano_for_planet
+        arc_info = None
+        try:
+            if 'interpretations' in globals() and hasattr(interpretations, "safe_arcano_for_planet"):
+                arc_info = interpretations.safe_arcano_for_planet(summary, selected_raw) or {}
+            elif 'interpretations' in globals() and hasattr(interpretations, "arcano_for_planet"):
+                arc_info = interpretations.arcano_for_planet(summary, selected_raw) or {}
+        except Exception:
+            arc_info = None
+
+        if isinstance(arc_info, dict) and arc_info:
+            generated["arcano_planeta"] = arc_info
+            # também popular arcano genérico para compatibilidade
+            try:
+                a = arc_info.get("arcano") or arc_info.get("value")
+                if a is not None:
+                    generated["arcano"] = a
+            except Exception:
+                pass
+
+            # usar texto do arcano como interpretação longa se disponível
+            try:
+                txt = arc_info.get("text") or arc_info.get("interpretation") or ""
+                if txt:
+                    generated["interpretation_long"] = txt
+            except Exception:
+                pass
+
+        # 4) fallback clássico via interpretations.classic_for_planet
+        try:
+            if ('interpretations' in globals()) and hasattr(interpretations, "classic_for_planet"):
+                classic = interpretations.classic_for_planet(summary, selected_raw) or {}
+                if classic:
+                    if not generated.get("interpretation_long"):
+                        generated["interpretation_long"] = classic.get("long") or classic.get("short") or ""
+                    generated["interpretation_short"] = classic.get("short") or generated.get("interpretation_short") or ""
+        except Exception:
+            pass
+
+        # 5) gerar interpretação via generate_interpretation se ainda não houver long
+        try:
+            if (not generated.get("interpretation_long")) and ('interpretations' in globals()) and hasattr(interpretations, "generate_interpretation"):
+                try:
+                    arc_key = None
+                    if isinstance(generated.get("arcano_planeta"), dict):
+                        arc_key = generated["arcano_planeta"].get("arcano") or generated["arcano_planeta"].get("value")
+                    elif generated.get("arcano"):
+                        arc_key = generated.get("arcano")
+                    gen_text = interpretations.generate_interpretation(generated, arcano_key=arc_key, length="long")
+                    if gen_text:
+                        generated["interpretation_long"] = gen_text
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 6) sugestões práticas
+        try:
+            suggestions = []
+            if isinstance(generated.get("arcano_planeta"), dict):
+                suggestions = generated["arcano_planeta"].get("keywords") or generated["arcano_planeta"].get("practical") or []
+            if not suggestions:
+                suggestions = generated.get("suggestions") or generated.get("keywords") or []
+            if suggestions:
+                generated["suggestions"] = suggestions
+        except Exception:
+            pass
+
+        # garantir campos mínimos
+        if "interpretation_short" not in generated:
+            generated["interpretation_short"] = (generated.get("interpretation_long") or "")[:200] if generated.get("interpretation_long") else ""
+        if "interpretation_long" not in generated:
+            generated["interpretation_long"] = generated.get("interpretation_short") or ""
+
+        # 7) escolher chave para persistir: preferir canônico quando disponível
+        save_key = selected_raw
+        try:
+            if 'influences' in globals() and hasattr(influences, "to_canonical"):
+                can = influences.to_canonical(selected_raw)
+                if can:
+                    save_key = can
+        except Exception:
+            pass
+
+        # persistir em summary['readings'] usando save_key; também manter sob selected_raw para compatibilidade
+        try:
+            if not isinstance(summary.get("readings"), dict):
+                summary["readings"] = {}
+            summary["readings"][save_key] = generated
+            if save_key != selected_raw:
+                try:
+                    summary["readings"][selected_raw] = generated
+                except Exception:
+                    pass
+            # atualizar estado da sessão se disponível
+            try:
+                st.session_state["map_summary"] = summary
+            except Exception:
+                pass
+
+            logger and logger.debug("Leitura gerada e salva para %s (save_key=%s)", selected_raw, save_key)
+            return generated, save_key
+        except Exception:
+            logger and logger.exception("Erro ao persistir leitura gerada para %s", selected_raw)
+            return generated, save_key
+
+    except Exception as e:
+        logger and logger.exception("Erro inesperado em find_or_generate_and_save_reading: %s", e)
+        return None, None
 
     # helpers internos
     def _safe_key_variants(name):
@@ -2203,8 +2397,11 @@ def main():
     with right_col:
         st.subheader("Interpretação dos Arcanos")
         st.caption("Cada elemento do mapa possui uma relação com os Arcanos Maiores.")
-        tabs = st.tabs(["Planeta", "Signo"])
 
+        # criar tabs e desempacotar para evitar ambiguidade
+        tab_planeta, tab_signo = st.tabs(["Planeta", "Signo"])
+
+        # garantir selected_raw
         selected_raw = st.session_state.get("selected_planet")
         canonical_selected, label_selected = (None, None)
         try:
@@ -2214,16 +2411,70 @@ def main():
         except Exception:
             canonical_selected, label_selected = (selected_raw, selected_raw)
 
-        # buscar ou gerar leitura usando helper (find_or_generate_and_save_reading deve existir no módulo principal)
+        # helper: revalidar leitura persistida no summary['readings']
+        def _get_persisted_reading(summary_obj, key):
+            if not isinstance(summary_obj, dict):
+                return None, None
+            readings_map = summary_obj.get("readings") or {}
+            # 1) literal
+            if key in readings_map:
+                return readings_map.get(key), key
+            # 2) case-insensitive
+            try:
+                key_map = {str(k).lower(): k for k in readings_map.keys()}
+                k = key_map.get(str(key).lower())
+                if k:
+                    return readings_map.get(k), k
+            except Exception:
+                pass
+            # 3) procurar por campo planet/name dentro das leituras
+            try:
+                for k, v in readings_map.items():
+                    if isinstance(v, dict):
+                        p = (v.get("planet") or v.get("name") or "")
+                        if p and str(p).lower() == str(key).lower():
+                            return v, k
+            except Exception:
+                pass
+            return None, None
+
+        # chamar find_or_generate_and_save_reading e garantir que usamos o objeto persistido
         reading = None
+        save_key = None
         if summary and selected_raw:
             try:
-                reading = find_or_generate_and_save_reading(summary, selected_raw)
+                result = find_or_generate_and_save_reading(summary, selected_raw)
+                # função pode retornar (generated, save_key) ou apenas generated
+                if isinstance(result, tuple) and len(result) == 2:
+                    generated, save_key = result
+                    # preferir o objeto persistido quando disponível
+                    reading = (summary.get("readings") or {}).get(save_key) or generated
+                    logger.debug("find_or_generate_and_save_reading returned save_key=%r; readings keys=%s", save_key, list((summary.get("readings") or {}).keys()))
+                else:
+                    # compatibilidade retroativa: tentar revalidar a partir do mapa persistido
+                    generated = result
+                    persisted, persisted_key = _get_persisted_reading(summary, selected_raw)
+                    reading = persisted or generated
+                    if persisted_key:
+                        save_key = persisted_key
             except Exception:
                 logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
+                reading = None
 
-        #Planeta
-        with tabs[0]:
+        # utilitário: priorizar arcano do planeta
+        def resolve_arcano_planet(reading_obj):
+            if not isinstance(reading_obj, dict):
+                return None, None
+            for key in ("arcano_planeta", "arcano_for_planet", "arcano_planet", "arcano_info_planet"):
+                val = reading_obj.get(key)
+                if val:
+                    return val, key
+            # fallback controlado
+            val = reading_obj.get("arcano_info") or reading_obj.get("arcano")
+            return val, "arcano_info_or_arcano"
+
+        # Planeta
+        with tab_planeta:
             if reading:
                 planet_label = (
                     influences.CANONICAL_TO_PT.get(canonical_selected)
@@ -2249,21 +2500,25 @@ def main():
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
 
-                # EXPANDER: toda a interpretação fica aqui (evita duplicações)
+                # EXPANDER: toda a interpretação fica aqui
                 with st.expander("Interpretação", expanded=False):
-
-                    # Arcano do planeta
+                    # Arcano do planeta (prioriza campos explícitos do planeta)
                     st.markdown("**Arcano correspondente ao planeta**")
-                    arc_planet = (
-                        reading.get("arcano_planeta")
-                        or reading.get("arcano_info")
-                        or reading.get("arcano")
-                    )
-                    if isinstance(arc_planet, dict):
-                        arc_planet_name = arc_planet.get("name") or f"Arcano {arc_planet.get('arcano') or arc_planet.get('value')}"
+                    arc_val, arc_field = resolve_arcano_planet(reading)
+                    logger.debug("Arcano resolvido via %s: %r", arc_field, arc_val)
+
+                    if isinstance(arc_val, dict):
+                        arc_planet_name = arc_val.get("name") or f"Arcano {arc_val.get('arcano') or arc_val.get('value')}"
                         st.write(arc_planet_name)
-                    elif arc_planet:
-                        st.write(f"Arcano {arc_planet}")
+                    elif arc_val is not None:
+                        try:
+                            if interpretations and hasattr(interpretations, "arcano_label"):
+                                label = interpretations.arcano_label(int(arc_val))
+                                st.write(label)
+                            else:
+                                st.write(f"Arcano {arc_val}")
+                        except Exception:
+                            st.write(f"Arcano {arc_val}")
                     else:
                         st.write("— Nenhum arcano associado ao planeta —")
 
@@ -2274,9 +2529,8 @@ def main():
                     # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
                     suggestions = []
-                    if isinstance(arc_planet, dict):
-                        suggestions = arc_planet.get("keywords") or arc_planet.get("practical") or []
-                    # fallback: tentar campo direto em reading
+                    if isinstance(arc_val, dict):
+                        suggestions = arc_val.get("keywords") or arc_val.get("practical") or []
                     if not suggestions:
                         suggestions = reading.get("suggestions") or reading.get("keywords") or []
 
@@ -2285,15 +2539,14 @@ def main():
                             st.write(f"- {k}")
                     else:
                         st.write("Nenhuma sugestão prática disponível.")
-
             else:
                 if not (canonical_selected and summary):
                     st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
                 else:
                     st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
-        #Signo
-        with tabs[1]:
+        # Signo
+        with tab_signo:
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
