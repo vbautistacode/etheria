@@ -2453,77 +2453,167 @@ def main():
             # fallback: tentar usar reading['arcano_info'] ou reading['arcano']
             return None, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
 
-        # Planeta tab
+        # Planeta (refatorado para usar client_name)
         with tab_planeta:
-            # cria o input e garante que st.session_state["name"] exista
-            st.text_input("Nome do consulente", key="name", value=st.session_state.get("name", ""))
+            st.caption("Interpretação associada ao planeta selecionado. Usa o nome do consulente quando disponível.")
+            # resolver client_name do mesmo modo que na aba Signo
+            client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
 
-            if reading:
-                planet_label = (
-                    influences.CANONICAL_TO_PT.get(canonical_selected)
-                    if influences and hasattr(influences, "CANONICAL_TO_PT")
-                    else canonical_selected
-                ) or (label_selected or "—")
-
-                raw_sign = reading.get("sign")
-                try:
-                    sign_canonical = (
-                        influences.sign_to_canonical(raw_sign)
-                        if influences and hasattr(influences, "sign_to_canonical")
-                        else raw_sign
-                    )
-                except Exception:
-                    sign_canonical = raw_sign
-
-                sign_label = (
-                    influences.sign_label_pt(sign_canonical)
-                    if influences and hasattr(influences, "sign_label_pt")
-                    else (sign_canonical or raw_sign or "—")
-                )
-
-                st.markdown(f"#### {planet_label} em {sign_label}")
-                st.markdown("**Arcano correspondente ao planeta**")
-                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
-
-                # EXPANDER: toda a interpretação fica aqui
-                with st.expander("Interpretação", expanded=False):
-                    # Arcano do planeta
-                    arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
-                    logger.debug("Arcano extraído: %r ; sugestões iniciais: %r", arc_struct, suggestions)
-
-                    if arc_struct and arc_struct.get("name"):
-                        st.write(arc_struct["name"])
-                    elif arc_struct and arc_struct.get("arcano"):
-                        try:
-                            num = int(arc_struct["arcano"])
-                            if interpretations and hasattr(interpretations, "arcano_label"):
-                                st.write(interpretations.arcano_label(num))
-                            else:
-                                st.write(f"Arcano {num}")
-                        except Exception:
-                            st.write(str(arc_struct.get("arcano")))
-                    else:
-                        st.write("— Nenhum arcano associado ao planeta —")
-
-                    # Interpretação longa / texto do arcano
-                    st.markdown("**O que é!?**")
-                    long_text = reading.get("interpretation_long") or (arc_struct.get("text") if arc_struct else "")
-                    st.write(long_text or "Interpretação não disponível.")
-
-                    # Sugestões práticas: priorizar keywords do arcano_planeta, depois reading.suggestions/keywords
-                    st.markdown("**Sugestões práticas**")
-                    if not suggestions:
-                        suggestions = reading.get("suggestions") or reading.get("keywords") or []
-                    if suggestions:
-                        for k in suggestions:
-                            st.write(f"- {k}")
-                    else:
-                        st.write("Nenhuma sugestão prática disponível.")
+            if not summary:
+                st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a análise por planeta.")
+            elif not selected_raw:
+                st.info("Selecione um planeta para ver a interpretação por arcanos.")
             else:
-                if not (canonical_selected and summary):
-                    st.info("Selecione um planeta e gere o resumo do mapa para ver a análise por arcanos.")
+                # obter leitura (compatível com retorno (reading, save_key) ou apenas reading)
+                reading = None
+                save_key = None
+                try:
+                    result = find_or_generate_and_save_reading(summary, selected_raw)
+                    if isinstance(result, tuple) and len(result) == 2:
+                        generated, save_key = result
+                        reading = (summary.get("readings") or {}).get(save_key) or generated
+                    else:
+                        generated = result
+                        # revalidar persistido
+                        readings_map = summary.get("readings") or {}
+                        reading = readings_map.get(selected_raw)
+                        if not reading:
+                            key_map = {str(k).lower(): k for k in readings_map.keys()}
+                            k = key_map.get(str(selected_raw).lower())
+                            if k:
+                                reading = readings_map.get(k)
+                        if not reading:
+                            # procurar por campo planet/name
+                            for v in readings_map.values():
+                                if isinstance(v, dict):
+                                    p = (v.get("planet") or v.get("name") or "")
+                                    if p and str(p).lower() == str(selected_raw).lower():
+                                        reading = v
+                                        break
+                        if not reading:
+                            reading = generated
+                except Exception:
+                    logger.exception("Erro ao buscar/gerar leitura para o planeta selecionado")
+                    reading = None
+
+                # se não houver leitura, avisar
+                if not reading:
+                    st.info("Nenhuma leitura encontrada para o planeta selecionado.")
                 else:
-                    st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
+                    # rótulos
+                    planet_label = (
+                        influences.CANONICAL_TO_PT.get(canonical_selected)
+                        if influences and hasattr(influences, "CANONICAL_TO_PT")
+                        else canonical_selected
+                    ) or (label_selected or "—")
+
+                    raw_sign = reading.get("sign")
+                    try:
+                        sign_canonical = (
+                            influences.sign_to_canonical(raw_sign)
+                            if influences and hasattr(influences, "sign_to_canonical")
+                            else raw_sign
+                        )
+                    except Exception:
+                        sign_canonical = raw_sign
+
+                    sign_label = (
+                        influences.sign_label_pt(sign_canonical)
+                        if influences and hasattr(influences, "sign_label_pt")
+                        else (sign_canonical or raw_sign or "—")
+                    )
+
+                    st.markdown(f"#### {planet_label} em {sign_label}")
+                    st.markdown("**Resumo**")
+                    st.write(reading.get("interpretation_short") or "Resumo não disponível.")
+
+                    # EXPANDER: interpretação completa
+                    with st.expander("Interpretação", expanded=False):
+                        # extrair arcano e sugestões (robusto)
+                        def _extract_arcano_and_suggestions(reading_obj):
+                            if not isinstance(reading_obj, dict):
+                                return None, []
+                            arc = reading_obj.get("arcano_planeta") or reading_obj.get("arcano_info") or reading_obj.get("arcano")
+                            if isinstance(arc, dict):
+                                name = arc.get("name") or (f"Arcano {arc.get('arcano')}" if arc.get("arcano") else None)
+                                keywords = arc.get("keywords") or arc.get("practical") or arc.get("tags") or []
+                                text = arc.get("text") or arc.get("interpretation") or ""
+                                return {"name": name, "arcano": arc.get("arcano"), "text": text}, keywords
+                            if arc is not None:
+                                try:
+                                    num = int(arc)
+                                    label = interpretations.arcano_label(num) if interpretations and hasattr(interpretations, "arcano_label") else f"Arcano {num}"
+                                    return {"name": label, "arcano": str(num), "text": ""}, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
+                                except Exception:
+                                    return {"name": str(arc), "arcano": str(arc), "text": ""}, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
+                            return None, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
+
+                        # tentar obter arcano usando o client_name quando chamando o gerador (se necessário)
+                        # (isso não altera a leitura persistida, apenas garante que o texto use o nome)
+                        arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
+
+                        # se arc_struct ausente ou sem texto, tentar gerar texto dinâmico passando client_name
+                        if (not arc_struct or not arc_struct.get("text")) and interpretations and hasattr(interpretations, "arcano_for_planet"):
+                            try:
+                                # usar wrapper seguro se disponível
+                                if hasattr(interpretations, "safe_arcano_for_planet"):
+                                    arc_res = interpretations.safe_arcano_for_planet(summary, selected_raw)
+                                else:
+                                    arc_res = interpretations.arcano_for_planet(summary, selected_raw)
+                                # se o gerador aceitar parâmetro name, tente passá-lo (defensivo)
+                                if isinstance(arc_res, dict):
+                                    # preferir texto gerado pelo gerador e usar client_name no template se aplicável
+                                    text = arc_res.get("text") or arc_res.get("interpretation") or ""
+                                    name_from_res = arc_res.get("planet") or None
+                                    # atualizar arc_struct local sem sobrescrever persistido
+                                    arc_struct = {
+                                        "name": arc_res.get("name") or arc_struct.get("name") if arc_struct else None,
+                                        "arcano": arc_res.get("arcano") or (arc_struct.get("arcano") if arc_struct else None),
+                                        "text": text
+                                    }
+                                    # tentar extrair keywords
+                                    kw = arc_res.get("keywords") or arc_res.get("tags") or []
+                                    if kw and not suggestions:
+                                        suggestions = kw
+                            except Exception:
+                                logger.debug("Gerador de arcano dinâmico falhou", exc_info=True)
+
+                        # exibir arcano legível
+                        st.markdown("**Arcano correspondente ao planeta**")
+                        if arc_struct and arc_struct.get("name"):
+                            st.write(arc_struct["name"])
+                        elif arc_struct and arc_struct.get("arcano"):
+                            try:
+                                num = int(arc_struct["arcano"])
+                                if interpretations and hasattr(interpretations, "arcano_label"):
+                                    st.write(interpretations.arcano_label(num))
+                                else:
+                                    st.write(f"Arcano {num}")
+                            except Exception:
+                                st.write(str(arc_struct.get("arcano")))
+                        else:
+                            st.write("— Nenhum arcano associado ao planeta —")
+
+                        # Interpretação longa / texto do arcano (preferir reading, depois arc_struct.text)
+                        st.markdown("**O que é**")
+                        long_text = reading.get("interpretation_long") or (arc_struct.get("text") if arc_struct else "")
+                        # se o texto for template que precisa do nome, formatar com client_name quando aplicável
+                        try:
+                            if isinstance(long_text, str) and "{name}" in long_text:
+                                long_text = long_text.format(name=client_name)
+                        except Exception:
+                            pass
+                        st.write(long_text or "Interpretação não disponível.")
+
+                        # Sugestões práticas
+                        st.markdown("**Sugestões práticas**")
+                        if not suggestions:
+                            suggestions = reading.get("suggestions") or reading.get("keywords") or []
+                        if suggestions:
+                            for k in suggestions:
+                                st.write(f"- {k}")
+                        else:
+                            st.write("Nenhuma sugestão prática disponível.")
 
         #Signo
         with tab_signo:
