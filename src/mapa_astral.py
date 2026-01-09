@@ -633,17 +633,6 @@ def render_wheel_plotly(
                 showlegend=False
             ))
 
-            # rótulo do signo: centro do setor (start + 15°), posicionado mais internamente
-            center_lon = (sign_start + 15.0) % 360.0
-            theta_center = lon_to_theta(center_lon)
-            # manter label original em PT
-            label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
-            # símbolo do signo (mantém array sign_symbols definido acima)
-            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
-            # texto final que será exibido (símbolo + nome)
-            text_label = f"{symbol} {label}{label_suffix}".strip()
-
             import math
             # --- rótulo do signo com badge de fundo (mantém símbolo + nome) ---
             center_lon = (sign_start + 15.0) % 360.0
