@@ -715,7 +715,7 @@ def render_wheel_plotly(
             cusps_sorted = raw_cusps
 
             # opções visuais para casas (fallback)
-            house_fill_colors = ["rgba(220,230,255,0.30)", "rgba(230,245,230,0.30)"]
+            house_fill_colors = ["rgba(220,230,255,0.18)", "rgba(230,245,230,0.18)"]
             house_border_color = "rgba(80,80,80,0.30)"
 
             # mapear planetas para casas
