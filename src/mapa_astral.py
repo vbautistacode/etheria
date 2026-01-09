@@ -2453,9 +2453,9 @@ def main():
             # fallback: tentar usar reading['arcano_info'] ou reading['arcano']
             return None, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
 
-        # Planeta (refatorado para usar client_name)
+        # Planeta (refatorado para usar client_name e garantir preenchimento do nome)
         with tab_planeta:
-            st.caption("Interpretação associada ao planeta selecionado. Usa o nome do consulente quando disponível.")
+            st.caption("Interpretação associada ao planeta selecionado.")
             # resolver client_name do mesmo modo que na aba Signo
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
 
@@ -2500,6 +2500,13 @@ def main():
                 if not reading:
                     st.info("Nenhuma leitura encontrada para o planeta selecionado.")
                 else:
+                    # garantir que reading contenha o nome do consulente para geradores/templates
+                    try:
+                        if isinstance(reading, dict) and not reading.get("name"):
+                            reading["name"] = client_name
+                    except Exception:
+                        pass
+
                     # rótulos
                     planet_label = (
                         influences.CANONICAL_TO_PT.get(canonical_selected)
@@ -2548,37 +2555,43 @@ def main():
                                     return {"name": str(arc), "arcano": str(arc), "text": ""}, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
                             return None, reading_obj.get("suggestions") or reading_obj.get("keywords") or []
 
-                        # tentar obter arcano usando o client_name quando chamando o gerador (se necessário)
-                        # (isso não altera a leitura persistida, apenas garante que o texto use o nome)
+                        # tentar extrair do reading persistido
                         arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
 
                         # se arc_struct ausente ou sem texto, tentar gerar texto dinâmico passando client_name
                         if (not arc_struct or not arc_struct.get("text")) and interpretations and hasattr(interpretations, "arcano_for_planet"):
                             try:
-                                # usar wrapper seguro se disponível
+                                # chamar wrapper seguro quando disponível
+                                arc_res = None
                                 if hasattr(interpretations, "safe_arcano_for_planet"):
+                                    # safe wrapper normalmente não aceita name, mas retorna texto consistente
                                     arc_res = interpretations.safe_arcano_for_planet(summary, selected_raw)
                                 else:
-                                    arc_res = interpretations.arcano_for_planet(summary, selected_raw)
-                                # se o gerador aceitar parâmetro name, tente passá-lo (defensivo)
+                                    # tentar passar name defensivamente
+                                    try:
+                                        arc_res = interpretations.arcano_for_planet(summary, selected_raw, name=client_name)
+                                    except TypeError:
+                                        arc_res = interpretations.arcano_for_planet(summary, selected_raw)
                                 if isinstance(arc_res, dict):
-                                    # preferir texto gerado pelo gerador e usar client_name no template se aplicável
                                     text = arc_res.get("text") or arc_res.get("interpretation") or ""
-                                    name_from_res = arc_res.get("planet") or None
-                                    # atualizar arc_struct local sem sobrescrever persistido
+                                    # formatar templates que contenham {name}
+                                    try:
+                                        if isinstance(text, str) and "{name}" in text:
+                                            text = text.format(name=client_name)
+                                    except Exception:
+                                        pass
                                     arc_struct = {
-                                        "name": arc_res.get("name") or arc_struct.get("name") if arc_struct else None,
+                                        "name": arc_res.get("name") or (arc_struct.get("name") if arc_struct else None),
                                         "arcano": arc_res.get("arcano") or (arc_struct.get("arcano") if arc_struct else None),
                                         "text": text
                                     }
-                                    # tentar extrair keywords
                                     kw = arc_res.get("keywords") or arc_res.get("tags") or []
                                     if kw and not suggestions:
                                         suggestions = kw
                             except Exception:
                                 logger.debug("Gerador de arcano dinâmico falhou", exc_info=True)
 
-                        # exibir arcano legível                        
+                        # exibir arcano legível
                         if arc_struct and arc_struct.get("name"):
                             st.write(arc_struct["name"])
                         elif arc_struct and arc_struct.get("arcano"):
@@ -2595,7 +2608,7 @@ def main():
 
                         # Interpretação longa / texto do arcano (preferir reading, depois arc_struct.text)
                         long_text = reading.get("interpretation_long") or (arc_struct.get("text") if arc_struct else "")
-                        # se o texto for template que precisa do nome, formatar com client_name quando aplicável
+                        # formatar com client_name quando aplicável
                         try:
                             if isinstance(long_text, str) and "{name}" in long_text:
                                 long_text = long_text.format(name=client_name)
@@ -2612,6 +2625,7 @@ def main():
                                 st.write(f"- {k}")
                         else:
                             st.write("Nenhuma sugestão prática disponível.")
+
 
         #Signo
         with tab_signo:
@@ -2639,7 +2653,7 @@ def main():
                 else:
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
-                        with st.expander(f"**{display_sign}**"):
+                        with st.expander(f"**{display_sign}**"): #trazer também a keyword para o título do expander de analysis.py
                             try:
                                 arc_res = interpretations.arcano_for_sign(raw_sign, name=client_name) if interpretations and hasattr(interpretations, "arcano_for_sign") else {"error": "serviço de arcano não disponível"}
                             except Exception as e:
@@ -2652,7 +2666,7 @@ def main():
                                     st.write("Interpretação não disponível para este signo no momento.")
                                 else:
                                     st.write(text)
-
+                                    #trazer também a interpretation_short, como na aba planeta
     # -------------------------
     # Integração: Leitura Sintética (painel esquerdo) e Interpretação Astrológica (painel central)
     # Inserir ao final do bloco de UI já existente, após a construção das colunas
