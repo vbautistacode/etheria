@@ -642,12 +642,12 @@ def render_wheel_plotly(
             bgcolor = "#dcdcdc"           # fundo cinza
             text_color = "#000000"        # texto preto
             # padding aproximado em pixels (aumente para badges maiores)
-            pad_px = int(6 * text_scale)
+            pad_px = int(4 * text_scale)
             # estimativa de largura do badge baseada no comprimento do texto
-            approx_char_width = 7 * text_scale
-            badge_size = max(18, int((len(label) * approx_char_width) + pad_px * 2))
+            approx_char_width = 6 * text_scale
+            badge_size = max(14, int((len(label) * approx_char_width) + pad_px * 2))
             # garantir tamanho razoável para mobile/desktop
-            badge_size = min(max(badge_size, 20), 160)
+            badge_size = min(max(badge_size, 18), 130)
 
             fig.add_trace(go.Scatterpolar(
                 r=[sign_label_r],
