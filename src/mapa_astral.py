@@ -731,7 +731,7 @@ def render_wheel_plotly(
                     ))
 
                     # rótulo do número da casa no meio do setor (midpoint calculado com wrap seguro)
-                    mid = (start + span / 1.10) % 360.0
+                    mid = (start + span / 1.50) % 360.0
                     theta_mid = lon_to_theta(mid)
                     house_label = str(i + 1)
                     fig.add_trace(go.Scatterpolar(
