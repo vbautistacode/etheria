@@ -2296,7 +2296,7 @@ def main():
 
         #Signo
         with tabs[1]:
-            st.caption("Interpretação associada ao signo onde o planeta está posicionado. Se não há planeta no signo, não há influência")
+            st.caption("Interpretação associada ao signo onde o planeta está posicionado. Se não há planeta no signo, não há influência direta.")
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
