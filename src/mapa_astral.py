@@ -657,8 +657,8 @@ def render_wheel_plotly(
             cy = math.sin(angle_rad)
 
             # parâmetros ajustáveis
-            edge_threshold = 0.90        # quão "próximo da borda" considerar extremo (0..1)
-            max_delta_r = 0.10           # deslocamento máximo para dentro em unidades de raio
+            sedge_threshold = 3.90        # quão "próximo da borda" considerar extremo (0..1)
+            max_delta_r = 1.10           # deslocamento máximo para dentro em unidades de raio
             min_badge_scale = 0.70       # escala mínima do badge em extremos
 
             # calcular fator de extremidade (0..1)
