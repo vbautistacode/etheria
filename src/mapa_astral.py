@@ -2248,6 +2248,8 @@ def main():
                 )
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
+                st.markdown("**Resumo**")
+                st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
                 # EXPANDER: toda a interpretação fica aqui (evita duplicações)
                 with st.expander("Interpretação", expanded=False):
@@ -2268,8 +2270,8 @@ def main():
                         st.write("— Nenhum arcano associado ao planeta —")
 
                     # Interpretação longa
-                    st.markdown("**Resumo**")
-                    st.write(reading.get("interpretation_long") or "Resumo não disponível.")
+                    st.markdown("**O que é**")
+                    st.write(reading.get("interpretation_long") or "Interpretação não disponível.")
 
                     # Sugestões práticas: preferir keywords do arcano do planeta
                     st.markdown("**Sugestões práticas**")
@@ -2294,6 +2296,7 @@ def main():
 
         #Signo
         with tabs[1]:
+            st.caption("Interpretação associada ao signo onde o planeta está posicionado. Se não há planeta no signo, não há influência")
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
                 st.info("Resumo do mapa não disponível. Gere o mapa antes de ver a influência por signo.")
