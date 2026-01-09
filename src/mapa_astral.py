@@ -2696,7 +2696,7 @@ def main():
                         # montar sufixo com até duas expressões
                         kw_suffix = ""
                         if keyword_labels:
-                            kw_suffix = " — " + " / ".join(keyword_labels[:2])
+                            kw_suffix = " : " + " - ".join(keyword_labels[:2])
 
                         expander_title = f"**{display_sign}{kw_suffix}**"
 
