@@ -2486,8 +2486,8 @@ def main():
                 # EXPANDER: toda a interpretação fica aqui
                 with st.expander("Interpretação", expanded=False):
                     # Arcano do planeta
-                    st.markdown("**Arcano correspondente ao planeta**")
-                    arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
+                    #st.markdown("**Arcano correspondente ao planeta**")
+                    #arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
                     logger.debug("Arcano extraído: %r ; sugestões iniciais: %r", arc_struct, suggestions)
 
                     if arc_struct and arc_struct.get("name"):
