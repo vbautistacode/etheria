@@ -207,6 +207,8 @@ BASE_TEMPLATES: Dict[str, Dict[str, str]] = {
 
 # correlação Signo -> Arcano (usar nomes em português; normalização aplicada)
 SIGN_TO_ARCANO = {
+    "sol": "22",
+    "sun": "22",
     "aries": "5",
     "touro": "6",
     "gemeos": "7",
