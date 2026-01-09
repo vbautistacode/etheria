@@ -2455,6 +2455,7 @@ def main():
 
         # Planeta tab
         with tab_planeta:
+            client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if reading:
                 planet_label = (
                     influences.CANONICAL_TO_PT.get(canonical_selected)
