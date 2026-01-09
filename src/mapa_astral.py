@@ -880,7 +880,7 @@ def render_wheel_plotly(
             fig.add_trace(go.Scatterpolar(
                 r=[planet_r] * len(thetas),
                 theta=thetas,
-                mode="markers",
+                mode="markers+text",
                 marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
                 text=symbol_texts,
                 textposition="middle center",
@@ -2301,7 +2301,7 @@ def main():
                         fig.add_trace(go.Scatterpolar(
                             r=[1.0],
                             theta=[theta_sel],
-                            mode="markers",
+                            mode="markers+text",
                             marker=dict(size=22, color="#b45b1f", line=dict(color="#000", width=0.5)),
                             text=[display_text],
                             textfont=dict(size=12, color="#000"),
