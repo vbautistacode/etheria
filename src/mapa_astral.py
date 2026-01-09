@@ -715,8 +715,8 @@ def render_wheel_plotly(
             cusps_sorted = raw_cusps
 
             # opções visuais para casas (fallback)
-            house_fill_colors = ["rgba(220,230,255,0.14)", "rgba(230,245,230,0.10)"]
-            house_border_color = "rgba(80,80,80,0.18)"
+            house_fill_colors = ["rgba(220,230,255,0.30)", "rgba(230,245,230,0.30)"]
+            house_border_color = "rgba(80,80,80,0.30s)"
 
             # mapear planetas para casas
             planets_in_house = {i: [] for i in range(12)}
@@ -768,9 +768,9 @@ def render_wheel_plotly(
                             base_hex = blend_colors_hex(planet_hexes) or colors.get("default")
                         try:
                             r, g, b = hex_to_rgb(base_hex)
-                            house_fill = f"rgba({r},{g},{b},0.18)"
+                            house_fill = f"rgba({r},{g},{b},0.22)"
                         except Exception:
-                            house_fill = "rgba(200,200,200,0.12)"
+                            house_fill = "rgba(200,200,200,0.22)"
                     else:
                         house_fill = house_fill_colors[i % len(house_fill_colors)]
 
@@ -881,7 +881,7 @@ def render_wheel_plotly(
                 r=[planet_r] * len(thetas),
                 theta=thetas,
                 mode="markers+text",
-                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
+                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#ffffff", width=1)),
                 text=symbol_texts,
                 textposition="middle center",
                 hovertext=hover_texts,
