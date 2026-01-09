@@ -2524,7 +2524,7 @@ def main():
                     st.info("Nenhuma leitura pré-gerada encontrada. Vá para a aba 'Signo' para gerar a interpretação automática.")
 
         #Signo
-        with tabs[1]:
+        with tab_signo:
             st.caption("Interpretação associada ao signo onde o planeta está posicionado. Se não há planeta no signo, não há influência direta.")
             client_name = st.session_state.get("name") or (summary.get("name") if summary else "Consulente")
             if not summary:
