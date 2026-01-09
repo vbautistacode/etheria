@@ -1406,13 +1406,29 @@ def main():
 
             source = "swisseph"
             st.session_state["source"] = source
+            # Campo para Data e Hora de nascimento + outras opções
+            from datetime import datetime, date
+            import plotly.express as px
 
-            bdate = st.date_input(
-                "Data de nascimento",
-                value=st.session_state.get("bdate", date(1990, 1, 1)),
-                min_value=date(1900, 1, 1),
-                max_value=date(2100, 12, 31)
-            )
+            # CSS (cole uma vez)
+            st.markdown("""<style>.block-container{max-width:1100px;} input[type="date"]{font-size:0.95rem;padding:8px;}</style>""", unsafe_allow_html=True)
+
+            # entrada de data (texto forçando DD/MM/YYYY)
+            raw = st.text_input("Data de nascimento (DD/MM/YYYY)", value=st.session_state.get("birthdate_raw",""))
+            bdate = None
+            if raw:
+                try:
+                    bdate = datetime.strptime(raw.strip(), "%d/%m/%Y").date()
+                    st.success("Data válida: " + bdate.strftime("%d/%m/%Y"))
+                except Exception:
+                    st.error("Formato inválido. Use DD/MM/YYYY.")
+
+            # gráfico de exemplo com tamanho controlado
+            df = px.data.iris()
+            fig = px.scatter(df, x="sepal_width", y="sepal_length")
+            fig.update_layout(width=1000, height=520)
+            st.plotly_chart(fig, use_container_width=False)
+
             btime_free = st.text_input("Hora de nascimento (ex.: 14:30)", value=st.session_state.get("btime_text", ""))
             st.session_state["house_system"] = st.session_state.get("house_system", "P")
             #use_ai = st.checkbox("Usar IA para interpretações?", value=st.session_state.get("use_ai", False))
