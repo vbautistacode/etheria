@@ -2349,11 +2349,14 @@ def main():
                     st.session_state["selected_planet"] = sel_raw
 
                 # criar selectbox usando o valor já presente em session_state (evita conflito)
+                # preparar índice inicial com segurança
                 try:
-                    idx = label_list.index(st.session_state.get("planet_selectbox")) if st.session_state.get("planet_selectbox") in label_list else 0
+                    current_label = st.session_state.get("planet_selectbox")
+                    idx = label_list.index(current_label) if (current_label in label_list) else 0
                 except Exception:
                     idx = 0
 
+                # criar selectbox (on_change continua útil para interações do usuário)
                 st.selectbox(
                     "Selecionar planeta",
                     label_list,
@@ -2361,9 +2364,70 @@ def main():
                     key="planet_selectbox",
                     on_change=_on_select_planet
                 )
-            else:
-                st.info("Nenhum planeta disponível para seleção.")
-    
+
+                # --- garantir que a leitura do planeta selecionado exista logo na carga ---
+                try:
+                    # rótulo atualmente selecionado no selectbox (pode vir do session_state)
+                    selected_label = st.session_state.get("planet_selectbox") or label_list[idx]
+
+                    # mapear label para a chave "raw" usada nas leituras (ajuste conforme seu mapping)
+                    try:
+                        # se você tem um helper para canonicalizar
+                        selected_raw = influences.to_canonical(selected_label) if influences and hasattr(influences, "to_canonical") else selected_label
+                    except Exception:
+                        selected_raw = selected_label
+
+                    # checar se já existe leitura persistida
+                    readings_map = (summary.get("readings") or {}) if isinstance(summary, dict) else {}
+                    has_reading = False
+                    # verificar por várias formas (canônico, label, case-insensitive)
+                    if selected_raw in readings_map:
+                        has_reading = True
+                    else:
+                        # tentar label literal
+                        if selected_label in readings_map:
+                            has_reading = True
+                            selected_raw = selected_label
+                        else:
+                            # case-insensitive
+                            try:
+                                key_map = {str(k).lower(): k for k in readings_map.keys()}
+                                k = key_map.get(str(selected_raw).lower())
+                                if k:
+                                    has_reading = True
+                                    selected_raw = k
+                            except Exception:
+                                pass
+
+                    # se não houver leitura, gerar agora (mesma lógica do on_change)
+                    if not has_reading:
+                        try:
+                            # chamar a função que gera e persiste a leitura
+                            result = find_or_generate_and_save_reading(summary, selected_raw)
+                            # se a função retornar (reading, save_key) ou apenas reading, normalizar
+                            if isinstance(result, tuple) and len(result) == 2:
+                                generated, save_key = result
+                            else:
+                                generated = result
+                                save_key = None
+                            # garantir persistência no summary e session_state
+                            if isinstance(generated, dict):
+                                try:
+                                    save_key = save_key or selected_raw
+                                    if not isinstance(summary.get("readings"), dict):
+                                        summary["readings"] = {}
+                                    summary["readings"].setdefault(save_key, {}).update(generated)
+                                    # também manter sob selected_label para compatibilidade
+                                    summary["readings"].setdefault(selected_label, {}).update(generated)
+                                    st.session_state["map_summary"] = summary
+                                except Exception:
+                                    logger.exception("Falha ao persistir leitura gerada automaticamente")
+                        except Exception:
+                            logger.exception("Erro ao gerar leitura inicial para o planeta selecionado")
+                except Exception:
+                    logger.exception("Erro ao inicializar seleção de planeta")
+
+                    
     # RIGHT: interpretations and arcanos (refatorado)
     with right_col:
         st.subheader("Interpretação dos Arcanos")
