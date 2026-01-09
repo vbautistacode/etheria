@@ -565,12 +565,10 @@ def render_wheel_plotly(
     intercepted_signs = [i for i, cnt in enumerate(sign_cusp_counts) if cnt == 0]
 
     # parâmetros visuais
-    inner_r = 0.56          # planetas mais internos (antes 0.60)
+    inner_r = 0.56
     outer_r = 1.00
     label_r = 1.12
-    # raio onde os planetas serão desenhados (mais interno que outer_r)
-    planet_r = inner_r + (outer_r - inner_r) * 0.64  # ~0.64
-    # rótulo das casas (um pouco mais interno para evitar sobreposição com símbolos)
+    planet_r = inner_r + (outer_r - inner_r) * 0.64
     house_label_r = outer_r - 0.16 if house_label_position == "inner" else outer_r + 0.06
     cusp_r0 = inner_r
     cusp_r1 = outer_r + 0.05
@@ -580,35 +578,31 @@ def render_wheel_plotly(
     base_sign_colors = ["#e7edff", "#eff9ff"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
-    # desenhar setores de signo (refatorado) - sem badges, apenas texto para rótulos
+    # desenhar setores de signo (sem badges, sem labels na borda)
     def draw_sign_sectors(fig, inner_r, outer_r, intercepted_signs, base_sign_colors,
                         intercepted_fill, lon_to_theta, sign_labels_pt, text_scale,
                         sign_label_r=None, steps=24):
         if sign_label_r is None:
-            sign_label_r = inner_r + (outer_r - inner_r) * 0.12  # rótulo mais para o lado interno
+            sign_label_r = inner_r + (outer_r - inner_r) * 0.12
 
         for s_idx in range(12):
             sign_start = (s_idx * 30.0) % 360.0
             sign_end = (sign_start + 30.0) % 360.0
-            # construir pontos do arco externo (start -> end) e interno (end -> start)
             thetas = []
             rs = []
 
-            # arco externo do setor
             for k in range(steps + 1):
                 frac = k / steps
                 lon = (sign_start + frac * 30.0) % 360.0
                 thetas.append(lon_to_theta(lon))
                 rs.append(outer_r)
 
-            # arco interno (volta) do setor
             for k in range(steps, -1, -1):
                 frac = k / steps
                 lon = (sign_start + frac * 30.0) % 360.0
                 thetas.append(lon_to_theta(lon))
                 rs.append(inner_r)
 
-            # escolher cor de preenchimento
             fillcolor = intercepted_fill if s_idx in (intercepted_signs or []) else base_sign_colors[s_idx % len(base_sign_colors)]
 
             fig.add_trace(go.Scatterpolar(
@@ -622,26 +616,9 @@ def render_wheel_plotly(
                 showlegend=False
             ))
 
-            # rótulo do signo: centro do setor (start + 15°), posicionado mais internamente
-            center_lon = (sign_start + 15.0) % 360.0
-            theta_center = lon_to_theta(center_lon)
-            label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
-            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
-            text_label = f"{symbol} {label}{label_suffix}".strip()
+            # OBSERVAÇÃO: rótulos dos signos na borda foram removidos conforme solicitado.
+            # Mantemos apenas os setores; os rótulos dos signos não são adicionados aqui.
 
-            # desenhar apenas o texto (sem badge)
-            fig.add_trace(go.Scatterpolar(
-                r=[sign_label_r],
-                theta=[theta_center],
-                mode="text",
-                text=[text_label],
-                textfont=dict(size=int(10 * text_scale), color="#111111", family="sans-serif"),
-                hoverinfo="none",
-                showlegend=False
-            ))
-
-    # chamada (exemplo) — ajuste variáveis conforme seu contexto
     draw_sign_sectors(
         fig=fig,
         inner_r=inner_r,
@@ -650,13 +627,13 @@ def render_wheel_plotly(
         base_sign_colors=base_sign_colors,
         intercepted_fill=intercepted_fill,
         lon_to_theta=lon_to_theta,
-        sign_labels_pt=sign_labels_pt,  # sua lista de rótulos em PT
+        sign_labels_pt=sign_labels_pt,
         text_scale=text_scale,
-        sign_label_r=inner_r + (outer_r - inner_r) * 0.08,  # rótulos ainda mais internos se desejar
+        sign_label_r=inner_r + (outer_r - inner_r) * 0.08,
         steps=24
     )
 
-    # --- helpers para colorir casas com cores dos planetas ---
+    # helpers para colorir casas com cores dos planetas
     def hex_to_rgb(h):
         h = (h or "").lstrip("#")
         if len(h) == 3:
@@ -695,9 +672,7 @@ def render_wheel_plotly(
                     return idx
         return int(lon // 30) % 12
 
-    # --- REMOVIDA a demarcação por linhas de cúspide ---
-    # Em vez de desenhar apenas as linhas de cusp, desenhamos setores de casa
-    # (áreas entre cada cusp) e colorimos conforme planetas presentes.
+    # desenhar setores de casa coloridos conforme planetas
     if valid_cusps and len(valid_cusps) >= 12:
         raw_cusps = [float(c) % 360.0 for c in valid_cusps[:12]]
 
@@ -714,11 +689,9 @@ def render_wheel_plotly(
         else:
             cusps_sorted = raw_cusps
 
-            # opções visuais para casas (fallback)
             house_fill_colors = ["rgba(220,230,255,0.14)", "rgba(230,245,230,0.10)"]
             house_border_color = "rgba(80,80,80,0.18)"
 
-            # mapear planetas para casas
             planets_in_house = {i: [] for i in range(12)}
             for pname, lon in valid_planets.items():
                 try:
@@ -736,7 +709,6 @@ def render_wheel_plotly(
                         logger.debug("Pulando setor degenerado da casa %s (span muito pequeno: %s°)", i + 1, span)
                         continue
 
-                    # construir anel (outer_r .. inner_r) para o setor da casa
                     steps = 18
                     thetas = []
                     rs = []
@@ -751,7 +723,6 @@ def render_wheel_plotly(
                         thetas.append(lon_to_theta(lon))
                         rs.append(inner_r)
 
-                    # determinar cor da casa a partir dos planetas presentes
                     members = planets_in_house.get(i, []) or []
                     house_fill = None
                     if members:
@@ -774,8 +745,6 @@ def render_wheel_plotly(
                     else:
                         house_fill = house_fill_colors[i % len(house_fill_colors)]
 
-                    # evitar desenhar borda visível entre casa 12 e 1: se i == 11 (última casa),
-                    # usar linha width 0 para suavizar a junção
                     line_width = 0.6
                     if i == len(cusps_sorted) - 1:
                         line_width = 0.10
@@ -791,7 +760,6 @@ def render_wheel_plotly(
                         showlegend=False
                     ))
 
-                    # rótulo do número da casa no meio do setor (midpoint calculado com wrap seguro)
                     mid = (start + span) % 360.0
                     theta_mid = lon_to_theta(mid)
                     house_label = str(i + 1)
@@ -810,28 +778,10 @@ def render_wheel_plotly(
     else:
         logger.debug("Nenhum cusp válido para desenhar setores de casa: %s", valid_cusps)
 
-    # rótulos dos signos no anel externo (com símbolo) - mantidos como texto simples
-    for s_idx in range(12):
-        try:
-            sign_mid_lon = (s_idx * 30.0 + 15.0) % 360.0
-            theta = lon_to_theta(sign_mid_lon)
-            label = sign_labels_pt[s_idx] if s_idx < len(sign_labels_pt) else canonical_signs[s_idx]
-            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
-            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
-            text_label = f"{symbol} {label}{label_suffix}"
-            fig.add_trace(go.Scatterpolar(
-                r=[label_r],
-                theta=[theta],
-                mode="text",
-                text=[text_label],
-                textfont=dict(size=12 * text_scale, color="#333333"),
-                hoverinfo="none",
-                showlegend=False
-            ))
-        except Exception:
-            continue
+    # rótulos dos signos na borda foram removidos conforme solicitado.
+    # (Não adicionamos traces de texto para os signos no anel externo.)
 
-    # adicionar planetas
+    # adicionar planetas (marcadores externos sem label) e símbolos agrupados por casa
     ordered = sorted(valid_planets.items(), key=lambda kv: kv[1])
     names = []
     thetas = []
@@ -875,21 +825,78 @@ def render_wheel_plotly(
         marker_colors.append(color)
         text_colors.append(color)
 
-        # adicionar planetas (usar planet_r para posicionamento radial)
+    # desenhar apenas marcadores externos (sem texto)
+    try:
+        fig.add_trace(go.Scatterpolar(
+            r=[planet_r] * len(thetas),
+            theta=thetas,
+            mode="markers",
+            marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
+            hovertext=hover_texts,
+            hoverinfo="text",
+            showlegend=False
+        ))
+    except Exception as e:
+        logger.exception("Erro ao adicionar trace de planetas: %s", e)
+
+    # agrupar símbolos por casa e desenhar no interior de cada setor
+    def planet_to_house_index(lon_deg, cusps_sorted=None):
+        lon = float(lon_deg) % 360.0
+        if cusps_sorted and len(cusps_sorted) >= 12:
+            for idx in range(len(cusps_sorted)):
+                start = float(cusps_sorted[idx]) % 360.0
+                end = float(cusps_sorted[(idx + 1) % 12]) % 360.0
+                span = (end - start) % 360.0
+                diff = (lon - start) % 360.0
+                if diff >= 0 and diff < span:
+                    return idx
+        return int(lon // 30) % 12
+
+    planets_in_house = {i: [] for i in range(12)}
+    for pname, lon in valid_planets.items():
         try:
+            hidx = planet_to_house_index(lon, cusps_sorted if 'cusps_sorted' in locals() else None)
+            sym = planet_symbols.get(pname) or planet_symbols.get(pname.capitalize()) or (pname[:2] if pname else pname)
+            planets_in_house.setdefault(hidx, []).append(sym)
+        except Exception:
+            continue
+
+    for i in range(12):
+        try:
+            if 'cusps_sorted' in locals() and len(cusps_sorted) >= 12:
+                start = float(cusps_sorted[i]) % 360.0
+                end = float(cusps_sorted[(i + 1) % 12]) % 360.0
+                span = (end - start) % 360.0
+                mid = (start + span / 2.0) % 360.0
+            else:
+                mid = (i * 30.0 + 15.0) % 360.0
+
+            theta_mid = lon_to_theta(mid)
+            syms = planets_in_house.get(i) or []
+            if not syms:
+                continue
+
+            if len(syms) <= 4:
+                text_sym = " ".join(syms)
+            else:
+                half = (len(syms) + 1) // 2
+                text_sym = " ".join(syms[:half]) + "<br>" + " ".join(syms[half:])
+
+            inner_text_r = house_label_r - 0.06
+            inner_text_r = max(inner_r + 0.02, inner_text_r)
+
             fig.add_trace(go.Scatterpolar(
-                r=[planet_r] * len(thetas),
-                theta=thetas,
-                mode="markers+text",
-                marker=dict(size=[max(6, int(ms)) for ms in marker_sizes], color=marker_colors, line=dict(color="#222", width=1)),
-                text=symbol_texts,
-                textposition="middle center",
-                hovertext=hover_texts,
-                hoverinfo="text",
+                r=[inner_text_r],
+                theta=[theta_mid],
+                mode="text",
+                text=[text_sym],
+                textfont=dict(size=int(12 * text_scale), color="#111111", family="sans-serif"),
+                hoverinfo="none",
                 showlegend=False
             ))
-        except Exception as e:
-            logger.exception("Erro ao adicionar trace de planetas: %s", e)
+        except Exception:
+            logger.exception("Erro ao adicionar símbolos no interior da casa %s", i + 1)
+            continue
 
     try:
         fig.update_layout(
