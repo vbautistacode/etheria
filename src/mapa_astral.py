@@ -2652,42 +2652,53 @@ def main():
                 if not sign_map:
                     st.info("Nenhum signo detectado no mapa.")
                 else:
+                    # dentro de with tab_signo: substitua o loop existente por este
                     for norm, raw_sign in sign_map.items():
                         display_sign = str(raw_sign).strip()
 
-                        # tentar obter keyword representativa (defensivo)
-                        keyword_label = None
+                        # tentar obter até duas keywords representativas (defensivo)
+                        keyword_labels: List[str] = []
                         try:
-                            # 1) services_analysis pode conter mapeamento com keywords para signos
+                            # 1) services_analysis (mapa estático)
                             if 'services_analysis' in globals() and services_analysis and hasattr(services_analysis, "PLANET_ARCANO"):
-                                # tentar chaves variadas: raw, norm, capitalized
                                 sa_map = getattr(services_analysis, "PLANET_ARCANO", {}) or {}
-                                # checar várias formas
                                 candidates = [display_sign, str(norm), str(norm).capitalize()]
                                 for c in candidates:
-                                    if c in sa_map and isinstance(sa_map[c], dict):
-                                        kws = sa_map[c].get("keywords") or []
-                                        if kws:
-                                            keyword_label = kws[0]
-                                            break
-                            # 2) fallback: tentar extrair de interpretations.arcano_for_sign (se retornar keywords)
-                            if not keyword_label and interpretations and hasattr(interpretations, "arcano_for_sign"):
+                                    entry = sa_map.get(c)
+                                    if isinstance(entry, dict):
+                                        kws = entry.get("keywords") or []
+                                        for kw in kws:
+                                            if kw and kw not in keyword_labels:
+                                                keyword_labels.append(kw)
+                                            if len(keyword_labels) >= 2:
+                                                break
+                                    if len(keyword_labels) >= 2:
+                                        break
+
+                            # 2) fallback: pedir ao generator por um preview curto que contenha keywords
+                            if len(keyword_labels) < 2 and interpretations and hasattr(interpretations, "arcano_for_sign"):
                                 try:
-                                    arc_preview = interpretations.arcano_for_sign(raw_sign, name=client_name, length="short")
-                                    if isinstance(arc_preview, dict):
-                                        kw = arc_preview.get("keywords") or arc_preview.get("tags") or []
-                                        if kw:
-                                            keyword_label = kw[0]
+                                    preview = interpretations.arcano_for_sign(raw_sign, name=client_name, length="short")
+                                    if isinstance(preview, dict):
+                                        # algumas implementações retornam 'keywords' ou 'tags'
+                                        kws = preview.get("keywords") or preview.get("tags") or []
+                                        for kw in kws:
+                                            if kw and kw not in keyword_labels:
+                                                keyword_labels.append(kw)
+                                            if len(keyword_labels) >= 2:
+                                                break
                                 except Exception:
                                     pass
                         except Exception:
-                            # não falhar por causa da keyword
-                            keyword_label = None
+                            # não falhar por causa da extração de keywords
+                            keyword_labels = keyword_labels[:2]
 
-                        # montar título do expander incluindo keyword quando disponível
-                        expander_title = f"**{display_sign}**"
-                        if keyword_label:
-                            expander_title = f"**{display_sign} — {keyword_label}**"
+                        # montar sufixo com até duas expressões
+                        kw_suffix = ""
+                        if keyword_labels:
+                            kw_suffix = " — " + " / ".join(keyword_labels[:2])
+
+                        expander_title = f"**{display_sign}{kw_suffix}**"
 
                         with st.expander(expander_title):
                             try:
@@ -2700,7 +2711,6 @@ def main():
                                     try:
                                         arc_short = interpretations.arcano_for_sign(raw_sign, name=client_name, length="short")
                                     except TypeError:
-                                        # se a função não aceitar length, reutilizar arc_long as fallback
                                         arc_short = arc_long or {}
                                 else:
                                     arc_long = {"error": "serviço de arcano não disponível"}
@@ -2709,23 +2719,34 @@ def main():
                                 arc_long = {"error": str(e)}
                                 arc_short = {"error": str(e)}
 
-                            # tratar erros
                             if arc_long.get("error"):
                                 st.warning("Não foi possível gerar interpretação por signo: " + str(arc_long.get("error")))
                                 continue
 
-                            # exibir resumo curto (quando disponível)
-                            short_text = arc_short.get("text") or arc_short.get("short") or ""
+                            # exibir resumo curto (interpretation_short) quando disponível
+                            short_text = arc_short.get("text") or arc_short.get("short") or arc_short.get("interpretation_short") or ""
                             if short_text and short_text.strip():
                                 st.markdown("**Resumo**")
+                                # formatar com nome do consulente se necessário
+                                try:
+                                    if "{name}" in short_text:
+                                        short_text = short_text.format(name=client_name)
+                                except Exception:
+                                    pass
                                 st.write(short_text)
+
                             # exibir texto longo
-                            long_text = arc_long.get("text") or arc_long.get("long") or ""
-                            if not long_text.strip():
-                                st.write("Interpretação não disponível para este signo no momento.")
-                            else:
+                            long_text = arc_long.get("text") or arc_long.get("long") or arc_long.get("interpretation") or ""
+                            if long_text and long_text.strip():
                                 st.markdown("**Interpretação**")
+                                try:
+                                    if "{name}" in long_text:
+                                        long_text = long_text.format(name=client_name)
+                                except Exception:
+                                    pass
                                 st.write(long_text)
+                            else:
+                                st.write("Interpretação não disponível para este signo no momento.")
 
     # -------------------------
     # Integração: Leitura Sintética (painel esquerdo) e Interpretação Astrológica (painel central)
