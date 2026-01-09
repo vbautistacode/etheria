@@ -645,7 +645,15 @@ def render_wheel_plotly(
             text_label = f"{symbol} {label}{label_suffix}".strip()
 
             import math
-            # Aparência do badge (fundo) e do texto
+            # --- rótulo do signo com badge de fundo (mantém símbolo + nome) ---
+            center_lon = (sign_start + 15.0) % 360.0
+            theta_center = lon_to_theta(center_lon)
+            label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
+            symbol = sign_symbols[s_idx] if s_idx < len(sign_symbols) else ""
+            label_suffix = " (Int)" if s_idx in intercepted_signs else ""
+            text_label = f"{symbol} {label}{label_suffix}".strip()
+
+            # aparência base
             bgcolor = "#dcdcdc"
             text_color = "#000000"
             pad_px = int(4 * text_scale)
@@ -654,36 +662,31 @@ def render_wheel_plotly(
             badge_size = int(est_chars * approx_char_width + pad_px * 2)
             badge_size = max(14, min(badge_size, 140))
 
-            # --- detectar se o rótulo está em uma "extremidade" (próximo às bordas do plot)
-            # converter center_lon para radianos no sistema padrão (0° = 0 rad, aumenta no sentido horário)
-            # lon_to_theta já inverteu o sentido; para cálculo trig usamos center_lon original
-            angle_rad = math.radians(center_lon)  # center_lon em graus (0..360)
-            # componentes cartesianas unitárias
+            # detectar extremidade usando trigonometria (center_lon em graus)
+            angle_rad = math.radians(center_lon)
             cx = math.cos(angle_rad)
             cy = math.sin(angle_rad)
 
-            # threshold para considerar "extremidade" (ajuste se necessário)
-            edge_threshold = 0.92  # valores próximos de 1.0 significam eixo X/Y quase alinhado com borda
+            # parâmetros ajustáveis
+            edge_threshold = 0.90        # quão "próximo da borda" considerar extremo (0..1)
+            max_delta_r = 0.10           # deslocamento máximo para dentro em unidades de raio
+            min_badge_scale = 0.70       # escala mínima do badge em extremos
 
-            # deslocamento radial em unidades de raio (ex.: 0.06 move para dentro)
-            delta_r = 0.06 * (1.0 if outer_r <= 1.5 else 1.0)
+            # calcular fator de extremidade (0..1)
+            ext_factor = max(0.0, (max(abs(cx), abs(cy)) - edge_threshold) / (1.0 - edge_threshold)) if edge_threshold < 1.0 else 0.0
+            ext_factor = max(0.0, min(ext_factor, 1.0))
 
-            # calcular label_r ajustado: se estiver muito à direita/esquerda/embaixo/cima, mover para dentro
-            adjusted_label_r = sign_label_r
-            # se estiver muito próximo do eixo X (direita/esquerda) ou Y (cima/baixo), reduzir radialmente
-            if abs(cx) >= edge_threshold or abs(cy) >= edge_threshold:
-                # mover para dentro proporcionalmente ao quão extremo é o ângulo
-                factor = max(abs(cx), abs(cy))
-                adjusted_label_r = sign_label_r - delta_r * (0.9 + 0.2 * (factor - edge_threshold) / (1.0 - edge_threshold))
-                # garantir limites razoáveis
-                adjusted_label_r = max(inner_r + 0.02, min(adjusted_label_r, outer_r + 0.12))
+            # ajustar raio do rótulo para evitar corte (move para dentro proporcionalmente)
+            adjusted_label_r = sign_label_r - (max_delta_r * ext_factor)
+            # garantir limites razoáveis
+            adjusted_label_r = max(inner_r + 0.02, min(adjusted_label_r, outer_r + 0.12))
 
-            # alternativa: reduzir badge_size para extremos (opcional)
-            if abs(cx) >= edge_threshold or abs(cy) >= edge_threshold:
-                badge_size = int(badge_size * 0.85)
-                badge_size = max(12, badge_size)
+            # reduzir badge quando muito extremo
+            if ext_factor > 0:
+                badge_size = int(badge_size * (1.0 - (1.0 - min_badge_scale) * ext_factor))
+                badge_size = max(10, badge_size)
 
-            # 1) badge (fundo)
+            # desenhar badge (fundo) como marcador quadrado
             fig.add_trace(go.Scatterpolar(
                 r=[adjusted_label_r],
                 theta=[lon_to_theta(center_lon)],
@@ -698,7 +701,7 @@ def render_wheel_plotly(
                 showlegend=False
             ))
 
-            # 2) texto sobre o badge
+            # desenhar texto sobre o badge
             fig.add_trace(go.Scatterpolar(
                 r=[adjusted_label_r],
                 theta=[lon_to_theta(center_lon)],
@@ -709,7 +712,6 @@ def render_wheel_plotly(
                 hoverinfo="none",
                 showlegend=False
             ))
-
 
     # chamada (exemplo) — ajuste variáveis conforme seu contexto
     draw_sign_sectors(
