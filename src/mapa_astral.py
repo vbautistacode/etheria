@@ -571,35 +571,87 @@ def render_wheel_plotly(
     base_sign_colors = ["#e7edff", "#eff9ff"]
     intercepted_fill = "rgba(255,200,200,0.25)"
 
-    # desenhar setores de signo
-    for s_idx in range(12):
-        sign_start = (s_idx * 30.0) % 360.0
-        steps = 36
-        thetas = []
-        rs = []
-        for k in range(steps + 1):
-            frac = k / steps
-            lon = (sign_start + frac * 30.0) % 360.0
-            theta = lon_to_theta(lon)
-            thetas.append(theta)
-            rs.append(outer_r)
-        for k in range(steps, -1, -1):
-            frac = k / steps
-            lon = (sign_start + frac * 30.0) % 360.0
-            theta = lon_to_theta(lon)
-            thetas.append(theta)
-            rs.append(inner_r)
-        fillcolor = intercepted_fill if s_idx in intercepted_signs else base_sign_colors[s_idx % 2]
-        fig.add_trace(go.Scatterpolar(
-            r=rs,
-            theta=thetas,
-            mode="lines",
-            fill="toself",
-            fillcolor=fillcolor,
-            line=dict(color="rgba(0,0,0,0)"),
-            hoverinfo="none",
-            showlegend=False
-        ))
+    # desenhar setores de signo (refatorado)
+    def draw_sign_sectors(fig, inner_r, outer_r, intercepted_signs, base_sign_colors,
+                        intercepted_fill, lon_to_theta, sign_labels_pt, text_scale,
+                        sign_label_r=None, steps=24):
+        """
+        Desenha 12 setores de signo em fig (Scatterpolar).
+        - inner_r, outer_r: raios interno/externo do anel de signos
+        - intercepted_signs: lista de índices (0..11) de signos interceptados
+        - base_sign_colors: lista de cores alternadas
+        - intercepted_fill: cor de preenchimento para interceptados
+        - lon_to_theta: função que converte longitude (0..360) em theta para Plotly
+        - sign_labels_pt: lista de 12 rótulos de signo em PT
+        - sign_label_r: raio para posicionar rótulos de signo (se None, calculado automaticamente)
+        - steps: resolução do arco (mais alto = mais suave)
+        """
+        if sign_label_r is None:
+            sign_label_r = inner_r + (outer_r - inner_r) * 0.12  # rótulo mais para o lado interno
+
+        for s_idx in range(12):
+            sign_start = (s_idx * 30.0) % 360.0
+            sign_end = (sign_start + 30.0) % 360.0
+            # construir pontos do arco externo (start -> end) e interno (end -> start)
+            thetas = []
+            rs = []
+
+            # arco externo do setor
+            for k in range(steps + 1):
+                frac = k / steps
+                lon = (sign_start + frac * 30.0) % 360.0
+                thetas.append(lon_to_theta(lon))
+                rs.append(outer_r)
+
+            # arco interno (volta) do setor
+            for k in range(steps, -1, -1):
+                frac = k / steps
+                lon = (sign_start + frac * 30.0) % 360.0
+                thetas.append(lon_to_theta(lon))
+                rs.append(inner_r)
+
+            # escolher cor de preenchimento
+            fillcolor = intercepted_fill if s_idx in (intercepted_signs or []) else base_sign_colors[s_idx % len(base_sign_colors)]
+
+            fig.add_trace(go.Scatterpolar(
+                r=rs,
+                theta=thetas,
+                mode="lines",
+                fill="toself",
+                fillcolor=fillcolor,
+                line=dict(color="rgba(0,0,0,0)"),
+                hoverinfo="none",
+                showlegend=False
+            ))
+
+            # rótulo do signo: centro do setor (start + 15°), posicionado mais internamente
+            center_lon = (sign_start + 15.0) % 360.0
+            theta_center = lon_to_theta(center_lon)
+            label = sign_labels_pt[s_idx] if sign_labels_pt and len(sign_labels_pt) == 12 else f"Signo {s_idx+1}"
+            fig.add_trace(go.Scatterpolar(
+                r=[sign_label_r],
+                theta=[theta_center],
+                mode="text",
+                text=[label],
+                textfont=dict(size=int(12 * text_scale), color="#222222"),
+                hoverinfo="none",
+                showlegend=False
+            ))
+
+    # chamada (exemplo) — ajuste variáveis conforme seu contexto
+    draw_sign_sectors(
+        fig=fig,
+        inner_r=inner_r,
+        outer_r=outer_r,
+        intercepted_signs=intercepted_signs,
+        base_sign_colors=base_sign_colors,
+        intercepted_fill=intercepted_fill,
+        lon_to_theta=lon_to_theta,
+        sign_labels_pt=sign_labels_pt,  # sua lista de rótulos em PT
+        text_scale=text_scale,
+        sign_label_r=inner_r + (outer_r - inner_r) * 0.08,  # rótulos ainda mais internos se desejar
+        steps=24
+    )
 
     # --- REMOVIDA a demarcação por linhas de cúspide ---
     # Em vez de desenhar apenas as linhas de cusp, desenhamos setores de casa
