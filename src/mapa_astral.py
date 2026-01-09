@@ -2480,13 +2480,12 @@ def main():
                 )
 
                 st.markdown(f"#### {planet_label} em {sign_label}")
-                st.markdown("**Resumo**")
+                st.markdown("**Arcano correspondente ao planeta**")
                 st.write(reading.get("interpretation_short") or "Resumo não disponível.")
 
                 # EXPANDER: toda a interpretação fica aqui
                 with st.expander("Interpretação", expanded=False):
                     # Arcano do planeta
-                    #st.markdown("**Arcano correspondente ao planeta**")
                     arc_struct, suggestions = _extract_arcano_and_suggestions(reading)
                     logger.debug("Arcano extraído: %r ; sugestões iniciais: %r", arc_struct, suggestions)
 
@@ -2505,7 +2504,7 @@ def main():
                         st.write("— Nenhum arcano associado ao planeta —")
 
                     # Interpretação longa / texto do arcano
-                    st.markdown("**O que é**")
+                    st.markdown("**O que é!?**")
                     long_text = reading.get("interpretation_long") or (arc_struct.get("text") if arc_struct else "")
                     st.write(long_text or "Interpretação não disponível.")
 
