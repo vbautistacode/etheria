@@ -65,11 +65,14 @@ SIGN_TO_PLANET = {
     "Leão": "Sol",
     "Virgem": "Mercúrio",
     "Libra": "Vênus",
-    "Escorpião": "Plutão/Marte",
+    "Escorpião": "Marte",
+    "Escorpião": "Plutão",
     "Sagitário": "Júpiter",
     "Capricórnio": "Saturno",
-    "Aquário": "Urano/Saturno",
-    "Peixes": "Netuno/Júpiter",
+    "Aquário": "Saturno",
+    "Aquário": "Urano",
+    "Peixes": "Júpiter",
+    "Peixes": "Netuno"
 }
 
 # Sugestões de pedras por signo (lista curta, baseada na tabela)
