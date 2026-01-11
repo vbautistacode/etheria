@@ -17,21 +17,39 @@ st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # --- Dados CSV Corrigidos e Incrementados ---
 CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
-"Turmalina Negra","Proteção","Escudo Energético","Bloqueia inveja e radiação.","Fumo/Terra","Sol/Terra"
-"Obsidiana","Proteção","Espelho da Alma","Revela verdades e corta laços.","Fumo/Terra","Sol ou Lua"
-"Pirita","Prosperidade","Ímã de Ouro","Atrai bens materiais e confiança.","Fumo","Sol"
-"Malachita","Transformação","Cura Profunda","Transmuta padrões e protege.","Fumo/Terra","Sol"
-"Selenita","Espiritualidade","Luz Líquida","Limpeza de outros cristais.","Fumo apenas","Lua"
+"Ágata Azul","Espiritualidade","Paz Interior","Acalma os nervos e suaviza as palavras.","Água/Sal","Lua"
+"Amazonita","Comunicação","Equilíbrio","Suaviza emoções e facilita expressão.","Água/Sal","Lua"
+"Ametista","Espiritualidade","Transmutação","Transmuta dor em paz e ajuda no sono.","Água/Fumo","Lua"
+"Aventurina","Prosperidade","Sorte e Oportunidade","Atrai sorte rápida e novas chances.","Água","Sol"
+"Celestina","Espiritualidade","Paz Angélica","Serenidade extrema e conexão com guias.","Fumo apenas","Lua"
+"Cianita Azul","Alinhamento","Comunicação","Alinha chakras sem necessidade de limpeza.","Autolimpante","Lua"
 "Citrino","Prosperidade","Abundância","Sucesso e alegria solar.","Autolimpante","Sol"
-"Lápis-Lazúli","Espiritualidade","Sabedoria","Comunicação com o eu superior.","Fumo","Lua"
+"Cornalina","Vitalidade","Fogo e Ação","Vence a preguiça e dá coragem física.","Água/Sal","Sol"
+"Esmeralda","Coração","Amor Sábio","Fortalece a lealdade e o equilíbrio.","Fumo/Água","Lua"
+"Fluorita","Clareza","Organização Mental","Ajuda concentração e ordena pensamentos.","Água","Sol ou Lua"
+"Granada (Carbúnculo)","Vitalidade","Regeneração","Revitaliza o corpo e desperta paixão.","Água (rápida)","Sol"
 "Hematita","Proteção","Aterramento","Foco, lógica e proteção pessoal.","Fumo","Sol"
-"Cianita Azul","Alinhamento","Espada de Miguel","Proteção e alinhamento instantâneo.","Autolimpante","Lua"
-"Ametista","Espiritualidade","Transmutação","Paz mental e intuição.","Água ou Fumo","Lua"
-"Quartzo Rosa","Coração","Amor Incondicional","Cura emocional e autoaceitação.","Água/Sal","Lua"
-"Pedra da Lua","Intuição","Feminino Sagrado","Equilíbrio emocional e ciclos.","Água","Lua"
-"Cornalina","Vitalidade","Fogo e Ação","Motivação e criatividade física.","Água/Sal","Sol"
-"Labradorita","Proteção","Escudo Mágico","Protege a aura contra vampirismo.","Fumo/Terra","Lua"
-"Fluorita","Clareza","Ordem Mental","Concentração e estudo.","Água","Sol ou Lua"
+"Jaspe Vermelho","Vitalidade","Nutridor Supremo","Sustenta e estabiliza em longas jornadas.","Água/Sal","Terra ou Sol"
+"Labradorita","Proteção","Escudo Mágico","Protege a aura e intensifica intuição.","Fumo/Terra","Lua"
+"Lápis-Lazúli","Espiritualidade","Visão Interior","Clareia a mente e favorece intuição.","Fumo","Lua"
+"Malaquita","Transformação","Proteção e Cura","Transmuta padrões (Cuidado: Tóxica em pó).","Fumo/Terra","Sol"
+"Morganita","Coração","Amor Divino","Abre o coração para compaixão e cura.","Água/Sal","Lua"
+"Obsidiana","Proteção","Espelho da Alma","Revela verdades e corta laços.","Fumo/Terra","Sol ou Lua"
+"Olho de Tigre","Prosperidade","Estrategista","Protege contra inveja e dá foco.","Água/Sal","Sol"
+"Ônix","Proteção","Autocontrole","Dá força estrutural em tempos difíceis.","Fumo","Sol ou Lua"
+"Pedra da Lua","Intuição","Renovação","Estimula intuição e ciclos femininos.","Água","Lua"
+"Pirita","Prosperidade","Ímã de Ouro","Atrai bens materiais e confiança.","Fumo (Não molhar)","Sol"
+"Quartzo Anjo","Espiritualidade","Paz Profunda","Alivia ansiedade e facilita meditação.","Fumo","Lua"
+"Quartzo Branco","Espiritualidade","Amplificador","Potencializa desejos e limpa aura.","Todos","Sol ou Lua"
+"Quartzo Fumê","Proteção","Desintoxicação","Transmuta stress em energia leve.","Fumo/Água","Sol ou Terra"
+"Quartzo Rosa","Coração","Amor e Cura","Promove amor próprio e harmonia.","Água/Sal","Lua"
+"Rubi","Vitalidade","Paixão e Coragem","Aumenta energia vital e coragem.","Água/Sal","Sol"
+"Rubina","Prosperidade","Manifestação Ativa","Foca a paixão na conquista material.","Água/Sal","Sol"
+"Safira","Espiritualidade","Sabedoria Real","Estimula a disciplina e clareza mental.","Água/Sal","Lua"
+"Selenita","Espiritualidade","Purificador Mestre","Limpa ambientes e outros cristais.","Fumo (Não molhar)","Lua"
+"Sodalita","Espiritualidade","Clareza Mental","Une intuição à lógica na comunicação.","Água","Lua"
+"Topázio","Prosperidade","Manifestação","Atrai abundância e clareia intenções.","Fumo","Sol"
+"Turmalina Negra","Proteção","Escudo Energético","Bloqueia inveja e radiação.","Fumo/Terra","Sol/Terra"
 """
 
 # leitura tolerante e correta do CSV (campos entre aspas)
@@ -56,18 +74,18 @@ SIGN_TO_PLANET = {
 
 # Sugestões de pedras por signo (lista curta, baseada na tabela)
 SIGN_TO_STONES = {
-    "Áries": ["Granada", "Jaspe Vermelho", "Cornalina"],
-    "Touro": ["Quartzo Rosa", "Esmeralda", "Selenita"],
-    "Gêmeos": ["Citrino", "Ágata", "Sodalita"],
-    "Câncer": ["Pedra da Lua", "Quartzo Rosa", "Pérola"],
+    "Áries": ["Jaspe Vermelho", "Granada (Carbúnculo)", "Rubi"],
+    "Touro": ["Quartzo Rosa", "Esmeralda", "Malaquita"],
+    "Gêmeos": ["Citrino", "Sodalita", "Ágata"],
+    "Câncer": ["Pedra da Lua", "Quartzo Rosa", "Quartzo Anjo"],
     "Leão": ["Olho de Tigre", "Citrino", "Pirita"],
     "Virgem": ["Amazonita", "Aventurina", "Hematita"],
-    "Libra": ["Quartzo Verde", "Lápis-Lazúli", "Citrino"],
-    "Escorpião": ["Obsidiana", "Turmalina Negra", "Granada"],
-    "Sagitário": ["Sodalita", "Ametista", "Topázio"],
+    "Libra": ["Quartzo Verde", "Lápis-Lazúli", "Topázio Imperial"],
+    "Escorpião": ["Obsidiana", "Turmalina Negra", "Granada (Carbúnculo)"],
+    "Sagitário": ["Sodalita", "Ametista", "Lápis-Lazúli"],
     "Capricórnio": ["Ônix", "Hematita", "Quartzo Fumê"],
     "Aquário": ["Ametista", "Fluorita", "Labradorita"],
-    "Peixes": ["Ametista", "Água-Marinha", "Celestina"],
+    "Peixes": ["Ametista", "Celestina", "Cianita Azul"],
 }
 
 # Sugestões por planeta regente (exemplo) — inclui correspondências clássicas e as novas fornecidas
@@ -81,7 +99,7 @@ PLANET_TO_STONES = {
     "Saturno": [],
     "Urano": ["Turquesa Verde"],
     "Netuno": ["Celestina"],
-    "Plutão": ["Obsidiana", "Turmalina Negra"],
+    "Plutão": ["Obsidiana"],
 }
 
 # --- Novas correspondências solicitadas (sobrepõem/acompanham PLANET_TO_STONES) ---
@@ -161,9 +179,24 @@ elif mode == "Por planeta regente":
 
 elif mode == "Por objetivo / uso":
     # lista base + valores da tabela sem duplicatas, preservando ordem legível
-    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade","Sorte",
-                   "Comunicação","Renovação","Emoção","Proteção Espiritual","Calma",
-                   "Proteção e Comunicação","Equilíbrio","Calmante","Amor","Visão Interior"]
+    base_objectives = [
+        "Amor",
+        "Calma",
+        "Calmante",
+        "Comunicação",
+        "Coração",
+        "Emoção",
+        "Equilíbrio",
+        "Espiritualidade",
+        "Prosperidade",
+        "Proteção",
+        "Proteção e Comunicação",
+        "Proteção Espiritual",
+        "Renovação",
+        "Sorte",
+        "Visão Interior",
+        "Vitalidade",
+    ]
 
     # limpar e ordenar
     base_sorted = sorted(set([b.strip() for b in base_objectives if b.strip()]), key=lambda s: s.casefold())
