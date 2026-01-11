@@ -169,7 +169,9 @@ with st.expander("Correspondência Planeta → Cor"):
         "Referência rápida das cores associadas aos planetas (útil para exercícios tonais e visuais)."
     )
     planet_color_table = pd.DataFrame([
-        {"Planeta": p, "Cor associada": c, "Energia resumida": PLANET_COLOR_ENERGY.get(p, "")}
+        {"Planeta": p, 
+         #"Cor associada": c, 
+         "Energia resumida": PLANET_COLOR_ENERGY.get(p, "")}
         for p, c in sorted(PLANET_TO_COLOR.items())
     ])
     st.table(planet_color_table)
