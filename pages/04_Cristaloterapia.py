@@ -37,7 +37,7 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 "Sodalita","Espiritualidade","Clareza Verbal","Une intuição à lógica na comunicação.","Fumo","Lua"
 "Ágata Azul","Espiritualidade","Paz Interior","Acalma os nervos e suaviza as palavras.","Água/Sal","Lua"
 "Cornalina","Vitalidade","Fogo e Ação","Vence a preguiça e dá coragem física.","Água/Sal","Sol"
-"Granada","Vitalidade","Regeneração","Revitaliza o corpo e desperta a paixão.","Água (rápida)","Sol"
+"Granada (Carbúnculo)","Vitalidade","Regeneração","Revitaliza o corpo e desperta a paixão.","Água (rápida)","Sol"
 "Quartzo Vermelho","Vitalidade","Força de Vontade","Tira as ideias do papel e dá foco.","Fumo/Água","Sol"
 "Jaspe","Vitalidade","Nutridor Supremo","Sustenta e estabiliza em longas jornadas.","Água/Sal","Terra ou Sol"
 "Esmeralda","Coração","Amor Sábio","Fortalece a lealdade e o amor maduro.","Fumo/Água","Lua"
@@ -58,7 +58,7 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 "Sapphire (Safira)","Proteção Espiritual","Clareza e Sabedoria","Favorece discernimento e proteção.","Água/Sal","Sol ou Lua"
 "Rubi (Rubi)","Vitalidade","Paixão e Coragem","Aumenta energia vital e coragem.","Água/Sal","Sol"
 "Safira Azul","Espiritualidade","Clareza Mental","Auxilia concentração e intuição.","Água/Sal","Lua"
-"Rubiina (variante de Granada)","Prosperidade","Paixão e Manifestação","Estimula ação e prosperidade.","Água/Sal","Sol"
+"Rubina","Prosperidade","Paixão e Manifestação","Estimula ação e prosperidade.","Água/Sal","Sol"
 "Bloodstone (Heliotrópio)","Proteção","Vitalidade e Coragem","Fortalece resistência e coragem.","Água/Sal","Sol"
 "Chrysocolla","Comunicação","Calma e Expressão","Suaviza emoções e melhora expressão.","Água/Sal","Lua"
 "Chrysoprase","Prosperidade","Renovação do Coração","Abre o coração para novas oportunidades.","Água/Sal","Sol"
@@ -75,7 +75,7 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 "Celestita (var.)","Espiritualidade","Paz e Conexão","Promove calma e conexão com guias.","Água/Fumo","Lua"
 "Black Onyx (Ônix Negro)","Proteção","Força e Estabilidade","Oferece suporte em tempos difíceis.","Água/Sal","Sol"
 "Pyrite (Pirita)","Prosperidade","Confiança e Ação","Aumenta iniciativa e proteção.","Água/Sal","Sol"
-"Garnet (Granada)","Vitalidade","Paixão e Proteção","Revitaliza energia e coragem.","Água/Sal","Sol"
+"Garnet (Granada (Carbúnculo))","Vitalidade","Paixão e Proteção","Revitaliza energia e coragem.","Água/Sal","Sol"
 "Peridot (var.)","Prosperidade","Renovação e Cura","Ajuda liberação de padrões antigos.","Água/Sal","Sol"
 "Moonstone Rainbow","Intuição","Ciclos e Renovação","Suporta equilíbrio emocional.","Água/Lua","Lua"
 "Lapis Lazuli","Visão Interior","Clareza Espiritual","Ajuda expressão e intuição.","Água/Sal","Lua"
@@ -113,12 +113,12 @@ SIGN_TO_PLANET = {
 
 # Sugestões de pedras por signo (lista curta, baseada na tabela)
 SIGN_TO_STONES = {
-    "Áries": ["Granada", "Quartzo Vermelho"],
-    "Touro": ["Citrino", "Esmeralda"],
+    "Áries": ["Granada (Carbúnculo)", "Quartzo Vermelho"],
+    "Touro": ["Citrino", "Esmeralda", "Jaspe"],
     "Gêmeos": ["Aventurina", "Sodalita"],
     "Câncer": ["Turquesa Verde", "Quartzo Anjo"],
     "Leão": ["Topázio", "Citrino"],
-    "Virgem": ["Quartzo Branco", "Hematita"],
+    "Virgem": ["Quartzo Cristal", "Hematita"],
     "Libra": ["Olho de Tigre", "Ágata Azul"],
     "Escorpião": ["Obsidiana", "Turmalina Negra"],
     "Sagitário": ["Ametista", "Turquesa Verde"],
@@ -129,21 +129,20 @@ SIGN_TO_STONES = {
 
 # Sugestões por planeta regente (exemplo) — inclui correspondências clássicas e as novas fornecidas
 PLANET_TO_STONES = {
-    # mapeamentos originais (mantidos quando aplicáveis)
-    "Sol": ["Citrino", "Topázio"],
-    "Lua": ["Ametista", "Selenita", "Quartzo Anjo"],
-    "Marte": ["Granada", "Quartzo Vermelho"],
-    "Vênus": ["Esmeralda", "Aventurina"],
-    "Mercúrio": ["Sodalita", "Quartzo Branco"],
-    "Júpiter": ["Citrino", "Ametista"],
-    "Saturno": ["Jaspe", "Hematita"],
+    "Sol": [""],
+    "Lua": [""],
+    "Marte": [""],
+    "Vênus": [""],
+    "Mercúrio": [""],
+    "Júpiter": [""],
+    "Saturno": [""],
     "Urano": ["Turquesa Verde"],
     "Netuno": ["Celestina"],
     "Plutão": ["Obsidiana", "Turmalina Negra"],
 }
 
 # --- Novas correspondências solicitadas (sobrepõem/acompanham PLANET_TO_STONES) ---
-# Lua: Ametista; Marte: Rubi; Mercurio: Topázio; Jupiter: Rubina; Venus: Safira; Saturno: Esmeralda; Sol: Granada (Cárbunculo).
+# Atualizações fornecidas pelo usuário, com nomes em português
 PLANET_TO_STONES_UPDATE = {
     "Lua": ["Ametista"],
     "Marte": ["Rubi"],
@@ -151,7 +150,7 @@ PLANET_TO_STONES_UPDATE = {
     "Júpiter": ["Rubina"],
     "Vênus": ["Safira"],
     "Saturno": ["Esmeralda"],
-    "Sol": ["Granada (Cárbunculo)"],
+    "Sol": ["Granada (Carbúnculo)"],
 }
 
 # Mescla as atualizações em PLANET_TO_STONES, preservando entradas existentes e adicionando as novas
@@ -168,10 +167,14 @@ PLANET_STONE_EXPLANATIONS = {
     "Lua": "Ametista — favorece intuição, calma emocional e conexão com o mundo interior.",
     "Marte": "Rubi — estimula coragem, vitalidade e força de vontade; ativa energia física.",
     "Mercúrio": "Topázio — clareza mental e comunicação; auxilia expressão e raciocínio.",
-    "Júpiter": "Rubina — expande otimismo, prosperidade e crescimento pessoal.",
+    "Júpiter": "Rubina — favorece expansão, sorte e crescimento; atua na prosperidade e otimismo.",
     "Vênus": "Safira — harmonia, beleza e equilíbrio afetivo; favorece relacionamentos e sensibilidade estética.",
     "Saturno": "Esmeralda — estabilidade, sabedoria prática e cura do coração; apoio em processos longos.",
-    "Sol": "Granada (Cárbunculo) — vigor, presença e autoestima; fortalece propósito e ação criativa."
+    "Sol": "Granada (Carbúnculo) — vigor, presença e autoestima; fortalece propósito e ação criativa.",
+    # novas explicações pedidas
+    "Netuno": "Celestina — favorece sensibilidade psíquica, sonhos lúcidos e conexão com o inconsciente coletivo.",
+    "Urano": "Turquesa Verde — estimula originalidade, intuição inventiva e proteção em mudanças súbitas.",
+    "Plutão": "Obsidiana — transformação profunda, liberação de padrões e proteção contra influências densas.",
 }
 
 # mapa inverso pedra -> planeta (para exibir explicação ao selecionar uma pedra)
@@ -179,6 +182,18 @@ STONE_TO_PLANET = {}
 for p, stones in PLANET_TO_STONES.items():
     for s in stones:
         STONE_TO_PLANET[s] = p
+
+# --- Tema 'Sorte' (novidade solicitada) ---
+# Lista com nomes em português presentes na tabela CSV; entradas em inglês foram removidas
+THEME_TO_STONES = {
+    "Sorte": [
+        "Citrino",
+        "Pirita",
+        "Aventurina",
+        "Olho de Tigre",
+        "Chrysoprase"  # Chrysoprase está no CSV; manter nome (pode ser "Crisoprase" em pt-br dependendo da preferência)
+    ]
+}
 
 # --- Layout: filtros e busca ---
 st.sidebar.header("Filtros e buscas")
@@ -203,7 +218,7 @@ elif mode == "Por planeta regente":
 
 elif mode == "Por objetivo / uso":
     # lista base + valores da tabela sem duplicatas, preservando ordem legível
-    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade"]
+    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade","Sorte"]
     table_objectives = [o for o in df["Família de Energia"].unique().tolist() if o not in base_objectives]
     combined_objectives = base_objectives + table_objectives
     obj = st.sidebar.selectbox("Escolha o objetivo", combined_objectives)
@@ -214,8 +229,6 @@ else:
     query = st.sidebar.text_input("Busca livre (nome, essência, benefício)")
 
 # --- Painel principal ---
-#st.header("Consulta rápida")
-
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -234,6 +247,10 @@ with col1:
     elif mode == "Por objetivo / uso":
         st.markdown(f"**Objetivo selecionado:** {obj}")
         st.write("A tabela à direita mostra as pedras relacionadas.")
+        if obj in THEME_TO_STONES:
+            st.markdown("**Pedras para Sorte:**")
+            for p in THEME_TO_STONES[obj]:
+                st.write(f"- {p}")
     else:
         st.markdown("**Busca livre**")
         if query:
@@ -253,9 +270,13 @@ with col2:
             df_display = df_display[df_display["Pedra"].isin(suggested)]
     elif mode == "Por objetivo / uso":
         if obj:
-            # filtra por família de energia ou por substring
-            df_display = df_display[df_display["Família de Energia"].str.contains(obj, case=False, na=False) | 
-                                     df_display["Principais Benefícios"].str.contains(obj, case=False, na=False)]
+            # se for um tema especial (ex.: Sorte), filtra pela lista definida
+            if obj in THEME_TO_STONES:
+                df_display = df_display[df_display["Pedra"].isin(THEME_TO_STONES[obj])]
+            else:
+                # filtra por família de energia ou por substring
+                df_display = df_display[df_display["Família de Energia"].str.contains(obj, case=False, na=False) | 
+                                         df_display["Principais Benefícios"].str.contains(obj, case=False, na=False)]
     else:
         if query:
             q = query.strip().lower()
@@ -311,8 +332,40 @@ with st.expander("Correspondência Planeta → Pedra"):
 
 # --- Observações e cuidados ---
 st.markdown("---")
-st.markdown(
-    "**Observações:**\n\n"
-    "- As sugestões são simbólicas e informativas; não substituem orientação profissional.\n"
-    "- Ao limpar ou energizar cristais, siga práticas seguras (evite água em pedras solúveis, cuidado com luz solar prolongada, etc.).\n"
-)
+st.markdown("""
+**1. No Corpo (Uso Pessoal)**
+
+**Lado Esquerdo (Receber):** Use pedras de Espiritualidade e Proteção — por exemplo, **Ametista** e **Turmalina Negra** — no pulso ou no bolso esquerdo para absorver energia de paz e proteger seu campo sensível.
+
+**Lado Direito (Dar/Agir):** Use pedras de Prosperidade e Vitalidade — por exemplo, **Citrino**, **Cornalina** e **Pirita** — no lado direito para projetar sua vontade, manter foco no trabalho e atrair abundância.
+
+**Plexo Solar (estômago):** Pedras como o **Citrino** ajudam a aumentar a autoconfiança antes de reuniões ou apresentações.
+
+**2. No Ambiente (Casa ou Escritório)**
+
+**Porta de entrada:** Coloque uma **Turmalina Negra** ou **Ônix** do lado de fora ou logo na entrada para barrar energias negativas de quem chega.
+
+**Canto da prosperidade:** No fundo à esquerda da porta de entrada, disponha um arranjo com **Pirita**, **Citrino** e **Aventurina** para estimular o fluxo financeiro do ambiente.
+
+**Quarto de dormir:** Use **Ametista** ou **Quartzo Azul** na mesa de cabeceira para sono reparador e sonhos lúcidos. Evite pedras vermelhas (por exemplo, **Granada**) no quarto, pois podem aumentar a energia e prejudicar o sono.
+
+**3. Programação e Intenção (O Segredo)**
+
+Um cristal sem intenção é apenas um objeto bonito. Ao adquirir uma pedra nova:
+
+- Segure-a com as duas mãos.
+- Feche os olhos e respire fundo.
+- Mentalize claramente sua intenção e diga: **"Eu programo este cristal para [sua intenção, ex.: atrair sorte / proteger minha casa] para o meu bem maior."**
+
+**4. Manutenção Expresso**
+
+**Limpeza rápida:** Passe a pedra pelo fumo de um incenso de arruda ou sálvia.
+
+**Recarga de emergência:** Coloque a pedra sobre uma **Selenita** por 15 minutos (a Selenita ajuda a limpar outras pedras automaticamente).
+
+**Vitalidade máxima:** Pedras de cor quente (amarelo, laranja, vermelho) beneficiam-se do sol da manhã; pedras de cor fria (azul, lilás, rosa) preferem a lua.
+
+**Observações finais:**  
+- As sugestões são simbólicas e informativas; não substituem orientação profissional.  
+- Ao limpar ou energizar cristais, siga práticas seguras (evite água em pedras solúveis, cuidado com exposição solar prolongada, etc.).
+""")
