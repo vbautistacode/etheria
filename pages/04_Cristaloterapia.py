@@ -129,13 +129,13 @@ SIGN_TO_STONES = {
 
 # Sugestões por planeta regente (exemplo) — inclui correspondências clássicas e as novas fornecidas
 PLANET_TO_STONES = {
-    "Sol": [""],
-    "Lua": [""],
-    "Marte": [""],
-    "Vênus": [""],
-    "Mercúrio": [""],
-    "Júpiter": [""],
-    "Saturno": [""],
+    "Sol": [],
+    "Lua": [],
+    "Marte": [],
+    "Vênus": [],
+    "Mercúrio": [],
+    "Júpiter": [],
+    "Saturno": [],
     "Urano": ["Turquesa Verde"],
     "Netuno": ["Celestina"],
     "Plutão": ["Obsidiana", "Turmalina Negra"],
