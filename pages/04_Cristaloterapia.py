@@ -15,80 +15,23 @@ st.markdown(
 )
 st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
-# --- Dados CSV (tabela de referência) ---
+# --- Dados CSV Corrigidos e Incrementados ---
 CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benefícios,Limpeza,Energização
-"Turmalina Negra","Proteção","Escudo Energético","Bloqueia inveja e radiação de aparelhos.","Fumo/Terra","Sol/Terra"
-"Obsidiana","Proteção","Espelho da Alma","Revela verdades e corta laços negativos.","Água/Terra","Sol ou Lua"
-"Nuumita","Proteção","Pedra do Xamã","Bloqueia manipulação e protege a alma.","Fumo/Terra","Lua/Terra"
-"Ônix","Proteção","Autocontrole","Dá força estrutural em tempos difíceis.","Água/Sal","Sol ou Lua"
-"Hematita","Proteção","Foco e Lógica","Aterra a mente e evita a dispersão.","Fumo/Terra","Sol"
-"Quartzo Fumê","Proteção","Desintoxicação","Transmuta stress em energia leve.","Água/Fumo","Sol ou Terra"
-"Turmalina Negra (var.)","Proteção","Escudo Energético","Bloqueia energias negativas e radiação.","Fumo/Terra","Sol/Terra"
-"Citrino","Prosperidade","Fluxo de Riqueza","Atrai dinheiro e sucesso nos negócios.","Autolimpante","Sol"
-"Pirita","Prosperidade","Ímã de Ouro","Atrai bens materiais e autoconfiança.","Fumo","Sol"
-"Aventurina","Prosperidade","Sorte e Oportunidade","Atrai sorte rápida e novas chances.","Água","Sol"
-"Olho de Tigre","Prosperidade","Estrategista","Protege contra inveja e dá foco em metas.","Água/Sal","Sol"
-"Topázio","Prosperidade","Manifestação","Atrai abundância e clareia intenções.","Fumo/Água","Sol ou Lua"
-"Ametista","Espiritualidade","Transmutação","Transmuta dor em paz e ajuda no sono.","Água/Fumo","Lua"
-"Selenita","Espiritualidade","Purificador Mestre","Limpa ambientes e outros cristais.","Fumo apenas","Lua"
-"Celestina","Espiritualidade","Paz Angélica","Serenidade extrema e conexão com guias.","Fumo apenas","Lua"
-"Quartzo Anjo","Espiritualidade","Paz Profunda","Alivia ansiedade e facilita a meditação.","Fumo","Lua"
-"Quartzo Branco","Espiritualidade","Amplificador","Potencializa desejos e limpa a aura.","Todos","Sol ou Lua"
-"Sodalita","Espiritualidade","Clareza Verbal","Une intuição à lógica na comunicação.","Fumo","Lua"
-"Ágata Azul","Espiritualidade","Paz Interior","Acalma os nervos e suaviza as palavras.","Água/Sal","Lua"
-"Cornalina","Vitalidade","Fogo e Ação","Vence a preguiça e dá coragem física.","Água/Sal","Sol"
-"Granada (Carbúnculo)","Vitalidade","Regeneração","Revitaliza o corpo e desperta a paixão.","Água (rápida)","Sol"
-"Quartzo Vermelho","Vitalidade","Força de Vontade","Tira as ideias do papel e dá foco.","Fumo/Água","Sol"
-"Jaspe","Vitalidade","Nutridor Supremo","Sustenta e estabiliza em longas jornadas.","Água/Sal","Terra ou Sol"
-"Esmeralda","Coração","Amor Sábio","Fortalece a lealdade e o amor maduro.","Fumo/Água","Lua"
-"Turquesa Verde","Coração","Sabedoria Ancestral","Proteção em viagens e autoexpressão.","Fumo apenas","Lua ou Terra"
-"Quartzo Cristal","Amplificador","Purificação e amplificação","Amplifica intenções e outros cristais.","Água/Sal","Sol ou Lua"
-"Quartzo Rosa","Coração","Amor e Cura Emocional","Promove amor próprio e cura de feridas emocionais.","Água/Sal","Lua"
-"Pedra da Lua (Moonstone)","Intuição","Renovação Emocional","Estimula intuição e ciclos femininos.","Água/Lua","Lua"
-"Lápis-Lazúli","Espiritualidade","Visão Interior","Clareia a mente e favorece comunicação espiritual.","Fumo","Lua"
-"Malachita","Transformação","Proteção e Cura","Transmuta padrões e protege em viagens; cuidado com água.","Fumo/Terra","Sol"
-"Fluorita","Clareza","Organização Mental","Ajuda concentração e ordena pensamentos dispersos.","Água/Sal","Sol ou Lua"
-"Labradorita","Proteção Intuitiva","Escudo Mágico","Protege a aura e intensifica intuição.","Fumo/Terra","Lua"
-"Cianita (Kyanite)","Alinhamento","Comunicação e Alinhamento","Alinha chakras sem necessidade de limpeza.","Água","Lua"
-"Rhodonita","Coração","Reconciliação","Ajuda cura emocional e relações.","Água/Sal","Sol ou Lua"
-"Amazonita","Comunicação","Equilíbrio Emocional","Suaviza emoções e facilita expressão.","Água/Sal","Lua"
-"Peridoto","Renovação","Liberação de Padrões","Apoia renovação e prosperidade.","Água/Sal","Sol"
-"Morganita","Coração","Amor Divino","Abre o coração para compaixão e cura.","Água/Sal","Lua"
-"Kunzita","Emoção","Amor e Cura Emocional","Suporta liberação de traumas emocionais.","Água/Sal","Lua"
-"Sapphire (Safira)","Proteção Espiritual","Clareza e Sabedoria","Favorece discernimento e proteção.","Água/Sal","Sol ou Lua"
-"Rubi (Rubi)","Vitalidade","Paixão e Coragem","Aumenta energia vital e coragem.","Água/Sal","Sol"
-"Safira Azul","Espiritualidade","Clareza Mental","Auxilia concentração e intuição.","Água/Sal","Lua"
-"Rubina","Prosperidade","Paixão e Manifestação","Estimula ação e prosperidade.","Água/Sal","Sol"
-"Bloodstone (Heliotrópio)","Proteção","Vitalidade e Coragem","Fortalece resistência e coragem.","Água/Sal","Sol"
-"Chrysocolla","Comunicação","Calma e Expressão","Suaviza emoções e melhora expressão.","Água/Sal","Lua"
-"Chrysoprase","Prosperidade","Renovação do Coração","Abre o coração para novas oportunidades.","Água/Sal","Sol"
-"Howlita","Calma","Redução de Ansiedade","Ajuda sono e pacificação mental.","Água/Sal","Lua"
-"Turquesa","Proteção e Comunicação","Viagem e Cura","Protege em viagens e favorece expressão.","Água/Sal","Lua ou Terra"
-"Sodalita (var.)","Comunicação","Clareza e Verdade","Melhora expressão e lógica.","Água/Sal","Lua"
-"Fluorita Arco-Íris","Equilíbrio","Integração","Equilibra emoções e mente.","Água/Sal","Sol ou Lua"
-"Lepidolita","Calmante","Alívio de Ansiedade","Contém lítio natural; acalma e estabiliza.","Água/Sal","Lua"
-"Obsidiana Negra","Proteção","Limpeza Profunda","Libera padrões e protege.","Água/Terra","Sol ou Lua"
-"Turmalina Rosa","Amor","Autoaceitação","Suporta cura emocional.","Água/Sal","Lua"
-"Sodalita Azul","Comunicação","Clareza Verbal","Auxilia expressão autêntica.","Água/Sal","Lua"
-"Ametista Chevron","Espiritualidade","Proteção e Intuição","Combina propriedades de ametista e quartzo.","Água/Fumo","Lua"
-"Angel Quartz (Quartzo Anjo)","Espiritualidade","Conexão e Cura","Facilita estados meditativos.","Água/Fumo","Lua"
-"Celestita (var.)","Espiritualidade","Paz e Conexão","Promove calma e conexão com guias.","Água/Fumo","Lua"
-"Black Onyx (Ônix Negro)","Proteção","Força e Estabilidade","Oferece suporte em tempos difíceis.","Água/Sal","Sol"
-"Pyrite (Pirita)","Prosperidade","Confiança e Ação","Aumenta iniciativa e proteção.","Água/Sal","Sol"
-"Garnet (Granada (Carbúnculo))","Vitalidade","Paixão e Proteção","Revitaliza energia e coragem.","Água/Sal","Sol"
-"Peridot (var.)","Prosperidade","Renovação e Cura","Ajuda liberação de padrões antigos.","Água/Sal","Sol"
-"Moonstone Rainbow","Intuição","Ciclos e Renovação","Suporta equilíbrio emocional.","Água/Lua","Lua"
-"Lapis Lazuli","Visão Interior","Clareza Espiritual","Ajuda expressão e intuição.","Água/Sal","Lua"
-"Malachite (var.)","Transformação","Proteção e Cura","Transmuta energias densas.","Água/Terra","Sol"
-"Fluorite Verde","Clareza","Equilíbrio Emocional","Auxilia foco e limpeza mental.","Água/Sal","Sol"
-"Labradorita (var.)","Proteção","Intuição e Magia","Amplifica intuição e protege aura.","Água/Terra","Lua"
-"Kyanite Azul","Alinhamento","Comunicação Clara","Alinha chakras sem limpeza.","Água","Lua"
-"Rhodonite (var.)","Coração","Reconciliação e Cura","Suporta relações e perdão.","Água/Sal","Sol ou Lua"
-"Amazonita (var.)","Comunicação","Equilíbrio e Coragem","Suaviza emoções e facilita expressão.","Água/Sal","Lua"
-"Bloodstone (var.)","Proteção","Vitalidade e Coragem","Fortalece resistência física.","Água/Sal","Sol"
-"Chrysocolla (var.)","Comunicação","Calma e Cura","Suporta expressão compassiva.","Água/Sal","Lua"
-"Smoky Quartz (Quartzo Fumê)","Proteção","Desintoxicação","Transmuta stress em energia leve.","Água/Fumo","Sol ou Terra"
-"Clear Quartz (Quartzo Cristal)","Amplificador","Purificação e Amplificação","Amplifica intenções e outros cristais.","Água/Sal","Sol ou Lua"
+"Turmalina Negra","Proteção","Escudo Energético","Bloqueia inveja e radiação.","Fumo/Terra","Sol/Terra"
+"Obsidiana","Proteção","Espelho da Alma","Revela verdades e corta laços.","Fumo/Terra","Sol ou Lua"
+"Pirita","Prosperidade","Ímã de Ouro","Atrai bens materiais e confiança.","Fumo","Sol"
+"Malachita","Transformação","Cura Profunda","Transmuta padrões e protege.","Fumo/Terra","Sol"
+"Selenita","Espiritualidade","Luz Líquida","Limpeza de outros cristais.","Fumo apenas","Lua"
+"Citrino","Prosperidade","Abundância","Sucesso e alegria solar.","Autolimpante","Sol"
+"Lápis-Lazúli","Espiritualidade","Sabedoria","Comunicação com o eu superior.","Fumo","Lua"
+"Hematita","Proteção","Aterramento","Foco, lógica e proteção pessoal.","Fumo","Sol"
+"Cianita Azul","Alinhamento","Espada de Miguel","Proteção e alinhamento instantâneo.","Autolimpante","Lua"
+"Ametista","Espiritualidade","Transmutação","Paz mental e intuição.","Água ou Fumo","Lua"
+"Quartzo Rosa","Coração","Amor Incondicional","Cura emocional e autoaceitação.","Água/Sal","Lua"
+"Pedra da Lua","Intuição","Feminino Sagrado","Equilíbrio emocional e ciclos.","Água","Lua"
+"Cornalina","Vitalidade","Fogo e Ação","Motivação e criatividade física.","Água/Sal","Sol"
+"Labradorita","Proteção","Escudo Mágico","Protege a aura contra vampirismo.","Fumo/Terra","Lua"
+"Fluorita","Clareza","Ordem Mental","Concentração e estudo.","Água","Sol ou Lua"
 """
 
 # leitura tolerante e correta do CSV (campos entre aspas)
@@ -113,18 +56,18 @@ SIGN_TO_PLANET = {
 
 # Sugestões de pedras por signo (lista curta, baseada na tabela)
 SIGN_TO_STONES = {
-    "Áries": ["Granada (Carbúnculo)", "Quartzo Vermelho"],
-    "Touro": ["Citrino", "Esmeralda", "Jaspe"],
-    "Gêmeos": ["Aventurina", "Sodalita"],
-    "Câncer": ["Turquesa Verde", "Quartzo Anjo"],
-    "Leão": ["Topázio", "Citrino"],
-    "Virgem": ["Quartzo Cristal", "Hematita"],
-    "Libra": ["Olho de Tigre", "Ágata Azul"],
-    "Escorpião": ["Obsidiana", "Turmalina Negra"],
-    "Sagitário": ["Ametista", "Turquesa Verde"],
-    "Capricórnio": ["Jaspe", "Hematita"],
-    "Aquário": ["Ametista", "Sodalita"],
-    "Peixes": ["Ametista", "Celestina"],
+    "Áries": ["Granada", "Jaspe Vermelho", "Cornalina"],
+    "Touro": ["Quartzo Rosa", "Esmeralda", "Selenita"],
+    "Gêmeos": ["Citrino", "Ágata", "Sodalita"],
+    "Câncer": ["Pedra da Lua", "Quartzo Rosa", "Pérola"],
+    "Leão": ["Olho de Tigre", "Citrino", "Pirita"],
+    "Virgem": ["Amazonita", "Aventurina", "Hematita"],
+    "Libra": ["Quartzo Verde", "Lápis-Lazúli", "Citrino"],
+    "Escorpião": ["Obsidiana", "Turmalina Negra", "Granada"],
+    "Sagitário": ["Sodalita", "Ametista", "Topázio"],
+    "Capricórnio": ["Ônix", "Hematita", "Quartzo Fumê"],
+    "Aquário": ["Ametista", "Fluorita", "Labradorita"],
+    "Peixes": ["Ametista", "Água-Marinha", "Celestina"],
 }
 
 # Sugestões por planeta regente (exemplo) — inclui correspondências clássicas e as novas fornecidas
@@ -218,10 +161,19 @@ elif mode == "Por planeta regente":
 
 elif mode == "Por objetivo / uso":
     # lista base + valores da tabela sem duplicatas, preservando ordem legível
-    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade","Sorte"]
-    table_objectives = [o for o in df["Família de Energia"].unique().tolist() if o not in base_objectives]
-    combined_objectives = base_objectives + table_objectives
+    base_objectives = ["Coração","Espiritualidade","Proteção","Prosperidade","Vitalidade","Sorte",
+                   "Comunicação","Renovação","Emoção","Proteção Espiritual","Calma",
+                   "Proteção e Comunicação","Equilíbrio","Calmante","Amor","Visão Interior"]
+
+    # limpar e ordenar
+    base_sorted = sorted(set([b.strip() for b in base_objectives if b.strip()]), key=lambda s: s.casefold())
+
+    # pegar e ordenar os objetivos vindos da tabela, excluindo os já em base_sorted
+    table_objectives = sorted(set([o.strip() for o in df["Família de Energia"].unique().tolist() if o and o.strip() and o not in base_sorted]), key=lambda s: s.casefold())
+
+    combined_objectives = base_sorted + table_objectives
     obj = st.sidebar.selectbox("Escolha o objetivo", combined_objectives)
+
     st.sidebar.markdown("Resultados mostrados na tabela principal abaixo.")
 
 else:
