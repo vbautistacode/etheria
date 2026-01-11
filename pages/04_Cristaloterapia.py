@@ -50,6 +50,7 @@ CSV_DATA = """Pedra,Família de Energia,Essência (Significado),Principais Benef
 "Sodalita","Espiritualidade","Clareza Mental","Une intuição à lógica na comunicação.","Água","Lua"
 "Topázio","Prosperidade","Manifestação","Atrai abundância e clareia intenções.","Fumo","Sol"
 "Turmalina Negra","Proteção","Escudo Energético","Bloqueia inveja e radiação.","Fumo/Terra","Sol/Terra"
+"Turquesa Verde","Intuição","Proteção e Cura","Equilibra emoções e protege o viajante.","Fumo/Terra","Sol ou Lua"
 """
 
 # leitura tolerante e correta do CSV (campos entre aspas)
