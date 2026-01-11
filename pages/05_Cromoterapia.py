@@ -17,8 +17,9 @@ st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 # --- Mapeamentos padrão (substitua conforme sua referência) ---
 SIGN_TO_PLANET = {
     "Áries": "Marte", "Touro": "Vênus", "Gêmeos": "Mercúrio", "Câncer": "Lua",
-    "Leão": "Sol", "Virgem": "Mercúrio", "Libra": "Vênus", "Escorpião": "Plutão/Marte",
-    "Sagitário": "Júpiter", "Capricórnio": "Saturno", "Aquário": "Urano/Saturno", "Peixes": "Netuno/Júpiter"
+    "Leão": "Sol", "Virgem": "Mercúrio", "Libra": "Vênus", "Escorpião": "Marte", "Escorpião": "Plutão",
+    "Sagitário": "Júpiter", "Capricórnio": "Saturno", "Aquário": "Saturno", "Aquário": "Urano", "Peixes": "Júpiter", 
+    "Peixes": "Netuno"
 }
 
 # Paletas por intenção e sugestões por signo/planeta (exemplos)
