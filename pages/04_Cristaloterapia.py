@@ -316,7 +316,7 @@ with st.expander("Correspondência Planeta → Pedra"):
     planet_table = pd.DataFrame([
         {
             "Planeta": p,
-            "Pedras (sugestões)": ", ".join(v),
+            #"Pedras (sugestões)": ", ".join(v),
             "Explicação resumida": PLANET_STONE_EXPLANATIONS.get(p, "")
         }
         for p, v in sorted(PLANET_TO_STONES.items())
