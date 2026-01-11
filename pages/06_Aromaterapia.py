@@ -173,12 +173,28 @@ with st.expander("Correspondência Planeta → Perfume / Nota Olfativa"):
         "Sugestões de perfumes ou notas olfativas associadas aos planetas. Use como inspiração para blends e escolhas aromáticas."
     )
     planet_perfume_table = pd.DataFrame([
-        {"Planeta": p, "Nota Olfativa": ", ".join(v), "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
+        {"Planeta": p, 
+         #"Nota Olfativa": ", ".join(v), 
+         "Energia aromática (resumida)": PLANET_PERFUME_ENERGY.get(p, "")}
         for p, v in sorted(PLANET_TO_PERFUMES.items())
     ])
     st.table(planet_perfume_table)
 
 # --- Observações e cuidados ---
+st.markdown("---")
+st.markdown("**Prática sugerida — 5 minutos**")
+st.markdown("""
+Siga este exercício curto para usar óleos essenciais de forma segura e eficaz:
+
+1. **Escolha e diluição:** selecione um óleo adequado à intenção (ex.: lavanda para relaxamento, hortelã para foco). Dilua 1–2 gotas do óleo essencial em 10 ml de óleo carreador (ex.: óleo de amêndoas ou jojoba) para uso tópico, ou use 1–2 gotas em um difusor pessoal para inalação.  
+2. **Ambiente:** sente-se confortavelmente num local ventilado e com luz suave. Desligue notificações e reserve 5 minutos.  
+3. **Inalação consciente:** segure o frasco (ou posicione o difusor) a uma distância confortável; inspire lenta e profundamente pelo nariz por 4 segundos, segure 1–2 segundos, expire pela boca por 6 segundos. Repita por 6 ciclos (aprox. 3–5 minutos).  
+4. **Foco na intenção:** enquanto respira, mantenha uma palavra‑intenção simples (ex.: "calma", "clareza") ou visualize o efeito desejado.  
+5. **Encerramento:** abra os olhos devagar, movimente os ombros e beba um copo de água. Se usar tópico, lave as mãos após a aplicação.
+
+**Aviso:** interrompa imediatamente se sentir tontura, náusea, irritação cutânea ou qualquer desconforto. Consulte um profissional em caso de dúvidas ou condições médicas.
+""")
+
 st.markdown("---")
 st.markdown(
     "**Observações:**\n\n"
