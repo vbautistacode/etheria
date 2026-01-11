@@ -385,3 +385,18 @@ st.markdown(
     "- Para aterramento: escolha faixas com ênfase em Fá (Saturno) ou Sol (Júpiter).\n"
     "- Para energia: prefira Dó (Marte) e Lá (Vênus) dependendo da intenção."
 )
+
+# Sugestão de prática para usar as faixas tonais (som e intenção)
+st.markdown("---")
+st.markdown("**Prática sugerida — Sessão curta de 8–12 minutos**")
+st.markdown("""
+Siga este protocolo simples para integrar som, respiração e intenção:
+
+1. **Preparação (1 minuto):** sente-se confortavelmente, mantenha a coluna ereta e escolha a faixa tonal conforme a intenção (foco, aterramento ou energia). Use fones ou caixas em volume confortável.
+2. **Ajuste a intenção (30s):** feche os olhos e formule uma frase curta que represente sua intenção (ex.: "clareza", "estabilidade", "vigor").
+3. **Respiração sincronizada (2 minutos):** inspire por 4 segundos, segure 1 segundo, expire por 6 segundos; repita enquanto a faixa toca, mantendo a atenção na respiração.
+4. **Imersão focal (4–6 minutos):** deixe a faixa tocar; mantenha a atenção na sensação corporal e na intenção. Se a mente divagar, traga-a gentilmente de volta à respiração e ao som.
+5. **Encerramento (1 minuto):** diminua o volume, respire fundo três vezes e abra os olhos devagar. Anote uma palavra ou frase que descreva como se sente.
+
+**Dicas:** comece com 8 minutos se for iniciante; aumente até 12 minutos conforme se sentir confortável. Interrompa se sentir desconforto auditivo ou tontura.
+""")
