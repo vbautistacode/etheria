@@ -179,9 +179,13 @@ with st.expander("Correspondência Planeta → Cor"):
 
 # --- Observações e cuidados ---
 st.markdown("---")
-st.markdown(
-    "**Observações:**\n\n"
-    "- Use a paleta sugerida para exercícios visuais (respiração com foco na cor).\n"
-    "- Experimente 3–5 minutos olhando para a cor primária em baixa intensidade.\n"
-    "- Combine com respiração lenta para melhores resultados."
-)
+st.markdown("**Observações e prática sugerida**")
+st.markdown("""
+- **Use a paleta sugerida** para exercícios visuais: escolha uma cor primária e mantenha o foco nela durante o exercício.  
+- **Duração:** experimente **3–5 minutos** olhando para a cor em baixa intensidade; aumente gradualmente se se sentir confortável.  
+- **Intensidade e ambiente:** prefira luz suave e ambiente calmo; evite exposição direta e intensa que cause desconforto ocular.  
+- **Respiração:** combine o exercício com respiração lenta e profunda (por exemplo, 4 segundos inspirando, 6 segundos expirando) para potencializar o efeito.  
+- **Foco e intenção:** antes de começar, defina uma intenção curta (ex.: "calma", "clareza") e mantenha-a em mente enquanto observa a cor.  
+- **Contraindicações:** se sentir tontura, náusea, dor de cabeça ou desconforto visual, interrompa imediatamente e descanse os olhos.  
+- **Integração:** use cromoterapia como complemento a práticas de relaxamento, meditação ou pausas curtas durante o dia.
+""")
