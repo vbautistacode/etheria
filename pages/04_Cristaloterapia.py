@@ -180,20 +180,24 @@ elif mode == "Por planeta regente":
 elif mode == "Por objetivo / uso":
     # lista base + valores da tabela sem duplicatas, preservando ordem legível
     base_objectives = [
+        "Alinhamento",
         "Amor",
         "Calma",
         "Calmante",
+        "Clareza",
         "Comunicação",
         "Coração",
         "Emoção",
         "Equilíbrio",
         "Espiritualidade",
+        "Intuição",
         "Prosperidade",
         "Proteção",
         "Proteção e Comunicação",
         "Proteção Espiritual",
         "Renovação",
         "Sorte",
+        "Transformação",
         "Visão Interior",
         "Vitalidade",
     ]
@@ -316,7 +320,9 @@ with st.expander("Correspondência Planeta → Pedra"):
     st.table(planet_table)
 
 # --- Observações e cuidados ---
-st.markdown("Como utilizar cristais no dia a dia:")
+st.markdown("---")
+st.markdown(""
+    "**Como utilizar cristais no dia a dia:**\n\n")
 st.markdown("""
 **1. No Corpo (Uso Pessoal)**
 
