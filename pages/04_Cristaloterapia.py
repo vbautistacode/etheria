@@ -316,7 +316,7 @@ with st.expander("Correspondência Planeta → Pedra"):
     st.table(planet_table)
 
 # --- Observações e cuidados ---
-st.markdown("---")
+st.markdown("Como utilizar cristais no dia a dia:")
 st.markdown("""
 **1. No Corpo (Uso Pessoal)**
 
