@@ -20,10 +20,14 @@ except Exception as e:
 st.set_page_config(page_title="10 — Mapa do Dia", layout="wide")
 st.title("Mapa do Dia 🧭")
 
-st.markdown(
-    "Gere uma leitura simbólica do 'céu do dia' para a sua localização. "
-    "O sistema tenta obter a localização e hora do seu navegador; se não for possível, usa detecção por IP ou entrada manual."
-)
+st.markdown("""
+Sinta o dia como um mapa vivo: gere uma leitura simbólica do **céu do dia** para o lugar onde você está.  
+O sistema busca a hora e a posição do seu local para sintonizar a interpretação ao seu instante.
+
+Receba um pequeno oráculo prático — um resumo das energias do dia, três pontos de atenção, uma micro‑prática em três passos.
+São sugestões simbólicas — pensado para orientar seus passos, não para ditar destinos.  
+Permita que a leitura seja um convite: uma luz suave sobre escolhas cotidianas, um sopro de clareza para começar o dia.
+""")
 
 # -------------------------
 # Leitura de query params (usada para receber dados do navegador)
@@ -136,7 +140,7 @@ st.markdown(f"**Data e hora (preferência):** {display_time}")
 st.markdown(f"**Local (preferência):** {city if city else 'não informado'} {f'({lat},{lon})' if lat and lon else ''}")
 
 st.markdown("---")
-st.markdown("Pressione **Gerar Mapa do Dia** para enviar o prompt ao modelo (usa o template diário).")
+st.markdown("Pressione **Gerar Mapa do Dia** para enviar ao modelo Etheria IA.")
 
 # -------------------------
 # Montador de chart_summary para o serviço
@@ -217,9 +221,6 @@ if st.button("Gerar Mapa do Dia"):
                 st.write(text)
                 st.markdown("---")
                 st.markdown("**Observação:** Esta leitura é simbólica e interpretativa. Use-a como orientação prática, não como previsão determinística.")
-                if result.get("prompt"):
-                    with st.expander("Mostrar prompt enviado ao modelo (debug)"):
-                        st.code(result["prompt"][:8000])
 
 # -------------------------
 # Dicas e debug
