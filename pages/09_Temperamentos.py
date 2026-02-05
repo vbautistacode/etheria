@@ -23,7 +23,7 @@ Este teste não rotula nem limita: serve como ferramenta prática para identific
 
 # --- Perguntas por grupo (texto conforme fornecido) ---
 QUESTIONS = {
-    "A_Sanguineo": [
+    "A-Sanguineo": [
         "gosta de se anunciar onde chega",
         "tem olhar esperto, alegre e movimentado",
         "anda de modo elegante, flexível, gracioso, com destaque nas pontas dos pés",
@@ -35,7 +35,7 @@ QUESTIONS = {
         "interesse em participar de festas, gincanas, jogos, shows e reuniões sociais",
         "facilidade em fazer amigos onde quer que chegue"
     ],
-    "B_Bilioso": [
+    "B-Bilioso": [
         "tem dificuldade em esquecer as pessoas e os fatos que a magoaram",
         "tem olhar firme, concentrado e sério",
         "anda com firmeza, pressionando mais os calcanhares",
@@ -47,7 +47,7 @@ QUESTIONS = {
         "irrita-se com facilidade quando é corrigido",
         "ambiciona progredir em tudo que for possível (bens, dinheiro, prestígio)"
     ],
-    "C_Nervoso": [
+    "C-Nervoso": [
         "evita ser notado onde chega",
         "possui olhar distante, um pouco tristonho e, às vezes, voltado para baixo",
         "tende a andar inclinando a cabeça e o corpo para frente, com ombros caídos",
@@ -59,7 +59,7 @@ QUESTIONS = {
         "aprecia estórias e filmes com cenas de sofrimento humano",
         "momentos de empolgação alternados com pessimismo e desânimo"
     ],
-    "D_Linfatico": [
+    "D-Linfatico": [
         "evita mostrar suas opiniões e talentos",
         "possui olhar meigo, cativante, como quem está pedindo algo",
         "anda meio desajeitado, bamboleante e lento",
@@ -75,7 +75,7 @@ QUESTIONS = {
 
 # --- Recomendações por temperamento (alimentação detalhada incluída) ---
 RECOMMENDATIONS = {
-    "A_Sanguineo": {
+    "A-Sanguineo": {
         "nome": "Sanguíneo",
         "resumo": "Sociável, entusiasta e expansivo; busca estímulos sociais e variedade.",
         "pedras": ["Citrino", "Pirita", "Aventurina"],
@@ -94,7 +94,7 @@ RECOMMENDATIONS = {
             "- Reduza estimulantes e álcool em excesso; observe sinais de pressão arterial elevada e ajuste a dieta conforme necessário."
         )
     },
-    "B_Bilioso": {
+    "BBilioso": {
         "nome": "Bilioso / Colérico",
         "resumo": "Decidido, enérgico e orientado à ação; tende à liderança e ambição.",
         "pedras": ["Rubi", "Granada"],
@@ -113,7 +113,7 @@ RECOMMENDATIONS = {
             "- Mantenha refeições regulares e inclua atividade física para favorecer o fluxo biliar."
         )
     },
-    "C_Nervoso": {
+    "C-Nervoso": {
         "nome": "Nervoso / Melancólico",
         "resumo": "Introspectivo, detalhista e sensível; tendência à reflexão profunda.",
         "pedras": ["Ametista", "Quartzo Rosa"],
@@ -132,7 +132,7 @@ RECOMMENDATIONS = {
             "- Priorize refeições regulares e alimentos que favoreçam sono e recuperação emocional."
         )
     },
-    "D_Linfatico": {
+    "D-Linfatico": {
         "nome": "Linfático / Fleumático",
         "resumo": "Calmo, estável e rotineiro; busca conforto e previsibilidade.",
         "pedras": ["Hematita", "Jaspe"],
@@ -159,7 +159,7 @@ if "started" not in st.session_state:
 
 col1, col2 = st.columns([3, 1])
 with col2:
-    if st.button("Iniciar / Reiniciar"):
+    if st.button("Iniciar - Reiniciar"):
         st.session_state.started = True
         st.session_state.responses = {}
 
