@@ -211,10 +211,4 @@ if st.button("Calcular resultado"):
     }
     st.session_state.last_result = result
 
-    # opção de exportar como JSON (usuário pode copiar)
-    st.markdown("---")
-    st.subheader("Exportar / Salvar")
-    st.markdown("Você pode copiar o JSON abaixo para salvar localmente.")
-    st.code(json.dumps(result, indent=2, ensure_ascii=False))
-
     st.success("Autoestudo concluído. Se desejar, repita em duas semanas para comparar resultados.")
