@@ -174,7 +174,7 @@ if "responses" not in st.session_state:
 # renderizar cada grupo dentro de um expander separado
 for group, qs in QUESTIONS.items():
     exp_label = group.replace("_", " ")
-    with st.expander(exp_label, expanded=True):
+    with st.expander(exp_label, expanded=False):
         cols = st.columns(2)
         for i, q in enumerate(qs):
             key = f"{group}_{i}"
