@@ -5,7 +5,7 @@ import time
 import hashlib
 
 st.set_page_config(page_title="10 — Mapa do Dia", layout="wide")
-st.title("10 — Mapa do Dia")
+st.title("Mapa do Dia 🧭")
 
 st.markdown(
     "Gere uma leitura simbólica do 'céu do dia' para a sua localização. "

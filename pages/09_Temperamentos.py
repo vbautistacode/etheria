@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
-st.title("09 — Temperamentos (Autoestudo)")
+st.title("Temperamentos 🌑🌔🌕🌖")
 
 st.markdown(
     "Este autoestudo soma as características dos quatro grupos (A, B, C, D) "
@@ -39,7 +39,7 @@ QUESTIONS = {
         "irrita-se com facilidade quando é corrigido",
         "ambiciona progredir em tudo que for possível (bens, dinheiro, prestígio)"
     ],
-    "C_Melancolico": [
+    "C_Nervoso": [
         "evita ser notado onde chega",
         "possui olhar distante, um pouco tristonho e, às vezes, voltado para baixo",
         "tende a andar inclinando a cabeça e o corpo para frente, com ombros caídos",
@@ -93,7 +93,7 @@ RECOMMENDATIONS = {
         ],
         "alimentacao": "Evitar gorduras excessivas; preferir refeições equilibradas e regulares."
     },
-    "C_Melancolico": {
+    "C_Nervoso": {
         "nome": "Nervoso / Melancólico",
         "resumo": "Introspectivo, detalhista e sensível; tendência à reflexão profunda.",
         "pedras": ["Ametista", "Quartzo Rosa"],
