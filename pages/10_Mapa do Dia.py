@@ -1,4 +1,4 @@
-# 10_Mapa_do_Dia.py
+# 10_Mapa_do_Dia.py (atualizado: usa st.query_params e título "Mapa do Dia 🧭")
 import streamlit as st
 from datetime import datetime
 import time
@@ -28,7 +28,8 @@ st.markdown(
 # -------------------------
 # Leitura de query params (usada para receber dados do navegador)
 # -------------------------
-query_params = st.experimental_get_query_params()
+# substituído st.experimental_get_query_params por st.query_params (API estável)
+query_params = st.query_params
 # parâmetros esperados: lat, lon, city, client_time (ISO)
 qp_lat = query_params.get("lat", [None])[0]
 qp_lon = query_params.get("lon", [None])[0]
@@ -60,12 +61,6 @@ st.sidebar.markdown(
 )
 
 if st.sidebar.button("Detectar pelo navegador"):
-    # HTML/JS que obtém geolocalização e redireciona para a mesma URL com params
-    redirect_url = st.experimental_get_query_params()  # not used directly, but keep pattern
-    current_url = st.experimental_get_query_params()
-    # construir URL base (Streamlit atual)
-    base = st.experimental_get_query_params()
-    # usar window.location.href para redirecionar com params
     html = """
     <script>
     function toQueryString(obj) {
@@ -86,9 +81,7 @@ if st.sidebar.button("Detectar pelo navegador"):
         const base = window.location.href.split('?')[0];
         window.location.href = base + '?' + qs;
       }, function(err) {
-        // se falhar, redireciona sem coords para que o app mostre fallback
         const now = new Date().toISOString();
-        const params = { client_time: now };
         const qs = 'client_time=' + encodeURIComponent(now);
         const base = window.location.href.split('?')[0];
         window.location.href = base + '?' + qs;
@@ -129,16 +122,14 @@ lon = st.sidebar.text_input("Longitude (opcional)", value=lon or "")
 
 focus = st.sidebar.selectbox("Foco da leitura", ["Geral", "Trabalho", "Relacionamentos", "Saúde"], index=0)
 
-# usar client_time_iso se disponível; caso contrário, usar hora local do navegador não disponível -> usar hora do cliente via JS já tratada; se não, usar hora do servidor como fallback
+# usar client_time_iso se disponível; caso contrário, usar hora local do servidor como fallback
 if client_time_iso:
     try:
-        # normalizar para formato legível
         client_dt = datetime.fromisoformat(client_time_iso.replace("Z", "+00:00")) if client_time_iso.endswith("Z") else datetime.fromisoformat(client_time_iso)
         display_time = client_dt.isoformat(timespec="minutes")
     except Exception:
         display_time = client_time_iso
 else:
-    # fallback: usar hora do servidor (mas avisar)
     display_time = datetime.now().isoformat(timespec="minutes")
 
 st.markdown(f"**Data e hora (preferência):** {display_time}")
@@ -151,14 +142,12 @@ st.markdown("Pressione **Gerar Mapa do Dia** para enviar o prompt ao modelo (usa
 # Montador de chart_summary para o serviço
 # -------------------------
 def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: str, focus: str):
-    # garantir lat/lon com ponto decimal
     def _normalize_coord(v):
         if v is None:
             return ""
         s = str(v).strip()
         s = s.replace(",", ".")
         try:
-            # validar float
             _ = float(s)
             return s
         except Exception:
@@ -166,10 +155,8 @@ def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: s
     lat_n = _normalize_coord(lat)
     lon_n = _normalize_coord(lon)
 
-    # separar data e hora
     dt = date_time_iso or datetime.now().isoformat()
     try:
-        # se veio com timezone, manter; caso contrário, separar
         dt_obj = datetime.fromisoformat(dt.replace("Z", "+00:00")) if dt.endswith("Z") else datetime.fromisoformat(dt)
         date_text = dt_obj.date().isoformat()
         time_text = dt_obj.time().strftime("%H:%M")
@@ -184,7 +171,6 @@ def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: s
         "lat": lat_n,
         "lon": lon_n,
         "focus": focus,
-        # instrução curta para o prompt builder do services.daily_prompt
         "instruction": (
             f"Mapa do Dia para {date_text} {time_text} em {place or 'não informada'} (lat:{lat_n or 'n/a'}, lon:{lon_n or 'n/a'}). "
             f"Foco: {focus}. Gerar leitura prática e simbólica conforme o template diário."
@@ -215,7 +201,6 @@ if st.button("Gerar Mapa do Dia"):
         else:
             with st.spinner("Gerando interpretação com o modelo..."):
                 try:
-                    # passar prompt_template como prompt_template para o serviço
                     result = generate_ai_text_from_chart(chart_summary, prompt_template=prompt_template)
                 except Exception as e:
                     st.error(f"Erro ao chamar serviço de geração: {e}")

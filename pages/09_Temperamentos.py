@@ -220,26 +220,49 @@ if st.button("Calcular resultado"):
     st.subheader("Distribuição dos temperamentos")
     st.pyplot(fig)
 
-    # ordenar e determinar dominante/secundário
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    # --- Determinar dominante e secundário (robusto) ---
+sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+# segurança: garantir pelo menos 2 entradas
+if len(sorted_scores) < 2:
+    st.error("Erro: número insuficiente de grupos para determinar temperamentos. Verifique as respostas.")
+else:
     dominant_key, dominant_val = sorted_scores[0]
     secondary_key, secondary_val = sorted_scores[1]
 
-    dominant_label = RECOMMENDATIONS[dominant_key]["nome"]
-    secondary_label = RECOMMENDATIONS[secondary_key]["nome"]
+    # Função utilitária para obter label do RECOMMENDATIONS com fallback
+    def get_temperamento_nome(key):
+        # tentativa direta
+        rec = RECOMMENDATIONS.get(key)
+        if rec and isinstance(rec, dict) and rec.get("nome"):
+            return rec["nome"]
+        # tentar normalizar underscore/space
+        alt_key = key.replace(" ", "_")
+        rec = RECOMMENDATIONS.get(alt_key)
+        if rec and isinstance(rec, dict) and rec.get("nome"):
+            return rec["nome"]
+        # tentar remover underscores (fallback legível)
+        return key.replace("_", " ")
+
+    dominant_label = get_temperamento_nome(dominant_key)
+    secondary_label = get_temperamento_nome(secondary_key)
 
     st.markdown("---")
     st.markdown(f"**Temperamento dominante:** **{dominant_label}** — {dominant_val} pontos")
     st.markdown(f"**Temperamento secundário:** **{secondary_label}** — {secondary_val} pontos")
 
-    # detectar mistura próxima
     if abs(dominant_val - secondary_val) <= 8:
         st.warning("Pontuações próximas: é possível que você tenha um temperamento misto. Considere ler as descrições de ambos.")
 
-    # exibir recomendações em expanders separados para melhor leitura
-    st.subheader("Interpretação e recomendações")
-    def show_rec_expander(key):
-        rec = RECOMMENDATIONS[key]
+    # exibir recomendações com fallback seguro
+    def show_rec_expander_safe(key):
+        # tenta obter rec pelo formato original, depois por versão com underscore
+        rec = RECOMMENDATIONS.get(key) or RECOMMENDATIONS.get(key.replace(" ", "_"))
+        if not rec:
+            with st.expander(f"{key.replace('_',' ')} — Recomendações (não encontradas)", expanded=False):
+                st.write("Recomendações não disponíveis para esta chave. Verifique a consistência das chaves em QUESTIONS e RECOMMENDATIONS.")
+                st.write("Chave detectada:", key)
+            return
         with st.expander(f"{rec['nome']} — Recomendações", expanded=(key == dominant_key)):
             st.markdown(f"**Resumo:** {rec['resumo']}")
             st.markdown(f"**Pedras sugeridas:** {', '.join(rec['pedras'])}")
@@ -251,9 +274,8 @@ if st.button("Calcular resultado"):
             st.markdown("**Alimentação (sugestão detalhada):**")
             st.markdown(rec["alimentacao"].replace("\n", "  \n"))
 
-    # mostrar dominante e secundário em expanders
-    show_rec_expander(dominant_key)
-    show_rec_expander(secondary_key)
+    show_rec_expander_safe(dominant_key)
+    show_rec_expander_safe(secondary_key)
 
     # salvar resultado em session_state (opcional)
     result = {
