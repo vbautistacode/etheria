@@ -9,10 +9,17 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
 st.title("Temperamentos 🌑🌔🌕🌖")
 
-st.markdown(
-    "Este autoestudo soma as características dos quatro grupos (A, B, C, D) "
-    "e indica o temperamento dominante e secundário. Responda com honestidade."
-)
+st.markdown("""
+Este autoestudo soma as características dos quatro grupos (A, B, C, D) e indica o temperamento dominante e secundário.  
+**O que são os temperamentos:** trata‑se de um modelo clássico que descreve padrões estáveis de comportamento, emoção e energia corporal. Cada temperamento reúne um conjunto de tendências — maneiras preferidas de reagir, de se relacionar e de gerir a própria vitalidade — que ajudam a entender por que certas rotinas, alimentos e práticas funcionam melhor para algumas pessoas do que para outras.  
+
+- **Sanguíneo:** geralmente extrovertido, sociável e entusiasta; busca estímulos e variedade.  
+- **Bilioso (colérico):** orientado à ação, decidido e ambicioso; tende a respostas rápidas e foco em resultados.  
+- **Melancólico (nervoso):** introspectivo, detalhista e sensível; propenso à reflexão profunda e à cautela.  
+- **Linfático (fleumático):** calmo, estável e rotineiro; prefere previsibilidade e conforto.
+
+Este teste não rotula nem limita: serve como ferramenta prática para identificar tendências predominantes e sugerir ajustes simples (alimentação, sono, exercícios, práticas de relaxamento) que favoreçam equilíbrio. Responda com honestidade e use o resultado como ponto de partida para observar padrões ao longo do tempo.
+""")
 
 # --- Perguntas por grupo (texto conforme fornecido) ---
 QUESTIONS = {
@@ -210,7 +217,7 @@ if st.button("Calcular resultado"):
         legend_labels = [f"{lab}: {val} pts" for lab, val in zip(labels, values)]
         ax.legend(wedges, legend_labels, title="Temperamentos", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
 
-    st.subheader("Distribuição dos temperamentos (pizza)")
+    st.subheader("Distribuição dos temperamentos")
     st.pyplot(fig)
 
     # ordenar e determinar dominante/secundário
