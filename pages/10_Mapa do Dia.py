@@ -229,7 +229,6 @@ st.markdown("---")
 st.markdown("**Dicas de uso**")
 st.markdown(
     "- Gere o Mapa do Dia pela manhã para planejar o dia.\n"
-    "- Se usar frequentemente, o serviço do backend já aplica cache para reduzir chamadas.\n"
     "- Combine a leitura com uma prática curta (respiração, cristal, aroma) sugerida pelo texto."
 )
 

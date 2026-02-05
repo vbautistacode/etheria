@@ -279,7 +279,7 @@ if st.button("Calcular resultado"):
         if abs(dominant_val - secondary_val) <= 8:
             st.warning("Pontuações próximas: é possível que você tenha um temperamento misto. Considere ler as descrições de ambos.")
     else:
-        st.info("Nenhum temperamento secundário significativo detectado (limite 35%). Mostrando apenas o dominante.")
+        st.info("Nenhum temperamento secundário significativo detectado.")
 
     # -------------------------
     # Exibir recomendações em expanders
