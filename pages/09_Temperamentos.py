@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import json
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
 st.title("Temperamentos 🌑🌔🌕🌖")
@@ -65,7 +66,7 @@ QUESTIONS = {
     ]
 }
 
-# --- Recomendações por temperamento (padrão; ajuste conforme desejar) ---
+# --- Recomendações por temperamento (alimentação detalhada incluída) ---
 RECOMMENDATIONS = {
     "A_Sanguineo": {
         "nome": "Sanguíneo",
@@ -78,20 +79,32 @@ RECOMMENDATIONS = {
             "Estabeleça micro-rotinas para concluir projetos.",
             "Use exercícios de grounding ao final do dia."
         ],
-        "alimentacao": "Tendência a dieta mista com ênfase em frutas e vegetais; evitar excessos."
+        "alimentacao": (
+            "Padrão: dieta mista com tendência a opções vegetais; propensão ao vegetariano/frugívoro.\n\n"
+            "- Priorize frutas frescas, saladas e vegetais crus/cozidos; inclua grãos integrais e leguminosas em porções moderadas.\n"
+            "- No verão, evite refeições muito pesadas (carne gordurosa, excesso de batata e feijão em grandes porções) para reduzir risco de desconforto e insolação.\n"
+            "- Prefira porções menores e mais frequentes em dias quentes; mantenha hidratação adequada.\n"
+            "- Reduza estimulantes e álcool em excesso; observe sinais de pressão arterial elevada e ajuste a dieta conforme necessário."
+        )
     },
     "B_Bilioso": {
         "nome": "Bilioso / Colérico",
         "resumo": "Decidido, enérgico e orientado à ação; tende à liderança e ambição.",
         "pedras": ["Rubi", "Granada"],
         "cor": "Vermelho / Laranja",
-        "oleo": "Pimenta preta (estimulante) ou alecrim para foco",
+        "oleo": "Alecrim ou pimenta preta para foco",
         "dicas": [
             "Canalize energia em exercícios intensos (treino intervalado).",
             "Pratique respiração ativa antes de decisões importantes.",
             "Reserve momentos para desacelerar e revisar planos."
         ],
-        "alimentacao": "Evitar gorduras excessivas; preferir refeições equilibradas e regulares."
+        "alimentacao": (
+            "Padrão: dieta mista semelhante ao nervoso, com atenção especial ao fígado.\n\n"
+            "- Evite gorduras saturadas e frituras que sobrecarreguem o fígado; prefira carnes magras quando consumir proteína animal.\n"
+            "- Inclua fibras (vegetais, frutas, cereais integrais) para apoiar a digestão e o trânsito intestinal.\n"
+            "- Modere alimentos muito condimentados ou alcoólicos; se houver problemas digestivos (colite, hemorróidas), reduza gorduras e alimentos irritantes.\n"
+            "- Mantenha refeições regulares e inclua atividade física para favorecer o fluxo biliar."
+        )
     },
     "C_Nervoso": {
         "nome": "Nervoso / Melancólico",
@@ -104,7 +117,13 @@ RECOMMENDATIONS = {
             "Inclua pausas regulares e técnicas de relaxamento.",
             "Evite estimulantes e priorize sono reparador."
         ],
-        "alimentacao": "Preferir frutas, legumes e evitar excitantes; atenção ao cálcio e proteínas leves."
+        "alimentacao": (
+            "Padrão: frutas e legumes em destaque; evitar excitantes.\n\n"
+            "- Baseie a dieta em frutas, verduras, legumes e cereais integrais; inclua fontes leves de proteína (ovos, peixe, leguminosas) conforme tolerância.\n"
+            "- Evite cafeína, bebidas energéticas e excesso de açúcar, que aumentam ansiedade e prejudicam o sono.\n"
+            "- Considere alimentos ricos em cálcio e magnésio (verduras escuras, sementes) para suporte nervoso; ajuste proteínas conforme orientação profissional.\n"
+            "- Priorize refeições regulares e alimentos que favoreçam sono e recuperação emocional."
+        )
     },
     "D_Linfatico": {
         "nome": "Linfático / Fleumático",
@@ -117,11 +136,16 @@ RECOMMENDATIONS = {
             "Introduza mudanças graduais para evitar resistência.",
             "Use práticas de mobilidade para energia corporal."
         ],
-        "alimentacao": "Alimentação mista; moderação em álcool e gorduras; rotina alimentar regular."
+        "alimentacao": (
+            "Padrão: alimentação mista com tendência a carne; moderação em álcool e excessos.\n\n"
+            "- Prefira refeições equilibradas e regulares; inclua proteínas (carne magra, aves, peixes) com moderação e muitas verduras.\n"
+            "- Evite excessos alimentares e comportamentos dependentes (tabagismo, consumo compulsivo); reduza álcool ou limite a vinho nas refeições com moderação.\n"
+            "- Mantenha hidratação e controle porções para evitar letargia; pratique atividade física leve para estimular metabolismo."
+        )
     }
 }
 
-# --- UI: instruções e formulário ---
+# --- UI: instruções e formulário com expanders por grupo ---
 st.markdown("Clique em **Iniciar** para abrir o questionário. Use valores de 0 (nunca) a 10 (sempre).")
 if "started" not in st.session_state:
     st.session_state.started = False
@@ -130,25 +154,26 @@ col1, col2 = st.columns([3, 1])
 with col2:
     if st.button("Iniciar / Reiniciar"):
         st.session_state.started = True
-        # reset responses
         st.session_state.responses = {}
 
 if not st.session_state.started:
     st.info("Pressione Iniciar para responder o autoestudo.")
     st.stop()
 
-# render sliders por grupo
+# inicializar respostas se necessário
 if "responses" not in st.session_state:
     st.session_state.responses = {}
 
+# renderizar cada grupo dentro de um expander separado
 for group, qs in QUESTIONS.items():
-    st.header(group.replace("_", " "))
-    cols = st.columns(2)
-    for i, q in enumerate(qs):
-        key = f"{group}_{i}"
-        default = st.session_state.responses.get(key, None)
-        val = cols[i % 2].slider(q, 0, 10, value=default if default is not None else 0, key=key)
-        st.session_state.responses[key] = val
+    exp_label = group.replace("_", " ")
+    with st.expander(exp_label, expanded=True):
+        cols = st.columns(2)
+        for i, q in enumerate(qs):
+            key = f"{group}_{i}"
+            default = st.session_state.responses.get(key, None)
+            val = cols[i % 2].slider(q, 0, 10, value=default if default is not None else 0, key=key)
+            st.session_state.responses[key] = val
 
 # botão calcular
 if st.button("Calcular resultado"):
@@ -160,11 +185,33 @@ if st.button("Calcular resultado"):
         score = round(total, 2)
         scores[group] = score
 
-    # DataFrame para exibição
-    df_scores = pd.DataFrame.from_dict(scores, orient="index", columns=["Pontuação"])
-    df_scores.index = df_scores.index.str.replace("_", " ")
-    st.subheader("Resultados (0–100)")
-    st.bar_chart(df_scores["Pontuação"])
+    # Preparar dados para gráfico de pizza
+    labels = [k.replace("_", " ") for k in scores.keys()]
+    values = [v for v in scores.values()]
+    colors = ["#FFD166", "#EF476F", "#118AB2", "#06D6A0"]  # cores sugeridas para cada temperamento
+
+    # Plot pie chart com matplotlib
+    fig, ax = plt.subplots(figsize=(6, 6))
+    # evitar fatias zero invisíveis: se todas zero, mostrar mensagem
+    if sum(values) == 0:
+        ax.text(0.5, 0.5, "Sem respostas (todas as pontuações são 0)", ha="center", va="center")
+        ax.axis("off")
+    else:
+        wedges, texts, autotexts = ax.pie(
+            values,
+            labels=None,
+            autopct=lambda pct: f"{pct:.1f}%" if pct > 0 else "",
+            startangle=90,
+            colors=colors[:len(values)],
+            wedgeprops=dict(width=0.5, edgecolor="w")
+        )
+        ax.axis("equal")
+        # legenda ao lado
+        legend_labels = [f"{lab}: {val} pts" for lab, val in zip(labels, values)]
+        ax.legend(wedges, legend_labels, title="Temperamentos", loc="center left", bbox_to_anchor=(1, 0, 0.5, 1))
+
+    st.subheader("Distribuição dos temperamentos (pizza)")
+    st.pyplot(fig)
 
     # ordenar e determinar dominante/secundário
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -182,31 +229,32 @@ if st.button("Calcular resultado"):
     if abs(dominant_val - secondary_val) <= 8:
         st.warning("Pontuações próximas: é possível que você tenha um temperamento misto. Considere ler as descrições de ambos.")
 
-    # exibir recomendações
+    # exibir recomendações em expanders separados para melhor leitura
     st.subheader("Interpretação e recomendações")
-    def show_rec(key):
+    def show_rec_expander(key):
         rec = RECOMMENDATIONS[key]
-        st.markdown(f"### {rec['nome']}")
-        st.markdown(f"**Resumo:** {rec['resumo']}")
-        st.markdown(f"**Pedras sugeridas:** {', '.join(rec['pedras'])}")
-        st.markdown(f"**Cromoterapia (cor):** {rec['cor']}")
-        st.markdown(f"**Aromaterapia (óleo):** {rec['oleo']}")
-        st.markdown("**Dicas práticas:**")
-        for d in rec["dicas"]:
-            st.write(f"- {d}")
-        st.markdown(f"**Alimentação (sugestão):** {rec['alimentacao']}")
+        with st.expander(f"{rec['nome']} — Recomendações", expanded=(key == dominant_key)):
+            st.markdown(f"**Resumo:** {rec['resumo']}")
+            st.markdown(f"**Pedras sugeridas:** {', '.join(rec['pedras'])}")
+            st.markdown(f"**Cromoterapia (cor):** {rec['cor']}")
+            st.markdown(f"**Aromaterapia (óleo):** {rec['oleo']}")
+            st.markdown("**Dicas práticas:**")
+            for d in rec["dicas"]:
+                st.write(f"- {d}")
+            st.markdown("**Alimentação (sugestão detalhada):**")
+            st.markdown(rec["alimentacao"].replace("\n", "  \n"))
 
-    show_rec(dominant_key)
-    st.markdown("---")
-    show_rec(secondary_key)
+    # mostrar dominante e secundário em expanders
+    show_rec_expander(dominant_key)
+    show_rec_expander(secondary_key)
 
     # salvar resultado em session_state (opcional)
     result = {
         "timestamp": datetime.utcnow().isoformat(),
         "scores": scores,
-        "dominant": dominant_label,
+        "dominant": RECOMMENDATIONS[dominant_key]["nome"],
         "dominant_score": dominant_val,
-        "secondary": secondary_label,
+        "secondary": RECOMMENDATIONS[secondary_key]["nome"],
         "secondary_score": secondary_val
     }
     st.session_state.last_result = result
