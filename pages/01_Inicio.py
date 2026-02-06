@@ -149,7 +149,7 @@ with col_a:
     )
 with col_b:
     # botão para resetar todos os base_years para o ano vigente
-    if st.sidebar.button("Resetar para ano atual"):
+    #if st.sidebar.button("Resetar para ano atual"):
         st.session_state["base_astro"] = current_year
         st.session_state["base_teos"] = current_year
         st.session_state["base_major"] = current_year
