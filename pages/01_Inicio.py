@@ -523,29 +523,66 @@ with left:
 
         with col_hour:
             available_hours = mat.index.tolist()
-            # função auxiliar para achar índice da hora mais próxima
-            def find_closest_hour_label(target_label, hour_labels):
-                if target_label in hour_labels:
-                    return hour_labels.index(target_label)
+
+            # obter referência de tempo (usa client_time_iso se existir)
+            client_time_iso = st.session_state.get("client_time_iso", None)
+            try:
+                if client_time_iso:
+                    ref_dt = datetime.fromisoformat(client_time_iso.replace("Z", "+00:00")) if client_time_iso.endswith("Z") else datetime.fromisoformat(client_time_iso)
+                else:
+                    ref_dt = datetime.now()
+            except Exception:
+                ref_dt = datetime.now()
+
+            # formatos candidatos para busca direta
+            exact_label = ref_dt.strftime("%H:%M")   # ex: "17:08"
+            hour00_label = ref_dt.strftime("%H:00")  # ex: "17:00"
+
+            def parse_label_to_minutes(label):
                 try:
-                    target_h = int(target_label.split(":")[0])
-                    hour_ints = [int(h.split(":")[0]) for h in hour_labels]
-                    diffs = [abs(h - target_h) for h in hour_ints]
-                    return diffs.index(min(diffs))
+                    parts = label.split(":")
+                    h = int(parts[0])
+                    m = int(parts[1]) if len(parts) > 1 else 0
+                    return h * 60 + m
                 except Exception:
-                    # fallback para índice 0
+                    return None
+
+            def find_closest_index(target_minutes, labels):
+                mins = []
+                for lbl in labels:
+                    pm = parse_label_to_minutes(lbl)
+                    if pm is None:
+                        mins.append(float("inf"))
+                    else:
+                        mins.append(abs(pm - target_minutes))
+                # se todos forem inf, retornar 0
+                if all([m == float("inf") for m in mins]):
                     return 0
+                return mins.index(min(mins))
 
+            # decidir índice padrão
+            default_hour_idx = 0
             if available_hours:
-                default_hour_idx = find_closest_hour_label(current_hour_label, available_hours)
-            else:
-                default_hour_idx = 0
+                # 1) tentar rótulo exato HH:MM
+                if exact_label in available_hours:
+                    default_hour_idx = available_hours.index(exact_label)
+                # 2) tentar HH:00
+                elif hour00_label in available_hours:
+                    default_hour_idx = available_hours.index(hour00_label)
+                else:
+                    # 3) procurar o rótulo mais próximo em minutos
+                    target_min = parse_label_to_minutes(exact_label)
+                    if target_min is not None:
+                        default_hour_idx = find_closest_index(target_min, available_hours)
+                    else:
+                        default_hour_idx = 0
 
-            # se quiser manter o comportamento antigo quando "06:00" existir e não houver client_time, priorize-o:
+            # 4) comportamento antigo: se não houver client_time, priorizar "06:00" quando presente
             if "client_time_iso" not in st.session_state and "06:00" in available_hours:
                 default_hour_idx = available_hours.index("06:00")
 
             hour_choice = st.selectbox("Hora", options=available_hours, index=default_hour_idx, key="hour_choice")
+
         # --- fim da nova funcionalidade ---
 
         def highlight_selected(df: pd.DataFrame, sel_wd: str, sel_hr: str) -> pd.io.formats.style.Styler:
