@@ -92,7 +92,7 @@ PLANETS_TEOSOPHICAL: List[str] = [
 ]
 
 PLANETS_MAJOR: List[str] = [
-    "Saturn", "Moon", "Venus", "Jupiter", "Sun", "Mercury", "Mars"
+    "Saturn", "Moon", "Mercury", "Mars", "Sun", "Jupiter", "Venus"
 ]
 
 MAJOR_STEP = 35
