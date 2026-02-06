@@ -95,6 +95,10 @@ PLANETS_MAJOR: List[str] = [
     "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus"
 ]
 
+# MAJOR_STEP e MAJOR_BLOCK definidos uma única vez, de forma explícita e positiva
+MAJOR_STEP = 36
+MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
+
 # Valores de alinhamento (ajuste conforme sua convenção)
 BASE_YEAR_ASTRO = 2026
 BASE_YEAR_TEOS = 2026
@@ -258,39 +262,32 @@ def regent_by_year(year: int, cycle: str = "astrologico",
 
     if key in ("astrologico", "astrológico"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_ASTROLOGICAL
-        idx = (year - base_year_astro) % len(planet_list)
+        idx = (int(year) - int(base_year_astro)) % len(planet_list)
         return planet_list[idx]
 
     if key in ("teosofico", "teosófico"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_TEOSOPHICAL
-        idx = (year - base_year_teos) % len(planet_list)
+        idx = (int(year) - int(base_year_teos)) % len(planet_list)
         return planet_list[idx]
 
-    # garantir constantes (defina no topo do módulo)
-    MAJOR_STEP = 36
-    MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
-
-    # dentro de regent_by_year, bloco 'maior' substitua por:
     if key in ("maior", "cycle35", "cycle_35"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_MAJOR
-        # garantir inteiros
+        # garantir inteiros e valores válidos
         by = int(base_year_major)
         step = int(MAJOR_STEP)
         block = int(MAJOR_BLOCK)
         if step <= 0 or block <= 0:
             raise ValueError("MAJOR_STEP e MAJOR_BLOCK devem ser positivos e não nulos")
 
-        # offset positivo e previsível
+        # offset positivo e previsível dentro do bloco
         offset = (int(year) - by) % block
         index = int(offset // step)
-        # proteger índice (por segurança)
         index = index % len(planet_list)
         return planet_list[index]
 
-
     # fallback: astrologico
     planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_ASTROLOGICAL
-    idx = (year - base_year_astro) % len(planet_list)
+    idx = (int(year) - int(base_year_astro)) % len(planet_list)
     return planet_list[idx]
 
 # -------------------------
@@ -339,10 +336,6 @@ def planet_for_major_year(year: int, planets: Optional[List[str]] = None) -> str
 def cycle_major_for_age(age: int, planets: Optional[List[str]] = None) -> Dict[str, Any]:
     if age < 0:
         raise ValueError("age must be >= 0")
-    
-    # Define MAJOR_STEP and MAJOR_BLOCK
-    MAJOR_STEP = 36
-    MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
 
     major_year = ((age - 1) % MAJOR_BLOCK) + 1 if age >= 1 else 1
     planet = regent_by_year(major_year, cycle="maior", planets_override=planets)
@@ -450,7 +443,6 @@ def get_regent_for_cycle(
         if reg:
             # manter retorno da tabela inalterado (compatibilidade), mas também adicionar campos legacy se possível
             if "Planet" in reg or "planet" in reg or "Planeta" in reg:
-                # normalize planet value for convenience
                 raw = reg.get("Planet") or reg.get("planet") or reg.get("Planeta")
                 canonical = planet_to_canonical(raw) if raw else None
                 reg["planet"] = canonical
