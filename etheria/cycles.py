@@ -272,9 +272,12 @@ def regent_by_year(year: int, cycle: str = "astrologico",
     # ciclo maior: cada planeta domina um bloco de MAJOR_STEP anos
     if key in ("maior", "cycle35", "cycle_35"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_MAJOR
+        # offset positivo dentro do bloco de MAJOR_BLOCK anos
         offset = (year - base_year_major) % MAJOR_BLOCK
-        index = offset // MAJOR_STEP
-        return planet_list[int(index)]
+        index = int(offset // MAJOR_STEP)
+        # proteger índice por segurança
+        index = index % len(planet_list)
+        return planet_list[index]
 
     # fallback: astrologico
     planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_ASTROLOGICAL

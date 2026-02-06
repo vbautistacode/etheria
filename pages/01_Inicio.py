@@ -255,13 +255,38 @@ def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
 # --- Interpretação coletiva dinâmica
 # UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
 
+# --- Recalcular regentes usando os anos atuais do session_state ---
 _now = datetime.now()
-reg_ast = get_regent_for_cycle("astrologico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_teo = get_regent_for_cycle("teosofico", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
-reg_35  = get_regent_for_cycle("maior", _now, {"corr_df": data["corr_df"]},
-                               base_year_astro=base_astro, base_year_teos=base_teos, base_year_major=base_major)
+
+# ler os base_years diretamente do session_state para garantir consistência
+base_astro_used = int(st.session_state.get("base_astro", current_year))
+base_teos_used  = int(st.session_state.get("base_teos", current_year))
+base_major_used = int(st.session_state.get("base_major", current_year))
+
+reg_ast = get_regent_for_cycle(
+    "astrologico",
+    _now,
+    {"corr_df": data["corr_df"]},
+    base_year_astro=base_astro_used,
+    base_year_teos=base_teos_used,
+    base_year_major=base_major_used,
+)
+reg_teo = get_regent_for_cycle(
+    "teosofico",
+    _now,
+    {"corr_df": data["corr_df"]},
+    base_year_astro=base_astro_used,
+    base_year_teos=base_teos_used,
+    base_year_major=base_major_used,
+)
+reg_35 = get_regent_for_cycle(
+    "maior",
+    _now,
+    {"corr_df": data["corr_df"]},
+    base_year_astro=base_astro_used,
+    base_year_teos=base_teos_used,
+    base_year_major=base_major_used,
+)
 
 planet_ast = short_regent_label(reg_ast.get("regent"))
 planet_teo = short_regent_label(reg_teo.get("regent"))
