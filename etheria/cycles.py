@@ -99,8 +99,8 @@ MAJOR_STEP = 35
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR) # 36 * 7 = 252 
 
 # Valores de alinhamento (ajuste conforme sua convenção)
-BASE_YEAR_ASTRO = 2
-BASE_YEAR_TEOS = 2
+BASE_YEAR_ASTRO = 2020
+BASE_YEAR_TEOS = 2020
 BASE_YEAR_MAJOR = 2017
 
 # -------------------------
@@ -467,6 +467,36 @@ def get_regent_for_cycle(
     planet = regent_by_year(year, cycle="astrologico", base_year_astro=base_year_astro)
     reg = {"planet": planet, "planet_label": planet_label_pt(planet), "Planeta": planet_label_pt(planet)}
     return {"cycle": key, "index_or_year": year, "regent": reg, "source": "computed"}
+
+def compute_base_year_for_target(target_year: int, target_planet: str, cycle: str = "astrologico") -> int:
+    """
+    Retorna um base_year tal que regent_by_year(target_year, cycle, base_year_*) == target_planet.
+    Devolve o menor base_year >= 1 dentro de uma janela prática.
+    """
+    target_canon = planet_to_canonical(target_planet)
+    if not target_canon:
+        raise ValueError("target_planet não pôde ser normalizado")
+
+    key = (cycle or "astrologico").lower()
+    if key in ("teosofico", "teosófico"):
+        planet_list = PLANETS_TEOSOPHICAL
+    elif key in ("maior", "cycle35", "cycle_35"):
+        planet_list = PLANETS_MAJOR
+    else:
+        planet_list = PLANETS_ASTROLOGICAL
+
+    n = len(planet_list)
+    try:
+        idx_target = planet_list.index(target_canon)
+    except ValueError:
+        raise ValueError(f"{target_canon} não está em planet_list para o ciclo {cycle}")
+
+    # base simples: base = target_year - idx_target  (satisfaz a congruência)
+    base_candidate = target_year - idx_target
+    # normalizar para >= 1
+    if base_candidate < 1:
+        base_candidate += ((1 - base_candidate) // n + 1) * n
+    return base_candidate
 
 # -------------------------
 # Utilitário para rótulo curto (compatível com várias formas de regent dict)
