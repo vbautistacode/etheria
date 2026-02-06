@@ -88,7 +88,7 @@ PLANETS_ASTROLOGICAL: List[str] = [
 ]
 
 PLANETS_TEOSOPHICAL: List[str] = [
-    "Venus", "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter"
+    "Jupiter", "Venus", "Saturn", "Sun", "Moon", "Mars", "Mercury"
 ]
 
 PLANETS_MAJOR: List[str] = [
