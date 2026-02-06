@@ -115,13 +115,14 @@ def load_data() -> Dict[str, Any]:
 data = load_data()
 
 # -------------------------
-# Sidebar: ajustes e Entrada do consulente
+# Sidebar: ajustes e Entrada do consulente (refatorado)
 # -------------------------
 from datetime import datetime
 current_year = datetime.now().year
 
 st.sidebar.header("Ajustes de Ciclos")
-# usar session_state para persistência entre interações
+
+# inicializar session_state com valores padrão (ano atual)
 if "base_astro" not in st.session_state:
     st.session_state["base_astro"] = current_year
 if "base_teos" not in st.session_state:
@@ -129,40 +130,52 @@ if "base_teos" not in st.session_state:
 if "base_major" not in st.session_state:
     st.session_state["base_major"] = current_year
 
-col_a, col_b = st.sidebar.columns([3,1])
+# layout em duas colunas na sidebar
+col_a, col_b = st.sidebar.columns([3, 1])
+
 with col_a:
-    base_astro = st.sidebar.number_input(
+    # vincular os number_inputs diretamente às chaves de session_state
+    base_astro = st.number_input(
         "Ano Astrológico",
         min_value=1, max_value=10000,
-        value=st.session_state["base_astro"], step=1, key="base_astro_input"
+        value=st.session_state["base_astro"], step=1, key="base_astro"
     )
-    base_teos = st.sidebar.number_input(
+    base_teos = st.number_input(
         "Ano Teosófico",
         min_value=1, max_value=10000,
-        value=st.session_state["base_teos"], step=1, key="base_teos_input"
+        value=st.session_state["base_teos"], step=1, key="base_teos"
     )
-    base_major = st.sidebar.number_input(
+    base_major = st.number_input(
         "Ano Base | Ciclo Maior",
         min_value=1, max_value=10000,
-        value=st.session_state["base_major"], step=1, key="base_major_input"
+        value=st.session_state["base_major"], step=1, key="base_major"
     )
+
+# callback para resetar os anos para o ano atual
+def reset_to_current_year():
+    cy = current_year
+    st.session_state["base_astro"] = cy
+    st.session_state["base_teos"] = cy
+    st.session_state["base_major"] = cy
+
+    # atualizar também os widgets vinculados (garante sincronia)
+    st.session_state["base_astro"] = st.session_state.get("base_astro", cy)
+    st.session_state["base_teos"] = st.session_state.get("base_teos", cy)
+    st.session_state["base_major"] = st.session_state.get("base_major", cy)
+
+    # gatilho extra para forçar atualização de componentes dependentes
+    st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
+
+    # tentar rerun experimental se disponível (compatibilidade)
+    if hasattr(st, "experimental_rerun"):
+        try:
+            st.experimental_rerun()
+        except Exception:
+            pass
+
 with col_b:
-    # botão para resetar todos os base_years para o ano vigente
-    if st.sidebar.button("Resetar para ano atual"):
-        st.session_state["base_astro"] = current_year
-        st.session_state["base_teos"] = current_year
-        st.session_state["base_major"] = current_year
-
-        # Gatilho extra para forçar atualização em versões sem experimental_rerun
-        st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
-
-        # Se a função experimental_rerun existir, use-a (compatibilidade)
-        if hasattr(st, "experimental_rerun"):
-            try:
-                st.experimental_rerun()
-            except Exception:
-                # se falhar por algum motivo, apenas continue; session_state já foi atualizado
-                pass
+    # botão com callback; usar col_b.button para garantir posicionamento correto
+    col_b.button("Resetar para ano atual", on_click=reset_to_current_year)
 
 # sincronizar session_state com valores atuais dos inputs
 st.session_state["base_astro"] = int(base_astro)
