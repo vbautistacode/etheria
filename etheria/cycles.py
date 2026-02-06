@@ -102,7 +102,7 @@ MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
 # Valores de alinhamento (ajuste conforme sua convenção)
 BASE_YEAR_ASTRO = 2026
 BASE_YEAR_TEOS = 2026
-BASE_YEAR_MAJOR = 2017
+BASE_YEAR_MAJOR = (2025 - 1)  # para que 2025 seja o ano 1 do ciclo maior
 
 # -------------------------
 # Conteúdos interpretativos (chaves canônicas EN, valores em pt_BR)
