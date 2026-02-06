@@ -347,7 +347,7 @@ with c1:
             unsafe_allow_html=True,
         )
         # botão que aciona o expander (use key único por bloco)
-        if st.button("ℹ️", key=help_key):
+        if st.button("🛈", key=help_key):
             st.session_state[flag_key] = not st.session_state.get(flag_key, False)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -395,7 +395,7 @@ with c2:
             """,
             unsafe_allow_html=True,
         )
-        if st.button("ℹ️", key=help_key_teo):
+        if st.button("🛈", key=help_key_teo):
             st.session_state[flag_key_teo] = not st.session_state.get(flag_key_teo, False)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -443,7 +443,7 @@ with c3:
             """,
             unsafe_allow_html=True,
         )
-        if st.button("ℹ️", key=help_key_35):
+        if st.button("🛈", key=help_key_35):
             st.session_state[flag_key_35] = not st.session_state.get(flag_key_35, False)
         st.markdown("</div>", unsafe_allow_html=True)
 
