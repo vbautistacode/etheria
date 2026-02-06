@@ -99,8 +99,8 @@ MAJOR_STEP = 35
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR) # 36 * 7 = 252 
 
 # Valores de alinhamento (ajuste conforme sua convenção)
-BASE_YEAR_ASTRO = 2020
-BASE_YEAR_TEOS = 2020
+BASE_YEAR_ASTRO = 2026
+BASE_YEAR_TEOS = 2026
 BASE_YEAR_MAJOR = 2017
 
 # -------------------------
