@@ -95,9 +95,6 @@ PLANETS_MAJOR: List[str] = [
     "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus"
 ]
 
-MAJOR_STEP = 36
-MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR) # 36 * 7 = 252 
-
 # Valores de alinhamento (ajuste conforme sua convenção)
 BASE_YEAR_ASTRO = 2026
 BASE_YEAR_TEOS = 2026
@@ -269,15 +266,27 @@ def regent_by_year(year: int, cycle: str = "astrologico",
         idx = (year - base_year_teos) % len(planet_list)
         return planet_list[idx]
 
-    # ciclo maior: cada planeta domina um bloco de MAJOR_STEP anos
+    # garantir constantes (defina no topo do módulo)
+    MAJOR_STEP = 36
+    MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
+
+    # dentro de regent_by_year, bloco 'maior' substitua por:
     if key in ("maior", "cycle35", "cycle_35"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_MAJOR
-        # offset positivo dentro do bloco de MAJOR_BLOCK anos
-        offset = (year - base_year_major) % MAJOR_BLOCK
-        index = int(offset // MAJOR_STEP)
-        # proteger índice por segurança
+        # garantir inteiros
+        by = int(base_year_major)
+        step = int(MAJOR_STEP)
+        block = int(MAJOR_BLOCK)
+        if step <= 0 or block <= 0:
+            raise ValueError("MAJOR_STEP e MAJOR_BLOCK devem ser positivos e não nulos")
+
+        # offset positivo e previsível
+        offset = (int(year) - by) % block
+        index = int(offset // step)
+        # proteger índice (por segurança)
         index = index % len(planet_list)
         return planet_list[index]
+
 
     # fallback: astrologico
     planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_ASTROLOGICAL
@@ -330,6 +339,11 @@ def planet_for_major_year(year: int, planets: Optional[List[str]] = None) -> str
 def cycle_major_for_age(age: int, planets: Optional[List[str]] = None) -> Dict[str, Any]:
     if age < 0:
         raise ValueError("age must be >= 0")
+    
+    # Define MAJOR_STEP and MAJOR_BLOCK
+    MAJOR_STEP = 36
+    MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
+
     major_year = ((age - 1) % MAJOR_BLOCK) + 1 if age >= 1 else 1
     planet = regent_by_year(major_year, cycle="maior", planets_override=planets)
     return {
