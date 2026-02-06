@@ -537,49 +537,84 @@ with left:
             # formatos candidatos para busca direta
             exact_label = ref_dt.strftime("%H:%M")   # ex: "17:08"
             hour00_label = ref_dt.strftime("%H:00")  # ex: "17:00"
+            hour_nozero = ref_dt.strftime("%-H:%M") if hasattr(ref_dt, "strftime") else exact_label  # "6:00" em alguns sistemas
 
-            def parse_label_to_minutes(label):
+            # utilitários de normalização e parsing
+            def normalize_label(lbl: str) -> str:
+                """Tenta extrair 'HH:MM' padronizado de um rótulo qualquer."""
+                if not isinstance(lbl, str):
+                    return ""
+                s = lbl.strip()
+                # remover AM/PM se existir e converter para 24h se possível (simples)
+                s_up = s.upper().replace("AM", "").replace("PM", "").strip()
+                # substituir separadores comuns
+                s_up = s_up.replace("h", ":").replace(".", ":").replace(",", ":")
+                parts = s_up.split(":")
                 try:
-                    parts = label.split(":")
                     h = int(parts[0])
-                    m = int(parts[1]) if len(parts) > 1 else 0
-                    return h * 60 + m
+                    m = int(parts[1]) if len(parts) > 1 and parts[1] != "" else 0
+                    # ajustar se AM/PM foi removido (não faz conversão complexa aqui)
+                    return f"{h:02d}:{m:02d}"
+                except Exception:
+                    # fallback: tentar extrair dois primeiros dígitos como hora
+                    digits = "".join([c for c in s_up if c.isdigit() or c == ":"])
+                    if ":" in digits:
+                        try:
+                            ph, pm = digits.split(":", 1)
+                            return f"{int(ph):02d}:{int(pm or 0):02d}"
+                        except Exception:
+                            pass
+                    return s  # retornar original se não puder normalizar
+
+            def to_minutes(lbl: str):
+                try:
+                    h, m = lbl.split(":")
+                    return int(h) * 60 + int(m)
                 except Exception:
                     return None
 
-            def find_closest_index(target_minutes, labels):
-                mins = []
-                for lbl in labels:
-                    pm = parse_label_to_minutes(lbl)
-                    if pm is None:
-                        mins.append(float("inf"))
-                    else:
-                        mins.append(abs(pm - target_minutes))
-                # se todos forem inf, retornar 0
-                if all([m == float("inf") for m in mins]):
-                    return 0
-                return mins.index(min(mins))
+            # construir mapa normalizado -> índice original
+            norm_map = {}
+            norm_list = []
+            for idx, lbl in enumerate(available_hours):
+                n = normalize_label(str(lbl))
+                norm_map.setdefault(n, []).append(idx)
+                norm_list.append(n)
 
-            # decidir índice padrão
+            # DEBUG opcional: ver rótulos e normalizados
+            # st.write("DEBUG available_hours:", available_hours)
+            # st.write("DEBUG normalized:", norm_list, "exact_label:", exact_label, "hour00_label:", hour00_label)
+
+            # decidir índice padrão com várias tentativas
             default_hour_idx = 0
             if available_hours:
-                # 1) tentar rótulo exato HH:MM
-                if exact_label in available_hours:
-                    default_hour_idx = available_hours.index(exact_label)
-                # 2) tentar HH:00
-                elif hour00_label in available_hours:
-                    default_hour_idx = available_hours.index(hour00_label)
+                # 1) exato HH:MM normalizado
+                if exact_label in norm_map:
+                    default_hour_idx = norm_map[exact_label][0]
+                # 2) HH:00 normalizado
+                elif hour00_label in norm_map:
+                    default_hour_idx = norm_map[hour00_label][0]
+                # 3) tentar sem zero à esquerda (ex.: "6:00")
+                elif hour_nozero in norm_map:
+                    default_hour_idx = norm_map[hour_nozero][0]
                 else:
-                    # 3) procurar o rótulo mais próximo em minutos
-                    target_min = parse_label_to_minutes(exact_label)
+                    # 4) procurar o rótulo mais próximo em minutos
+                    target_min = to_minutes(exact_label)
                     if target_min is not None:
-                        default_hour_idx = find_closest_index(target_min, available_hours)
+                        diffs = []
+                        for n in norm_list:
+                            tm = to_minutes(n)
+                            diffs.append(abs(tm - target_min) if tm is not None else float("inf"))
+                        if any(d != float("inf") for d in diffs):
+                            default_hour_idx = diffs.index(min(diffs))
+                        else:
+                            default_hour_idx = 0
                     else:
                         default_hour_idx = 0
 
-            # 4) comportamento antigo: se não houver client_time, priorizar "06:00" quando presente
-            if "client_time_iso" not in st.session_state and "06:00" in available_hours:
-                default_hour_idx = available_hours.index("06:00")
+            # 5) comportamento antigo: se não houver client_time, priorizar "06:00" quando presente
+            if "client_time_iso" not in st.session_state and "06:00" in norm_map:
+                default_hour_idx = norm_map["06:00"][0]
 
             hour_choice = st.selectbox("Hora", options=available_hours, index=default_hour_idx, key="hour_choice")
 
