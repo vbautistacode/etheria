@@ -312,7 +312,7 @@ st.markdown(
     """
 )
 
-interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=_summary_obj if '_summary_obj' in globals() else None)
+interp_ast, interp_teo, interp_35 = generate_three_interpretations(planet_ast, planet_teo, planet_35, summary=None)
 
 c1, c2, c3 = st.columns(3)
 # título com botão de ajuda exatamente em frente
