@@ -56,6 +56,7 @@ from etheria.cycles import (
     CICLO_MAIOR_DESC,
     CICLO_MENOR_ASTROLOGICO_DESC,
     CICLO_MENOR_TEOSOFICO_DESC,
+    compute_base_year_for_target,
 )
 
 st.title("Ciclos Astrológicos e Relógio Tátvico ♾️")
@@ -252,17 +253,27 @@ def get_planet_style(name: str, lang: str = "pt") -> Dict[str, str]:
 # -------------------------
 # Snippets de ciclos (usando base_years do sidebar)
 # -------------------------
-# --- Interpretação coletiva dinâmica
-# UI snippet para exibir em 3 colunas (colar onde apropriado em app.py)
+# --- Inicializar bases alinhadas a 2026 (apenas na primeira carga) ---
+# usa compute_base_year_for_target do cycles.py para sugerir valores coerentes
+if not st.session_state.get("_bases_initialized", False):
+    try:
+        # exemplo: alinhar 2026 -> Mars no ciclo astrológico
+        st.session_state["base_astro"] = compute_base_year_for_target(2026, "Mars", cycle="astrologico")
+        # exemplo: alinhar 2026 -> Jupiter no ciclo teosófico (ajuste conforme desejado)
+        st.session_state["base_teos"] = compute_base_year_for_target(2026, "Jupiter", cycle="teosofico")
+        # manter base_major como estava (ou calcule similarmente se desejar)
+    except Exception:
+        # se algo falhar, manter os valores já presentes
+        pass
+    st.session_state["_bases_initialized"] = True
 
-# --- Recalcular regentes usando os anos atuais do session_state ---
-_now = datetime.now()
-
-# ler os base_years diretamente do session_state para garantir consistência
+# garantir tipos inteiros e ler os valores efetivos que serão usados
 base_astro_used = int(st.session_state.get("base_astro", current_year))
 base_teos_used  = int(st.session_state.get("base_teos", current_year))
 base_major_used = int(st.session_state.get("base_major", current_year))
 
+# --- Recalcular regentes usando os anos atuais do session_state ---
+_now = datetime.now()
 reg_ast = get_regent_for_cycle(
     "astrologico",
     _now,
