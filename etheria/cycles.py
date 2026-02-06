@@ -84,7 +84,7 @@ PT_TO_CANONICAL_PLANET: Dict[str, str] = {_norm_key(k): v for k, v in _raw_pt_to
 # Sequências e parâmetros padrão (internos: canonical EN)
 # -------------------------
 PLANETS_ASTROLOGICAL: List[str] = [
-    "Jupiter", "Saturn", "Moon", "Mercury", "Venus", "Sun", "Mars"
+    "Mars", "Jupiter", "Saturn", "Moon", "Mercury", "Venus", "Sun",
 ]
 
 PLANETS_TEOSOPHICAL: List[str] = [
