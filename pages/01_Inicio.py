@@ -474,20 +474,79 @@ with left:
 
         # Ordem correta dos dias da semana
         ordered_days = ["Segunda-feira", "Terca-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
-        # Reordenar colunas da matriz
+        # Reordenar colunas da matriz (mantendo apenas as colunas disponíveis)
         mat = mat[[day for day in ordered_days if day in mat.columns]]
 
+        # --- Nova funcionalidade: detectar dia/hora de referência e escolher defaults ---
+        from datetime import datetime
+
+        # Tentar usar client_time_iso se estiver em session_state (preenchido por outra parte do app)
+        client_time_iso = st.session_state.get("client_time_iso", None)
+
+        if client_time_iso:
+            try:
+                # aceita ISO com Z ou offset
+                ref_dt = datetime.fromisoformat(client_time_iso.replace("Z", "+00:00")) if client_time_iso.endswith("Z") else datetime.fromisoformat(client_time_iso)
+            except Exception:
+                ref_dt = datetime.now()
+        else:
+            ref_dt = datetime.now()
+
+        # Mapear weekday() (0=segunda) para nomes usados na matriz
+        weekday_map = {
+            0: "Segunda-feira",
+            1: "Terca-feira",
+            2: "Quarta-feira",
+            3: "Quinta-feira",
+            4: "Sexta-feira",
+            5: "Sábado",
+            6: "Domingo"
+        }
+        current_weekday_name = weekday_map.get(ref_dt.weekday())
+
+        # Formatar hora no padrão "HH:MM" (ajuste se sua matriz usar outro formato)
+        current_hour_label = ref_dt.strftime("%H:00")
+
+        # --- Seletores (mantendo estrutura original) ---
         with col_day:
-            default_weekday_idx = 0
-            if "Segunda-feira" in weekdays:
-                default_weekday_idx = weekdays.index("Segunda-feira")
-            weekday_choice = st.selectbox("Dia", options=weekdays, index=default_weekday_idx, key="weekday_choice")
+            # determinar lista de dias disponíveis (já reordenada em mat)
+            available_days = mat.columns.tolist()
+            # índice padrão: dia atual se presente, senão 0
+            if current_weekday_name in available_days:
+                default_weekday_idx = available_days.index(current_weekday_name)
+            else:
+                # fallback: tentar encontrar "Segunda-feira" como antes, senão 0
+                default_weekday_idx = 0
+                if "Segunda-feira" in available_days:
+                    default_weekday_idx = available_days.index("Segunda-feira")
+            weekday_choice = st.selectbox("Dia", options=available_days, index=default_weekday_idx, key="weekday_choice")
 
         with col_hour:
-            default_hour_idx = 0
-            if "06:00" in hours:
-                default_hour_idx = hours.index("06:00")
-            hour_choice = st.selectbox("Hora", options=hours, index=default_hour_idx, key="hour_choice")
+            available_hours = mat.index.tolist()
+            # função auxiliar para achar índice da hora mais próxima
+            def find_closest_hour_label(target_label, hour_labels):
+                if target_label in hour_labels:
+                    return hour_labels.index(target_label)
+                try:
+                    target_h = int(target_label.split(":")[0])
+                    hour_ints = [int(h.split(":")[0]) for h in hour_labels]
+                    diffs = [abs(h - target_h) for h in hour_ints]
+                    return diffs.index(min(diffs))
+                except Exception:
+                    # fallback para índice 0
+                    return 0
+
+            if available_hours:
+                default_hour_idx = find_closest_hour_label(current_hour_label, available_hours)
+            else:
+                default_hour_idx = 0
+
+            # se quiser manter o comportamento antigo quando "06:00" existir e não houver client_time, priorize-o:
+            if "client_time_iso" not in st.session_state and "06:00" in available_hours:
+                default_hour_idx = available_hours.index("06:00")
+
+            hour_choice = st.selectbox("Hora", options=available_hours, index=default_hour_idx, key="hour_choice")
+        # --- fim da nova funcionalidade ---
 
         def highlight_selected(df: pd.DataFrame, sel_wd: str, sel_hr: str) -> pd.io.formats.style.Styler:
             def _style(row):
