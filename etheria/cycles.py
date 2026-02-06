@@ -99,9 +99,9 @@ MAJOR_STEP = -35
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 252
 
 # Valores de alinhamento (ajuste conforme sua convenção)
-BASE_YEAR_ASTRO = 1
-BASE_YEAR_TEOS = 1
-BASE_YEAR_MAJOR = 1
+BASE_YEAR_ASTRO = 0
+BASE_YEAR_TEOS = 0
+BASE_YEAR_MAJOR = 0
 
 # -------------------------
 # Conteúdos interpretativos (chaves canônicas EN, valores em pt_BR)
