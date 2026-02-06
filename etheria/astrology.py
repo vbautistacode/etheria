@@ -764,7 +764,7 @@ _PLANET_TEMPLATES: Dict[str, Dict[str, Any]] = {
             )
         },
         "poetic": {
-            "short": "É tempo de: erguer a pedra de Saturno.",
+            "short": "É tempo de: firmar valores e receber a sabedoria e o julgamento do Mestre.",
             "long": (
                 "Saturno ensina que disciplina é liberdade construída. Cada compromisso é uma pedra que fortalece a obra da vida.\n\n"
                 "Reflexão filosófica:\n"

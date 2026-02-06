@@ -169,7 +169,7 @@ st.session_state["base_astro"] = int(base_astro)
 st.session_state["base_teos"] = int(base_teos)
 st.session_state["base_major"] = int(base_major)
 
-use_colors = st.sidebar.checkbox("Ativar cores por planeta", value=True)
+use_colors = True
 
 # -------------------------
 # Planet styles (cores e ícones)
