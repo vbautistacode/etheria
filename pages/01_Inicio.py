@@ -189,8 +189,8 @@ with col_a:
         on_change=_on_change_base_major
     )
 
-with col_b:
-    st.button("Resetar para ano atual", on_click=reset_to_current_year)
+    with col_b:
+        st.button("Resetar para ano atual", on_click=reset_to_current_year)
 
 # garantir tipos inteiros (sincronização final)
 st.session_state["base_astro"] = int(st.session_state.get("base_astro", current_year))
