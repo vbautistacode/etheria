@@ -96,13 +96,13 @@ PLANETS_MAJOR: List[str] = [
 ]
 
 # MAJOR_STEP e MAJOR_BLOCK definidos uma única vez, de forma explícita e positiva
-MAJOR_STEP = 1
+MAJOR_STEP = 36  # número de anos para cada planeta no ciclo maior (ajustável, mas deve ser positivo e não nulo)
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
 
 # Valores de alinhamento (ajuste conforme sua convenção)
 BASE_YEAR_ASTRO = 2026
 BASE_YEAR_TEOS = 2026
-BASE_YEAR_MAJOR = 1  # para que 2025 seja o ano 1 do ciclo maior
+BASE_YEAR_MAJOR = 2017  # para que 2025 seja o ano 1 do ciclo maior
 
 # -------------------------
 # Conteúdos interpretativos (chaves canônicas EN, valores em pt_BR)
@@ -270,8 +270,13 @@ def regent_by_year(year: int, cycle: str = "astrologico",
         idx = (int(year) - int(base_year_teos)) % len(planet_list)
         return planet_list[idx]
 
+    # Assumir MAJOR_STEP e MAJOR_BLOCK definidos no topo do módulo:
+    # MAJOR_STEP = 36
+    # MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)
+
     if key in ("maior", "cycle35", "cycle_35"):
         planet_list = normalize_planet_list(planets_override) if planets_override else PLANETS_MAJOR
+
         # garantir inteiros e valores válidos
         by = int(base_year_major)
         step = int(MAJOR_STEP)
@@ -279,10 +284,15 @@ def regent_by_year(year: int, cycle: str = "astrologico",
         if step <= 0 or block <= 0:
             raise ValueError("MAJOR_STEP e MAJOR_BLOCK devem ser positivos e não nulos")
 
-        # offset positivo e previsível dentro do bloco
+        # offset relativo ao base_year_major (positivo)
         offset = (int(year) - by) % block
-        index = int(offset // step)
-        index = index % len(planet_list)
+
+        # índice do bloco: cada bloco tem 'step' anos
+        index = offset // step
+
+        # segurança: garantir índice dentro do intervalo
+        index = int(index) % len(planet_list)
+
         return planet_list[index]
 
     # fallback: astrologico
