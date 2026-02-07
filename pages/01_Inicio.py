@@ -189,7 +189,7 @@ with col_a:
         on_change=_on_change_base_major
     )
 
-with col_b:
+#with col_b:
     st.button("Resetar", on_click=reset_to_current_year)
 
 # garantir tipos inteiros (sincronização final)
