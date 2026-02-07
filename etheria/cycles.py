@@ -92,7 +92,7 @@ PLANETS_TEOSOPHICAL: List[str] = [
 ]
 
 PLANETS_MAJOR: List[str] = [
-    "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"
+    "Saturn", "Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus",
 ]
 
 # MAJOR_STEP e MAJOR_BLOCK definidos uma única vez, de forma explícita e positiva
