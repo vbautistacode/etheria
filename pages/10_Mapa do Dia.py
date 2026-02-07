@@ -1,11 +1,7 @@
-# 10_Mapa_do_Dia.py (atualizado: usa st.query_params e título "Mapa do Dia 🧭")
+# 10_Mapa_do_Dia.py (versão simplificada: entrada por cidade e data/hora)
 import streamlit as st
 from datetime import datetime
-import time
-import hashlib
 import json
-import requests
-import urllib.parse
 
 # importa o serviço que você forneceu (ajuste o caminho se necessário)
 try:
@@ -21,144 +17,75 @@ st.set_page_config(page_title="10 — Mapa do Dia", layout="wide")
 st.title("Mapa do Dia 🧭")
 
 st.markdown("""
-Sinta o dia como um mapa vivo: gere uma leitura simbólica do **céu do dia** para o lugar onde você está.  
-O sistema busca a hora e a posição do seu local para sintonizar a interpretação ao seu instante.
-
-Receba um pequeno oráculo prático — um resumo das energias do dia, três pontos de atenção, uma micro‑prática em três passos.
-São sugestões simbólicas — pensado para orientar seus passos, não para ditar destinos.  
-Permita que a leitura seja um convite: uma luz suave sobre escolhas cotidianas, um sopro de clareza para começar o dia.
+Sinta o dia como um mapa vivo: gere uma leitura simbólica do **céu do dia** para o lugar que você indicar.  
+Agora você informa **cidade** e **data/hora** manualmente; o sistema usará esses valores para gerar a leitura.
 """)
 
 # -------------------------
-# Leitura de query params (usada para receber dados do navegador)
+# Sidebar: entrada manual (cidade + data/hora)
 # -------------------------
-# substituído st.experimental_get_query_params por st.query_params (API estável)
-query_params = st.query_params
-# parâmetros esperados: lat, lon, city, client_time (ISO)
-qp_lat = query_params.get("lat", [None])[0]
-qp_lon = query_params.get("lon", [None])[0]
-qp_city = query_params.get("city", [None])[0]
-qp_client_time = query_params.get("client_time", [None])[0]
+st.sidebar.header("Local e data do Mapa do Dia")
+st.sidebar.markdown("Informe a cidade e a data/hora para a qual deseja gerar o mapa. Hora opcional — se não informada, será usada a hora atual do servidor.")
 
-# -------------------------
-# Função para detectar via IP (fallback)
-# -------------------------
-def detect_location_by_ip():
-    try:
-        resp = requests.get("https://ipapi.co/json/", timeout=3.5)
-        if resp.status_code == 200:
-            data = resp.json()
-            city = data.get("city") or data.get("region") or ""
-            lat = str(data.get("latitude") or data.get("lat") or "")
-            lon = str(data.get("longitude") or data.get("lon") or "")
-            return city, lat, lon
-    except Exception:
-        pass
-    return None, None, None
+# cidade livre (string)
+city = st.sidebar.text_input("Cidade (ex.: São Paulo, BR)", value="")
 
-# -------------------------
-# Botão para obter localização do navegador (JS -> redireciona com query params)
-# -------------------------
-st.sidebar.header("Localização e preferências")
-st.sidebar.markdown(
-    "Se possível, clique em **Detectar pelo navegador** para usar a localização e hora do seu dispositivo."
-)
-
-if st.sidebar.button("Detectar pelo navegador"):
-    html = """
-    <script>
-    function toQueryString(obj) {
-      return Object.keys(obj).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(obj[k])).join('&');
-    }
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(pos) {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        const now = new Date().toISOString();
-        const params = {
-          lat: lat,
-          lon: lon,
-          client_time: now,
-          city: ''
-        };
-        const qs = toQueryString(params);
-        const base = window.location.href.split('?')[0];
-        window.location.href = base + '?' + qs;
-      }, function(err) {
-        const now = new Date().toISOString();
-        const qs = 'client_time=' + encodeURIComponent(now);
-        const base = window.location.href.split('?')[0];
-        window.location.href = base + '?' + qs;
-      }, {timeout:10000});
-    } else {
-      const now = new Date().toISOString();
-      const base = window.location.href.split('?')[0];
-      window.location.href = base + '?client_time=' + encodeURIComponent(now);
-    }
-    </script>
-    <p>Detectando localização no navegador... se nada acontecer, permita o acesso à localização ou recarregue a página.</p>
-    """
-    st.components.v1.html(html, height=120)
-    st.stop()
-
-# -------------------------
-# Preencher campos com prioridade: query params (navegador) -> IP detect -> manual
-# -------------------------
-city = qp_city or ""
-lat = qp_lat or ""
-lon = qp_lon or ""
-client_time_iso = qp_client_time or ""
-
-if not (lat and lon):
-    # tentar detecção por IP
-    ip_city, ip_lat, ip_lon = detect_location_by_ip()
-    if ip_city and (not city):
-        city = ip_city
-    if ip_lat and ip_lon and (not lat and not lon):
-        lat = ip_lat
-        lon = ip_lon
-
-# inputs manuais (se necessário)
-st.sidebar.markdown("Se necessário, ajuste manualmente:")
-city = st.sidebar.text_input("Cidade (opcional)", value=city or "")
-lat = st.sidebar.text_input("Latitude (opcional)", value=lat or "")
-lon = st.sidebar.text_input("Longitude (opcional)", value=lon or "")
+# data e hora: usar date_input + time_input para controle fino
+col_date, col_time = st.sidebar.columns([2, 1])
+with col_date:
+    date_input = st.date_input("Data", value=datetime.now().date())
+with col_time:
+    time_input = st.sidebar.time_input("Hora (opcional)", value=None)
 
 focus = st.sidebar.selectbox("Foco da leitura", ["Geral", "Trabalho", "Relacionamentos", "Saúde"], index=0)
 
-# usar client_time_iso se disponível; caso contrário, usar hora local do servidor como fallback
-if client_time_iso:
-    try:
-        client_dt = datetime.fromisoformat(client_time_iso.replace("Z", "+00:00")) if client_time_iso.endswith("Z") else datetime.fromisoformat(client_time_iso)
-        display_time = client_dt.isoformat(timespec="minutes")
-    except Exception:
-        display_time = client_time_iso
-else:
-    display_time = datetime.now().isoformat(timespec="minutes")
+st.sidebar.markdown("Se preferir, cole uma data/hora ISO no campo abaixo (ex.: 2026-02-07T08:30):")
+iso_input = st.sidebar.text_input("Data/hora ISO (opcional)", value="")
 
+# -------------------------
+# Normalizar data/hora escolhida
+# -------------------------
+def _compose_iso_from_inputs(date_obj, time_obj, iso_text):
+    # prioridade: iso_text se preenchido e válido
+    if iso_text and iso_text.strip():
+        try:
+            # tenta parse ISO
+            dt = datetime.fromisoformat(iso_text.replace("Z", "+00:00")) if iso_text.endswith("Z") else datetime.fromisoformat(iso_text)
+            return dt.isoformat()
+        except Exception:
+            # se inválido, ignorar e cair para composição manual
+            pass
+    # compor a partir de date + time inputs
+    if date_obj:
+        if time_obj:
+            dt = datetime.combine(date_obj, time_obj)
+        else:
+            # sem hora: usar meia-noite local (00:00) para a data escolhida
+            dt = datetime.combine(date_obj, datetime.min.time())
+        return dt.isoformat()
+    # fallback: agora
+    return datetime.now().isoformat()
+
+client_time_iso = _compose_iso_from_inputs(date_input, time_input, iso_input)
+
+# -------------------------
+# Mostrar preferências ao usuário
+# -------------------------
+display_time = client_time_iso
 st.markdown(f"**Data e hora (preferência):** {display_time}")
-st.markdown(f"**Local (preferência):** {city if city else 'não informado'} {f'({lat},{lon})' if lat and lon else ''}")
+st.markdown(f"**Local (preferência):** {city if city else 'não informado'}")
 
 st.markdown("---")
 st.markdown("Pressione **Gerar Mapa do Dia** para enviar ao modelo Etheria IA.")
 
 # -------------------------
-# Montador de chart_summary para o serviço
+# Montador de chart_summary para o serviço (sem lat/lon obrigatórios)
 # -------------------------
-def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: str, focus: str):
-    def _normalize_coord(v):
-        if v is None:
-            return ""
-        s = str(v).strip()
-        s = s.replace(",", ".")
-        try:
-            _ = float(s)
-            return s
-        except Exception:
-            return ""
-    lat_n = _normalize_coord(lat)
-    lon_n = _normalize_coord(lon)
-
+def build_chart_summary_for_day(place: str, date_time_iso: str, focus: str):
+    """
+    Gera o dicionário chart_summary esperado pelo serviço.
+    Note: lat/lon ficam vazios — o serviço deve aceitar ausência de coordenadas.
+    """
     dt = date_time_iso or datetime.now().isoformat()
     try:
         dt_obj = datetime.fromisoformat(dt.replace("Z", "+00:00")) if dt.endswith("Z") else datetime.fromisoformat(dt)
@@ -172,12 +99,12 @@ def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: s
         "place": place or "",
         "bdate": date_text,
         "btime": time_text,
-        "lat": lat_n,
-        "lon": lon_n,
+        "lat": "",   # removido requisito de coordenadas
+        "lon": "",
         "focus": focus,
         "instruction": (
-            f"Mapa do Dia para {date_text} {time_text} em {place or 'não informada'} (lat:{lat_n or 'n/a'}, lon:{lon_n or 'n/a'}). "
-            f"Foco: {focus}. Gerar leitura prática e simbólica conforme o template diário."
+            f"Mapa do Dia para {date_text} {time_text} em {place or 'não informada'} "
+            f"(sem coordenadas). Foco: {focus}. Gerar leitura prática e simbólica conforme o template diário."
         )
     }
     return chart_summary
@@ -186,10 +113,10 @@ def build_chart_summary_for_day(place: str, lat: str, lon: str, date_time_iso: s
 # Ação do botão: gerar mapa
 # -------------------------
 if st.button("Gerar Mapa do Dia"):
-    if not city and not (lat and lon):
-        st.error("Forneça ao menos a cidade ou latitude/longitude (detecção automática falhou).")
+    if not city:
+        st.error("Forneça ao menos a cidade para gerar o mapa.")
     else:
-        chart_summary = build_chart_summary_for_day(city, lat, lon, client_time_iso or datetime.now().isoformat(), focus)
+        chart_summary = build_chart_summary_for_day(city, client_time_iso, focus)
 
         # montar prompt via services.daily_prompt se disponível
         prompt_template = None
