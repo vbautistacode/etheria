@@ -100,7 +100,7 @@ def build_chart_summary_for_day(place: str, date_time_iso: str, focus: str):
 # -------------------------
 # Lottie animation setup
 # -------------------------
-LOTTIE_URL = "https://assets10.lottiefiles.com/packages/lf20_touohxv0.json"  # substitua se desejar outro
+LOTTIE_URL = "/static/lottie/my_anim.json" # substitua se desejar outro
 _lottie_html = f"""
 <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 <div style="display:flex;align-items:center;justify-content:center;">
