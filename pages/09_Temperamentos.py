@@ -327,3 +327,127 @@ if st.button("Calcular resultado"):
     st.markdown("---")
     
     st.success("Autoestudo concluído. Se desejar, repita em duas semanas para comparar resultados.")
+
+# --- Incluir ao final de 09_Temperamentos.py ---
+
+from io import BytesIO
+from datetime import datetime as _dt
+
+def _create_pdf_bytes_reportlab(result: dict) -> bytes:
+    """
+    Gera PDF em memória usando reportlab. Retorna bytes do PDF.
+    """
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    except Exception as e:
+        raise ImportError("reportlab não disponível") from e
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Cabeçalho
+    title_style = styles["Title"]
+    normal = styles["Normal"]
+    heading = styles["Heading3"]
+
+    story.append(Paragraph("Autoestudo — Temperamentos", title_style))
+    story.append(Spacer(1, 8))
+    ts = result.get("timestamp") or _dt.utcnow().isoformat()
+    story.append(Paragraph(f"Gerado em: {ts}", normal))
+    story.append(Spacer(1, 12))
+
+    # Scores
+    scores = result.get("scores", {})
+    if scores:
+        data = [["Temperamento", "Pontuação"]]
+        for k, v in scores.items():
+            label = k.replace("_", " ")
+            data.append([label, f"{v}"])
+        table = Table(data, hAlign="LEFT", colWidths=[320, 80])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 12))
+
+    # Dominante / secundário
+    dominant = result.get("dominant", "-")
+    dominant_score = result.get("dominant_score", "-")
+    story.append(Paragraph(f"<b>Temperamento dominante:</b> {dominant} — {dominant_score}", heading))
+    if result.get("secondary"):
+        story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
+    story.append(Spacer(1, 12))
+
+    # Recomendações (tentar recuperar do dicionário RECOMMENDATIONS se disponível)
+    try:
+        rec_key = (result.get("dominant") or "").replace(" ", "_")
+        rec = RECOMMENDATIONS.get(rec_key)
+    except Exception:
+        rec = None
+
+    if rec:
+        story.append(Paragraph("Resumo e recomendações", styles["Heading4"]))
+        story.append(Spacer(1, 6))
+        story.append(Paragraph(rec.get("resumo", ""), normal))
+        story.append(Spacer(1, 6))
+        story.append(Paragraph("Dicas práticas:", styles["Normal"]))
+        for d in rec.get("dicas", []):
+            story.append(Paragraph(f"- {d}", normal))
+        story.append(Spacer(1, 8))
+        story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
+        story.append(Paragraph(rec.get("alimentacao", "").replace("\n", "<br/>"), normal))
+        story.append(Spacer(1, 12))
+
+    # Observações finais
+    story.append(Paragraph("Observações:", styles["Heading4"]))
+    story.append(Paragraph("Este relatório resume as pontuações do autoestudo. Use-o como referência e não como diagnóstico.", normal))
+    story.append(Spacer(1, 12))
+
+    doc.build(story)
+    pdf_bytes = buf.getvalue()
+    buf.close()
+    return pdf_bytes
+
+# Função wrapper que tenta reportlab e informa se não estiver instalado
+def create_pdf_bytes(result: dict) -> bytes:
+    try:
+        return _create_pdf_bytes_reportlab(result)
+    except ImportError:
+        # fallback simples: gerar um PDF mínimo via texto plano com reportlab ausente não é trivial;
+        # informar ao usuário que a dependência é necessária.
+        raise
+
+# --- Botões de download (colocar após a criação de st.session_state["last_result"]) ---
+if "last_result" in st.session_state:
+    try:
+        pdf_bytes = create_pdf_bytes(st.session_state["last_result"])
+        st.download_button(
+            label="Baixar resultado em PDF",
+            data=pdf_bytes,
+            file_name="temperamentos_resultado.pdf",
+            mime="application/pdf"
+        )
+    except ImportError:
+        st.error("Para habilitar exportação em PDF instale a dependência 'reportlab' no ambiente (pip install reportlab).")
+    except Exception as e:
+        st.error(f"Erro ao gerar PDF: {e}")
+
+# Também oferecer exportação JSON/CSV rápida
+if "last_result" in st.session_state:
+    import json
+    json_bytes = json.dumps(st.session_state["last_result"], ensure_ascii=False, indent=2).encode("utf-8")
+    st.download_button(
+        label="Baixar resultado (JSON)",
+        data=json_bytes,
+        file_name="temperamentos_resultado.json",
+        mime="application/json"
+    )

@@ -12,6 +12,7 @@ dependencies:
   - plotly=6.0.1
   - pytz=2025.2
   - tzdata
+  - reportlab
   - pip:
     - streamlit==1.44.1
     - python-dotenv==1.2.1
