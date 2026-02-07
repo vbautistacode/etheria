@@ -116,13 +116,13 @@ def load_data() -> Dict[str, Any]:
 data = load_data()
 
 # -------------------------
-# Sidebar: ajustes e Entrada do consulente
+# Sidebar: ajustes e Entrada
 # -------------------------
 from datetime import datetime
 current_year = datetime.now().year
 
 st.sidebar.header("Ajustes de Ciclos")
-# usar session_state para persistência entre interações
+# inicializar session_state se necessário
 if "base_astro" not in st.session_state:
     st.session_state["base_astro"] = current_year
 if "base_teos" not in st.session_state:
@@ -130,45 +130,72 @@ if "base_teos" not in st.session_state:
 if "base_major" not in st.session_state:
     st.session_state["base_major"] = current_year
 
-col_a, col_b = st.sidebar.columns([3,1])
-with col_a:
-    base_astro = st.sidebar.number_input(
-        "Ano Astrológico",
-        min_value=1, max_value=10000,
-        value=st.session_state["base_astro"], step=1, key="base_astro_input"
-    )
-    base_teos = st.sidebar.number_input(
-        "Ano Teosófico",
-        min_value=1, max_value=10000,
-        value=st.session_state["base_teos"], step=1, key="base_teos_input"
-    )
-    base_major = st.sidebar.number_input(
-        "Ano Base | Ciclo Maior",
-        min_value=1, max_value=10000,
-        value=st.session_state["base_major"], step=1, key="base_major_input"
-    )
-with col_b:
-    # botão para resetar todos os base_years para o ano vigente
-    #if st.sidebar.button("Resetar para ano atual"):
-        st.session_state["base_astro"] = current_year
-        st.session_state["base_teos"] = current_year
-        st.session_state["base_major"] = current_year
-
-        # Gatilho extra para forçar atualização em versões sem experimental_rerun
+# callbacks leves que só atualizam se houver mudança
+def _on_change_base_astro():
+    new = st.session_state.get("base_astro_input_cb")
+    if new is None:
+        return
+    if int(st.session_state.get("base_astro", current_year)) != int(new):
+        st.session_state["base_astro"] = int(new)
         st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
 
-        # Se a função experimental_rerun existir, use-a (compatibilidade)
-        if hasattr(st, "experimental_rerun"):
-            try:
-                st.experimental_rerun()
-            except Exception:
-                # se falhar por algum motivo, apenas continue; session_state já foi atualizado
-                pass
+def _on_change_base_teos():
+    new = st.session_state.get("base_teos_input_cb")
+    if new is None:
+        return
+    if int(st.session_state.get("base_teos", current_year)) != int(new):
+        st.session_state["base_teos"] = int(new)
+        st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
 
-# sincronizar session_state com valores atuais dos inputs
-st.session_state["base_astro"] = int(base_astro)
-st.session_state["base_teos"] = int(base_teos)
-st.session_state["base_major"] = int(base_major)
+def _on_change_base_major():
+    new = st.session_state.get("base_major_input_cb")
+    if new is None:
+        return
+    if int(st.session_state.get("base_major", current_year)) != int(new):
+        st.session_state["base_major"] = int(new)
+        st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
+
+def reset_to_current_year():
+    cy = current_year
+    st.session_state["base_astro"] = cy
+    st.session_state["base_teos"] = cy
+    st.session_state["base_major"] = cy
+    st.session_state["_rerun_trigger"] = st.session_state.get("_rerun_trigger", 0) + 1
+
+col_a, col_b = st.sidebar.columns([3, 1])
+with col_a:
+    st.number_input(
+        "Ano Astrológico",
+        min_value=1, max_value=10000,
+        value=int(st.session_state.get("base_astro", current_year)),
+        step=1,
+        key="base_astro_input_cb",
+        on_change=_on_change_base_astro
+    )
+    st.number_input(
+        "Ano Teosófico",
+        min_value=1, max_value=10000,
+        value=int(st.session_state.get("base_teos", current_year)),
+        step=1,
+        key="base_teos_input_cb",
+        on_change=_on_change_base_teos
+    )
+    st.number_input(
+        "Ano Base | Ciclo Maior",
+        min_value=1, max_value=10000,
+        value=int(st.session_state.get("base_major", current_year)),
+        step=1,
+        key="base_major_input_cb",
+        on_change=_on_change_base_major
+    )
+
+with col_b:
+    st.button("Resetar para ano atual", on_click=reset_to_current_year)
+
+# garantir tipos inteiros (sincronização final)
+st.session_state["base_astro"] = int(st.session_state.get("base_astro", current_year))
+st.session_state["base_teos"] = int(st.session_state.get("base_teos", current_year))
+st.session_state["base_major"] = int(st.session_state.get("base_major", current_year))
 
 use_colors = True
 
