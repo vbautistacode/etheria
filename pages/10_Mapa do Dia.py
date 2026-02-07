@@ -1,7 +1,8 @@
-# 10_Mapa_do_Dia.py (versão simplificada: entrada por cidade e data/hora)
+# 10_Mapa_do_Dia.py (versão simplificada: entrada por cidade e data/hora + Lottie)
 import streamlit as st
 from datetime import datetime
 import json
+from streamlit.components.v1 import html as st_html
 
 # importa o serviço que você forneceu (ajuste o caminho se necessário)
 try:
@@ -22,6 +23,7 @@ Agora você informa **cidade** e **data/hora** manualmente; o sistema usará ess
 """)
 
 st.caption("Preencha os campos na barra lateral e clique em 'Gerar Leitura do Dia' para receber a interpretação simbólica.")
+
 # -------------------------
 # Sidebar: entrada manual (cidade + data/hora)
 # -------------------------
@@ -36,38 +38,23 @@ col_date, col_time = st.sidebar.columns([2, 1])
 with col_date:
     date_input = st.date_input("Data", value=datetime.now().date())
 with col_time:
-    time_input = st.sidebar.time_input("Hora (opcional)", value=None)
+    # usar hora atual como valor padrão; o usuário pode ajustar
+    time_input = st.sidebar.time_input("Hora (opcional)", value=datetime.now().time())
 
 focus = st.sidebar.selectbox("Foco da leitura", ["Geral", "Trabalho", "Relacionamentos", "Saúde"], index=0)
 
-st.sidebar.markdown("Se preferir, cole uma data/hora ISO no campo abaixo (ex.: 2026-02-07T08:30):")
-iso_input = st.sidebar.text_input("Data/hora ISO (opcional)", value="")
-
 # -------------------------
-# Normalizar data/hora escolhida
+# Normalizar data/hora escolhida (sem função ISO separada)
 # -------------------------
-def _compose_iso_from_inputs(date_obj, time_obj, iso_text):
-    # prioridade: iso_text se preenchido e válido
-    if iso_text and iso_text.strip():
-        try:
-            # tenta parse ISO
-            dt = datetime.fromisoformat(iso_text.replace("Z", "+00:00")) if iso_text.endswith("Z") else datetime.fromisoformat(iso_text)
-            return dt.isoformat()
-        except Exception:
-            # se inválido, ignorar e cair para composição manual
-            pass
-    # compor a partir de date + time inputs
-    if date_obj:
-        if time_obj:
-            dt = datetime.combine(date_obj, time_obj)
-        else:
-            # sem hora: usar meia-noite local (00:00) para a data escolhida
-            dt = datetime.combine(date_obj, datetime.min.time())
-        return dt.isoformat()
-    # fallback: agora
-    return datetime.now().isoformat()
-
-client_time_iso = _compose_iso_from_inputs(date_input, time_input, iso_input)
+# compor ISO a partir de date_input e time_input; se hora não fornecida, usar 00:00
+if date_input:
+    if time_input:
+        client_dt = datetime.combine(date_input, time_input)
+    else:
+        client_dt = datetime.combine(date_input, datetime.min.time())
+else:
+    client_dt = datetime.now()
+client_time_iso = client_dt.isoformat()
 
 # -------------------------
 # Mostrar preferências ao usuário
@@ -111,7 +98,18 @@ def build_chart_summary_for_day(place: str, date_time_iso: str, focus: str):
     return chart_summary
 
 # -------------------------
-# Ação do botão: gerar mapa
+# Lottie animation setup
+# -------------------------
+LOTTIE_URL = "https://assets10.lottiefiles.com/packages/lf20_touohxv0.json"  # substitua se desejar outro
+_lottie_html = f"""
+<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+<div style="display:flex;align-items:center;justify-content:center;">
+  <lottie-player src="{LOTTIE_URL}"  background="transparent"  speed="1"  style="width:320px;height:220px;"  loop  autoplay></lottie-player>
+</div>
+"""
+
+# -------------------------
+# Ação do botão: gerar mapa (com Lottie)
 # -------------------------
 if st.button("Gerar Leitura do Dia"):
     if not city:
@@ -131,12 +129,19 @@ if st.button("Gerar Leitura do Dia"):
         if generate_ai_text_from_chart is None:
             st.error("Serviço de geração não disponível. Verifique import de services.generator_service.")
         else:
+            # placeholder para animação Lottie
+            _anim_placeholder = st.empty()
+            _anim_placeholder.components.v1.html(_lottie_html, height=240)
+
             with st.spinner("Gerando interpretação com o modelo..."):
                 try:
                     result = generate_ai_text_from_chart(chart_summary, prompt_template=prompt_template)
                 except Exception as e:
                     st.error(f"Erro ao chamar serviço de geração: {e}")
                     result = {"error": str(e)}
+
+            # remover animação visual após a execução
+            _anim_placeholder.empty()
 
             if result.get("error"):
                 st.error(result["error"])
@@ -156,7 +161,7 @@ if st.button("Gerar Leitura do Dia"):
 st.markdown("---")
 st.markdown("**Dicas de uso**")
 st.markdown(
-    "- Gere o Mapa do Dia pela manhã para planejar o dia.\n"
+    "- Gere a Leitura do Dia pela manhã para planejar o dia.\n"
     "- Combine a leitura com uma prática curta (respiração, cristal, aroma) sugerida pelo texto."
 )
 
