@@ -131,7 +131,8 @@ if st.button("Gerar Leitura do Dia"):
         else:
             # placeholder para animação Lottie
             _anim_placeholder = st.empty()
-            _anim_placeholder.components.v1.html(_lottie_html, height=240)
+            # opção recomendada: usar o método html do placeholder
+            _anim_placeholder.html(_lottie_html, height=240)
 
             with st.spinner("Gerando interpretação com o modelo..."):
                 try:
