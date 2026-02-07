@@ -440,14 +440,3 @@ if "last_result" in st.session_state:
         st.error("Para habilitar exportação em PDF instale a dependência 'reportlab' no ambiente (pip install reportlab).")
     except Exception as e:
         st.error(f"Erro ao gerar PDF: {e}")
-
-# Também oferecer exportação JSON/CSV rápida
-if "last_result" in st.session_state:
-    import json
-    json_bytes = json.dumps(st.session_state["last_result"], ensure_ascii=False, indent=2).encode("utf-8")
-    st.download_button(
-        label="Baixar resultado (JSON)",
-        data=json_bytes,
-        file_name="temperamentos_resultado.json",
-        mime="application/json"
-    )
