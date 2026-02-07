@@ -21,11 +21,12 @@ Sinta o dia como um mapa vivo: gere uma leitura simbólica do **céu do dia** pa
 Agora você informa **cidade** e **data/hora** manualmente; o sistema usará esses valores para gerar a leitura.
 """)
 
+st.caption("Preencha os campos na barra lateral e clique em 'Gerar Leitura do Dia' para receber a interpretação simbólica.")
 # -------------------------
 # Sidebar: entrada manual (cidade + data/hora)
 # -------------------------
 st.sidebar.header("Local e data do Mapa do Dia")
-st.sidebar.markdown("Informe a cidade e a data/hora para a qual deseja gerar o mapa. Hora opcional — se não informada, será usada a hora atual do servidor.")
+st.sidebar.markdown("Informe a cidade e a data/hora para a qual deseja gerar a leitura.")
 
 # cidade livre (string)
 city = st.sidebar.text_input("Cidade (ex.: São Paulo, BR)", value="")
@@ -76,7 +77,7 @@ st.markdown(f"**Data e hora (preferência):** {display_time}")
 st.markdown(f"**Local (preferência):** {city if city else 'não informado'}")
 
 st.markdown("---")
-st.markdown("Pressione **Gerar Mapa do Dia** para enviar ao modelo Etheria IA.")
+st.markdown("Pressione **Gerar Leitura do Dia** para enviar ao modelo Etheria IA.")
 
 # -------------------------
 # Montador de chart_summary para o serviço (sem lat/lon obrigatórios)
@@ -112,7 +113,7 @@ def build_chart_summary_for_day(place: str, date_time_iso: str, focus: str):
 # -------------------------
 # Ação do botão: gerar mapa
 # -------------------------
-if st.button("Gerar Mapa do Dia"):
+if st.button("Gerar Leitura do Dia"):
     if not city:
         st.error("Forneça ao menos a cidade para gerar o mapa.")
     else:
