@@ -25,7 +25,7 @@ st.caption("Preencha os campos na barra lateral e clique em 'Gerar Leitura do Di
 # -------------------------
 # Sidebar: entrada manual (cidade + data/hora)
 # -------------------------
-st.sidebar.header("Local e data do Mapa do Dia")
+st.sidebar.header("Local e data")
 st.sidebar.markdown("Informe a cidade e a data/hora para a qual deseja gerar a leitura.")
 
 # cidade livre (string)
