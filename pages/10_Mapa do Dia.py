@@ -1,8 +1,8 @@
-# 10_Mapa_do_Dia.py (versão simplificada: entrada por cidade e data/hora + Lottie)
+# 10_Mapa do Dia.py (refatorado: entrada por cidade e data/hora + Lottie local)
 import streamlit as st
 from datetime import datetime
 import json
-from streamlit.components.v1 import html as st_html
+from pathlib import Path
 
 # importa o serviço que você forneceu (ajuste o caminho se necessário)
 try:
@@ -17,10 +17,12 @@ except Exception as e:
 st.set_page_config(page_title="10 — Mapa do Dia", layout="wide")
 st.title("Mapa do Dia 🧭")
 
-st.markdown("""
+st.markdown(
+    """
 Sinta o dia como um mapa vivo: gere uma leitura simbólica do **céu do dia** para o lugar que você indicar.  
 Agora você informa **cidade** e **data/hora** manualmente; o sistema usará esses valores para gerar a leitura.
-""")
+"""
+)
 
 st.caption("Preencha os campos na barra lateral e clique em 'Gerar Leitura do Dia' para receber a interpretação simbólica.")
 
@@ -41,12 +43,15 @@ with col_time:
     # usar hora atual como valor padrão; o usuário pode ajustar
     time_input = st.sidebar.time_input("Hora (opcional)", value=datetime.now().time())
 
-focus = st.sidebar.selectbox("Foco da leitura", ["Geral", "Trabalho", "Relacionamentos", "Saúde"], index=0)
+focus = st.sidebar.selectbox(
+    "Foco da leitura",
+    ["Geral", "Trabalho", "Relacionamentos", "Saúde"],
+    index=0
+)
 
 # -------------------------
-# Normalizar data/hora escolhida (sem função ISO separada)
+# Normalizar data/hora escolhida (composição direta)
 # -------------------------
-# compor ISO a partir de date_input e time_input; se hora não fornecida, usar 00:00
 if date_input:
     if time_input:
         client_dt = datetime.combine(date_input, time_input)
@@ -59,8 +64,7 @@ client_time_iso = client_dt.isoformat()
 # -------------------------
 # Mostrar preferências ao usuário
 # -------------------------
-display_time = client_time_iso
-st.markdown(f"**Data e hora (preferência):** {display_time}")
+st.markdown(f"**Data e hora (preferência):** {client_time_iso}")
 st.markdown(f"**Local (preferência):** {city if city else 'não informado'}")
 
 st.markdown("---")
@@ -98,18 +102,57 @@ def build_chart_summary_for_day(place: str, date_time_iso: str, focus: str):
     return chart_summary
 
 # -------------------------
-# Lottie animation setup
+# Lottie: carregar JSON local (se existir)
 # -------------------------
-LOTTIE_URL = "/static/lottie/my_anim.json" # substitua se desejar outro
-_lottie_html = f"""
-<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-<div style="display:flex;align-items:center;justify-content:center;">
-  <lottie-player src="{LOTTIE_URL}"  background="transparent"  speed="1"  style="width:320px;height:220px;"  loop  autoplay></lottie-player>
+# Ajuste o caminho se necessário; o arquivo deve estar no repositório do app
+LOTTIE_LOCAL_PATH = Path("static/lottie/my_anim.json")
+_lottie_json = None
+if LOTTIE_LOCAL_PATH.exists():
+    try:
+        with open(LOTTIE_LOCAL_PATH, "r", encoding="utf-8") as f:
+            _lottie_json = json.load(f)
+    except Exception as e:
+        st.sidebar.warning(f"Falha ao carregar animação Lottie local: {e}")
+else:
+    # se não houver arquivo local, você pode usar um URL público (opcional)
+    # Exemplo (comentado): LOTTIE_URL = "https://assets10.lottiefiles.com/packages/lf20_touohxv0.json"
+    _lottie_json = None
+
+# Função utilitária para montar HTML que injeta animationData (usa lottie-web via CDN)
+def _build_lottie_html(animation_data, width=320, height=220):
+    """
+    Recebe um objeto JSON (animation_data) e retorna HTML que carrega lottie-web
+    e inicializa a animação via animationData.
+    """
+    anim_js = json.dumps(animation_data)
+    html = f"""
+<div id="lottie-container" style="display:flex;align-items:center;justify-content:center;">
+  <div id="lottie-player" style="width:{width}px;height:{height}px;"></div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.9.6/lottie.min.js"></script>
+<script>
+  (function() {{
+    try {{
+      var animData = {anim_js};
+      var container = document.getElementById('lottie-player');
+      container.innerHTML = '';
+      lottie.loadAnimation({{
+        container: container,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        animationData: animData
+      }});
+    }} catch (err) {{
+      console.error("Erro ao inicializar Lottie:", err);
+    }}
+  }})();
+</script>
 """
+    return html
 
 # -------------------------
-# Ação do botão: gerar mapa (com Lottie)
+# Ação do botão: gerar mapa (com Lottie se disponível)
 # -------------------------
 if st.button("Gerar Leitura do Dia"):
     if not city:
@@ -129,11 +172,16 @@ if st.button("Gerar Leitura do Dia"):
         if generate_ai_text_from_chart is None:
             st.error("Serviço de geração não disponível. Verifique import de services.generator_service.")
         else:
-            # placeholder para animação Lottie
-            _anim_placeholder = st.empty()
-            # opção recomendada: usar o método html do placeholder
-            _anim_placeholder.html(_lottie_html, height=240)
+            # se houver Lottie local, exibir via st.components.v1.html
+            if _lottie_json is not None:
+                try:
+                    _lottie_html = _build_lottie_html(_lottie_json, width=320, height=220)
+                    st.components.v1.html(_lottie_html, height=260)
+                except Exception as e:
+                    # não interrompe a execução; apenas loga/avisa
+                    st.sidebar.warning(f"Não foi possível exibir animação Lottie: {e}")
 
+            # mostrar spinner textual (acessibilidade)
             with st.spinner("Gerando interpretação com o modelo..."):
                 try:
                     result = generate_ai_text_from_chart(chart_summary, prompt_template=prompt_template)
@@ -141,9 +189,11 @@ if st.button("Gerar Leitura do Dia"):
                     st.error(f"Erro ao chamar serviço de geração: {e}")
                     result = {"error": str(e)}
 
-            # remover animação visual após a execução
-            _anim_placeholder.empty()
+            # garantir que o prompt fique disponível localmente para inspeção, se não vier da API
+            if prompt_template and isinstance(result, dict) and "prompt" not in result:
+                result["prompt"] = prompt_template
 
+            # exibir resultado e prompt (debug opcional)
             if result.get("error"):
                 st.error(result["error"])
                 if result.get("prompt"):
@@ -154,7 +204,9 @@ if st.button("Gerar Leitura do Dia"):
                 st.markdown("### Interpretação do Mapa do Dia")
                 st.write(text)
                 st.markdown("---")
-                st.markdown("**Observação:** Esta leitura é simbólica e interpretativa. Use-a como orientação prática, não como previsão determinística.")
+                st.markdown(
+                    " **Observação:** Esta leitura é simbólica e interpretativa. Use-a como orientação prática, não como previsão determinística."
+                )
 
 # -------------------------
 # Dicas e debug
