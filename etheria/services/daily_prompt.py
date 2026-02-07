@@ -11,6 +11,7 @@ from .generator_service import normalize_chart_positions, _positions_block_from_
 DEFAULT_DAILY_PROMPT = (
     "Interprete o 'Mapa do Dia' com foco prático e simbólico, usando a data e hora fornecidas.\n\n"
     "Contexto: este não é um mapa natal; é uma leitura do céu para o dia e hora informados.\n\n"
+    "Mencione o sol, a lua e os planetas principais, bem como quaisquer aspectos ou efemérides relevantes.\n\n"
     "Siga as seções numeradas e responda em português:\n\n"
     "1) Resumo (2-3 frases): o que o dia oferece em termos práticos e energéticos.\n\n"
     "2) Três pontos de atenção (cada um em 1 linha): riscos ou áreas que merecem cuidado.\n\n"
