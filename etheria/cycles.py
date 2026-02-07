@@ -96,13 +96,13 @@ PLANETS_MAJOR: List[str] = [
 ]
 
 # MAJOR_STEP e MAJOR_BLOCK definidos uma única vez, de forma explícita e positiva
-MAJOR_STEP = 35
+MAJOR_STEP = 39
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
 
 # Valores de alinhamento (ajuste conforme sua convenção)
 BASE_YEAR_ASTRO = 2026
 BASE_YEAR_TEOS = 2026
-BASE_YEAR_MAJOR = 1  # para que 2025 seja o ano 1 do ciclo maior
+BASE_YEAR_MAJOR = 2026  # para que 2025 seja o ano 1 do ciclo maior
 
 # -------------------------
 # Conteúdos interpretativos (chaves canônicas EN, valores em pt_BR)
