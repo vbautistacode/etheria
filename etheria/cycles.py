@@ -96,7 +96,7 @@ PLANETS_MAJOR: List[str] = [
 ]
 
 # MAJOR_STEP e MAJOR_BLOCK definidos uma única vez, de forma explícita e positiva
-MAJOR_STEP = 37
+MAJOR_STEP = 1
 MAJOR_BLOCK = MAJOR_STEP * len(PLANETS_MAJOR)  # 36 * 7 = 252
 
 # Valores de alinhamento (ajuste conforme sua convenção)
