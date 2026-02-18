@@ -397,15 +397,68 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
     if rec:
         story.append(Paragraph("Resumo e recomendações", styles["Heading4"]))
         story.append(Spacer(1, 6))
+        # resumo
         story.append(Paragraph(rec.get("resumo", ""), normal))
         story.append(Spacer(1, 6))
+        # pedras, cor, óleo (novos campos)
+        pedras = ", ".join(rec.get("pedras", []))
+        cor = rec.get("cor", "")
+        oleo = rec.get("oleo", "")
+        if pedras:
+            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras}", normal))
+            story.append(Spacer(1, 4))
+        if cor:
+            story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
+            story.append(Spacer(1, 4))
+        if oleo:
+            story.append(Paragraph(f"<b>Aromaterapia (óleo):</b> {oleo}", normal))
+            story.append(Spacer(1, 6))
+
+        # dicas práticas
         story.append(Paragraph("Dicas práticas:", styles["Normal"]))
         for d in rec.get("dicas", []):
             story.append(Paragraph(f"- {d}", normal))
         story.append(Spacer(1, 8))
+
+        # alimentação (resumo)
         story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
-        story.append(Paragraph(rec.get("alimentacao", "").replace("\n", "<br/>"), normal))
+        # reportlab Paragraph aceita HTML limitado; substituir quebras de linha por <br/> já feito antes
+        alimentacao_text = rec.get("alimentacao", "").replace("\n", "<br/>")
+        story.append(Paragraph(alimentacao_text, normal))
         story.append(Spacer(1, 12))
+
+    # Incluir recomendações do secundário, se houver
+    if result.get("secondary"):
+        try:
+            sec_key = (result.get("secondary") or "").replace(" ", "_")
+            sec_rec = RECOMMENDATIONS.get(sec_key)
+        except Exception:
+            sec_rec = None
+
+        if sec_rec:
+            story.append(Paragraph("Temperamento secundário — Recomendações", styles["Heading4"]))
+            story.append(Spacer(1, 6))
+            story.append(Paragraph(sec_rec.get("resumo", ""), normal))
+            story.append(Spacer(1, 6))
+            pedras = ", ".join(sec_rec.get("pedras", []))
+            if pedras:
+                story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras}", normal))
+                story.append(Spacer(1, 4))
+            cor = sec_rec.get("cor", "")
+            if cor:
+                story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
+                story.append(Spacer(1, 4))
+            oleo = sec_rec.get("oleo", "")
+            if oleo:
+                story.append(Paragraph(f"<b>Aromaterapia (óleo):</b> {oleo}", normal))
+                story.append(Spacer(1, 6))
+            story.append(Paragraph("Dicas práticas:", styles["Normal"]))
+            for d in sec_rec.get("dicas", []):
+                story.append(Paragraph(f"- {d}", normal))
+            story.append(Spacer(1, 8))
+            story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
+            story.append(Paragraph(sec_rec.get("alimentacao", "").replace("\n", "<br/>"), normal))
+            story.append(Spacer(1, 12))
 
     # Observações finais
     story.append(Paragraph("Observações:", styles["Heading4"]))
