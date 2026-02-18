@@ -5,11 +5,13 @@ from datetime import datetime
 def build_prompt_from_result(result: Dict[str, Any]) -> str:
     """
     Constrói o prompt a partir do dicionário `result` (conforme salvo em st.session_state).
-    Prompt solicitado pelo usuário:
-    "Conservando o texto da fonte, crie um relatório particular, como se fosse um diagnóstico médico,
-     sobre o(s) temperamento(s) em questão, destacando a dieta, exercicios e suplementação para cada temperamento encontrado"
-    Observação: o prompt inclui instrução explícita para NÃO emitir diagnóstico médico real e para
-    inserir um disclaimer recomendando consulta a profissional de saúde.
+    Versão aprimorada: título, análise da distribuição, prescrição dietética integrada
+    com blocos de refeições, plano alimentar, análise profunda do temperamento dominante,
+    uso complementar de cromoterapia/aromaterapia/cristaloterapia, plano de implementação
+    e considerações diagnósticas finais.
+
+    Observação importante: o prompt pede um relatório em estilo clínico, mas inclui instrução
+    explícita para NÃO emitir diagnóstico médico definitivo e para inserir um disclaimer.
     """
     ts = result.get("timestamp", datetime.utcnow().isoformat())
     scores = result.get("scores", {})
@@ -22,19 +24,22 @@ def build_prompt_from_result(result: Dict[str, Any]) -> str:
     secondary_rec = result.get("secondary_rec") or {}
 
     parts = []
-    parts.append(f"Source: Autoestudo — Temperamentos (generated at {ts}).")
-    parts.append("Conserve o texto da fonte ao máximo; use-o como base para o relatório.")
+    # Título solicitado
+    parts.append("Introdução ao Perfil Bioenergético e Distribuição de Temperamentos")
+    parts.append(f"Gerado em: {ts}")
     parts.append("")
-    parts.append("Scores por temperamento:")
+    # Distribuição atingida no estudo
+    parts.append("Distribuição atingida no estudo (pontuações por temperamento):")
     for k, v in scores.items():
         parts.append(f"- {k.replace('_',' ')}: {v}")
     parts.append("")
-    parts.append(f"Temperamento dominante: {dominant} — {dominant_score}")
+    parts.append(f"Temperamento dominante identificado: {dominant} — {dominant_score}")
     if secondary:
-        parts.append(f"Temperamento secundário: {secondary} — {secondary_score}")
+        parts.append(f"Temperamento secundário identificado: {secondary} — {secondary_score}")
     parts.append("")
 
-    def append_rec(label: str, rec: Dict[str, Any]):
+    # Incluir blocos de conteúdo das recomendações (se serializadas) para contexto
+    def _append_rec_block(label, rec):
         if not rec:
             return
         parts.append(f"--- {label} ---")
@@ -55,29 +60,47 @@ def build_prompt_from_result(result: Dict[str, Any]) -> str:
             parts.append(rec.get("alimentacao"))
         parts.append("")
 
-    append_rec("Dominant", dominant_rec)
-    append_rec("Secondary", secondary_rec)
+    _append_rec_block("Dominant", dominant_rec)
+    _append_rec_block("Secondary", secondary_rec)
 
-    # Instrução principal: estilo clínico, mas sem diagnóstico médico
+    # Instrução principal aprimorada (em português)
     instruction = (
-        "INSTRUCTION:\n"
-        "Conserving the source text above, create a private-style diagnostic report as if written by a medical consultant. "
-        "Important: DO NOT provide a medical diagnosis. Include a clear disclaimer near the top: "
-        "'This is not a medical diagnosis. Consult a qualified health professional before making clinical changes.'\n\n"
-        "For each temperamento present (dominant and, if applicable, secondary) produce the following sections:\n"
-        "  1) Diagnostic-style summary (2–4 short paragraphs) that preserves the source wording where relevant.\n"
-        "  2) Diet (Diet): specific, practical guidance (foods to prefer and avoid; meal-level suggestions).\n"
-        "  3) Exercise (Exercise): recommended types, frequency and intensity, with practical examples.\n"
-        "  4) Supplementation (Supplementation): suggested supplements with rationale and safety cautions; include 'consult a clinician' note.\n"
-        "  5) A short personalized 30-day action plan (3–5 numbered steps).\n\n"
-        "Tone: professional, compassionate, non-alarmist. Use bullet lists for Diet/Exercise/Supplementation and a short numbered plan. "
-        "Avoid inventing clinical diagnoses or prescribing medications. If suggesting supplements, include common safe dosage ranges when appropriate and always add a caution to consult a clinician.\n\n"
-        "Return the report as plain text suitable for direct display in the UI and for inclusion in a PDF."
+        "INSTRUÇÃO PRINCIPAL:\n"
+        "Comservando fielmente o texto-fonte acima, gere um relatório privado em estilo clínico chamado:\n"
+        "'Introdução ao Perfil Bioenergético e Distribuição de Temperamentos'.\n\n"
+        "Inclua, logo no início, um disclaimer claro em português: "
+        "'Isto não é um diagnóstico médico. Consulte um profissional de saúde qualificado antes de implementar mudanças clínicas.'\n\n"
+        "O relatório deve conter as seguintes seções, na ordem e com o nível de detalhe solicitado:\n\n"
+        "A) Sumário executivo (1 parágrafo): síntese da distribuição obtida no estudo e implicações gerais.\n\n"
+        "B) Detalhe da distribuição atingida: descreva a porcentagem/ponderação relativa dos temperamentos com base nas pontuações fornecidas, interpretando o que significa ter o temperamento X em Y% do perfil; destaque se há perfil misto e o grau de proximidade entre dominante e secundário.\n\n"
+        "C) Análise profunda do temperamento dominante:\n"
+        "   - Características centrais (2–4 parágrafos): comportamento, energia, padrões alimentares e de sono, reatividade emocional e pontos fortes/fragilidades.\n"
+        "   - Interpretação funcional: como essas características impactam rotina, trabalho e relações.\n\n"
+        "D) Prescrição dietética integrada e plano alimentar (detalhado):\n"
+        "   1) Princípios gerais da dieta para este temperamento (objetivos metabólicos e bioenergéticos).\n"
+        "   2) Lista de alimentos a favorecer e alimentos a evitar, com justificativa breve para cada grupo.\n"
+        "   3) Bloco de refeições sugeridas (exemplo de 3 refeições + 2 lanches para um dia típico):\n"
+        "      - Café da manhã: itens e porções exemplares.\n"
+        "      - Almoço: itens, composição de prato (proteína, carboidrato, vegetais, gorduras saudáveis).\n"
+        "      - Lanche da tarde: opções práticas.\n"
+        "      - Jantar: recomendações de leveza e composição.\n"
+        "      - Ceia/opcional: quando indicada e o que evitar.\n"
+        "   4) Plano alimentar semanal (esboço de 7 dias com variações e substituições simples).\n\n"
+        "E) Recomendações de exercício (tipo, frequência, intensidade) com exemplos práticos e adaptações para níveis iniciantes/intermediários.\n\n"
+        "F) Suplementação (se aplicável): sugestões de suplementos com justificativa, faixas de dosagem comumente aceitas e advertências explícitas para consultar um clínico antes de iniciar.\n\n"
+        "G) Terapias complementares integradas:\n"
+        "   - Cromoterapia: cores recomendadas e como aplicá-las (ambiente, roupas, luzes) com justificativa energética.\n"
+        "   - Aromaterapia: óleos essenciais sugeridos, modo de uso (difusor, inalação breve, diluição tópica) e precauções.\n"
+        "   - Cristaloterapia: pedras sugeridas, modo de uso prático (uso diário, meditação, colocação no ambiente) e intenções associadas.\n\n"
+        "H) Plano de Implementação (30 dias) — 'Plano de Ação Prático': 8–12 passos organizados por semanas, com metas mensuráveis e checkpoints semanais; inclua sugestões de monitoramento (sono, humor, energia, apetite) e quando reavaliar.\n\n"
+        "I) Considerações diagnósticas finais e sinais de alerta: liste sinais que justificariam busca imediata por avaliação clínica (ex.: perda de peso rápida, fadiga extrema, sintomas gastrointestinais persistentes), mantendo linguagem não-alarmista.\n\n"
+        "Formato e tom: profissional, empático e não-alarmista. Use títulos claros, subtítulos e listas com marcadores para Diet/Exercise/Supplementation/Plano. Preserve frases-chave do material fonte quando relevantes.\n\n"
+        "Restrições: NÃO emita diagnósticos médicos formais nem prescreva medicamentos. Sempre inclua a recomendação de consultar um profissional de saúde para decisões clínicas.\n\n"
+        "Saída: retorne o relatório em texto plano em português, pronto para exibição direta na UI e para inclusão em PDF. Comece o documento com o título exato: 'Introdução ao Perfil Bioenergético e Distribuição de Temperamentos'."
     )
-    
+
     prompt = "\n".join(parts) + "\n\n" + instruction
     return prompt
-
 
 def generate_diagnostic_report(
     result: Dict[str, Any],
