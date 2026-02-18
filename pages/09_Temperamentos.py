@@ -284,7 +284,7 @@ if st.button("Calcular resultado"):
     # -------------------------
     # Exibir recomendações em expanders
     # -------------------------
-    st.subheader("Interpretação e recomendações")
+    st.subheader("Interpretação e Recomendações")
 
     def show_rec_expander(rec, key, expanded=False):
         if not rec:
