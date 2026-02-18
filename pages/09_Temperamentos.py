@@ -1,19 +1,29 @@
-# 09_Temperamentos.py (refatorado)
+# 09_Temperamentos.py
 import streamlit as st
 import pandas as pd
+import json
 from datetime import datetime
 import plotly.express as px
 
-# Gerador de IA (ajuste o import conforme sua estrutura)
 from etheria.services.generator_service import generate_ai_text_from_chart
-from etheria.services.temperamento_prompt import generate_diagnostic_report
 
-# Configuração da página
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
 st.title("Temperamentos 🌑🌔🌕🌖")
 
+st.markdown("""
+Este autoestudo soma as características dos quatro grupos (A, B, C, D) e indica o temperamento dominante e secundário.  
+**O que são os temperamentos:** trata‑se de um modelo clássico que descreve padrões estáveis de comportamento, emoção e energia corporal. Cada temperamento reúne um conjunto de tendências — maneiras preferidas de reagir, de se relacionar e de gerir a própria vitalidade — que ajudam a entender por que certas rotinas, alimentos e práticas funcionam melhor para algumas pessoas do que para outras.  
+
+- **Sanguíneo:** geralmente extrovertido, sociável e entusiasta; busca estímulos e variedade.  
+- **Bilioso (colérico):** orientado à ação, decidido e ambicioso; tende a respostas rápidas e foco em resultados.  
+- **Melancólico (nervoso):** introspectivo, detalhista e sensível; propenso à reflexão profunda e à cautela.  
+- **Linfático (fleumático):** calmo, estável e rotineiro; prefere previsibilidade e conforto.
+
+Este teste não rotula nem limita: serve como ferramenta prática para identificar tendências predominantes e sugerir ajustes simples (alimentação, sono, exercícios, práticas de relaxamento) que favoreçam equilíbrio. Responda com honestidade e use o resultado como ponto de partida para observar padrões ao longo do tempo.
+""")
+
 # -------------------------
-# Constantes e dados
+# Perguntas por grupo
 # -------------------------
 QUESTIONS = {
     "A_Sanguineo": [
@@ -66,6 +76,9 @@ QUESTIONS = {
     ]
 }
 
+# -------------------------
+# Recomendações por temperamento (alimentação incluída)
+# -------------------------
 RECOMMENDATIONS = {
     "A_Sanguineo": {
         "nome": "Sanguíneo",
@@ -145,41 +158,16 @@ RECOMMENDATIONS = {
 }
 
 # -------------------------
-# Utilitários
-# -------------------------
-def get_rec_by_key(key: str):
-    if not key:
-        return None
-    rec = RECOMMENDATIONS.get(key)
-    if rec:
-        return rec
-    alt = key.replace(" ", "_")
-    rec = RECOMMENDATIONS.get(alt)
-    if rec:
-        return rec
-    alt2 = key.replace("_", " ").lower()
-    for k, v in RECOMMENDATIONS.items():
-        if k.replace("_", " ").lower() == alt2:
-            return v
-    return None
-
-# -------------------------
-# Estado inicial
-# -------------------------
-if "started" not in st.session_state:
-    st.session_state.started = False
-if "responses" not in st.session_state:
-    st.session_state.responses = {}
-if "last_result" not in st.session_state:
-    st.session_state.last_result = None
-
-# -------------------------
 # UI: iniciar / formulário
 # -------------------------
 st.markdown("Clique em **Iniciar** para abrir o questionário. Use valores de 0 (nunca) a 10 (sempre).")
+
+if "started" not in st.session_state:
+    st.session_state.started = False
+
 col1, col2 = st.columns([3, 1])
 with col2:
-    if st.button("Iniciar / Reiniciar"):
+    if st.button("Iniciar"):
         st.session_state.started = True
         st.session_state.responses = {}
 
@@ -187,7 +175,10 @@ if not st.session_state.started:
     st.info("Pressione Iniciar para responder o autoestudo.")
     st.stop()
 
-# renderizar perguntas
+if "responses" not in st.session_state:
+    st.session_state.responses = {}
+
+# renderizar cada grupo dentro de um expander separado
 for group, qs in QUESTIONS.items():
     exp_label = group.replace("_", " ")
     with st.expander(exp_label, expanded=True):
@@ -199,15 +190,16 @@ for group, qs in QUESTIONS.items():
             st.session_state.responses[key] = val
 
 # -------------------------
-# Calcular resultado
+# Botão calcular e lógica de resultado
 # -------------------------
 if st.button("Calcular resultado"):
+    # construir scores a partir das respostas
     scores = {}
     for group in QUESTIONS:
         vals = [st.session_state.responses.get(f"{group}_{i}", 0) for i in range(len(QUESTIONS[group]))]
-        scores[group] = round(sum(vals), 2)
+        scores[group] = round(sum(vals), 2)  # soma 0-100
 
-    # gráfico
+    # exibir gráfico de pizza com Plotly
     labels = [k.replace("_", " ") for k in scores.keys()]
     values = [v for v in scores.values()]
     color_map = {
@@ -230,22 +222,54 @@ if st.button("Calcular resultado"):
         st.subheader("Distribuição dos temperamentos")
         st.plotly_chart(fig, use_container_width=True)
 
-    # determinar dominante e secundário
-    THRESHOLD_SECONDARY = 35.0
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    # -------------------------
+    # Determinar dominante e secundário com regra de 35%
+    # -------------------------
+    THRESHOLD_SECONDARY = 35.0  # mínimo para considerar secundário
+
+    # ordenar
+    try:
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    except Exception as e:
+        st.error(f"Erro ao ordenar pontuações: {e}")
+        st.stop()
+
+    if not sorted_scores:
+        st.error("Nenhuma pontuação válida encontrada.")
+        st.stop()
+
     dominant_key, dominant_val = sorted_scores[0]
     secondary_key, secondary_val = (None, 0.0)
     if len(sorted_scores) > 1:
         secondary_key, secondary_val = sorted_scores[1]
 
+    # utilitário para obter recomendação com fallback
+    def get_rec_by_key(key):
+        if not key:
+            return None
+        rec = RECOMMENDATIONS.get(key)
+        if rec:
+            return rec
+        alt = key.replace(" ", "_")
+        rec = RECOMMENDATIONS.get(alt)
+        if rec:
+            return rec
+        # última tentativa: comparar sem underscores
+        alt2 = key.replace("_", " ").lower()
+        for k, v in RECOMMENDATIONS.items():
+            if k.replace("_", " ").lower() == alt2:
+                return v
+        return None
+
     dominant_rec = get_rec_by_key(dominant_key)
     secondary_rec = get_rec_by_key(secondary_key) if secondary_key else None
 
+    # exibir dominante sempre
     dominant_label = dominant_rec["nome"] if dominant_rec else dominant_key.replace("_", " ")
-
     st.markdown("---")
     st.markdown(f"**Temperamento dominante:** **{dominant_label}** — {dominant_val} pontos")
 
+    # decidir se mostramos secundário
     show_secondary = False
     if secondary_key and isinstance(secondary_val, (int, float)):
         if secondary_val >= THRESHOLD_SECONDARY and secondary_val > 0:
@@ -259,12 +283,16 @@ if st.button("Calcular resultado"):
     else:
         st.info("Nenhum temperamento secundário significativo detectado.")
 
-    # mostrar recomendações na UI
+    # -------------------------
+    # Exibir recomendações em expanders
+    # -------------------------
     st.subheader("Interpretação e Recomendações")
+
     def show_rec_expander(rec, key, expanded=False):
         if not rec:
             with st.expander(f"{key.replace('_',' ')} — Recomendações (não encontradas)", expanded=False):
-                st.write("Recomendações não disponíveis para esta chave.")
+                st.write("Recomendações não disponíveis para esta chave. Verifique a consistência das chaves em QUESTIONS e RECOMMENDATIONS.")
+                st.write("Chave detectada:", key)
             return
         with st.expander(f"{rec['nome']} — Recomendações", expanded=expanded):
             st.markdown(f"**Resumo:** {rec['resumo']}")
@@ -277,27 +305,41 @@ if st.button("Calcular resultado"):
             st.markdown("**Alimentação (sugestão detalhada):**")
             st.markdown(rec["alimentacao"].replace("\n", "  \n"))
 
+    # dominante (expandido por padrão)
     show_rec_expander(dominant_rec, dominant_key, expanded=True)
+    # secundário condicional
     if show_secondary:
         show_rec_expander(secondary_rec, secondary_key, expanded=False)
 
-    # serializar recomendações no result
-    def _serializable_rec(rec, key):
-        if not rec:
-            return None
-        return {
-            "key": key,
-            "nome": rec.get("nome"),
-            "resumo": rec.get("resumo"),
-            "pedras": rec.get("pedras"),
-            "cor": rec.get("cor"),
-            "oleo": rec.get("oleo"),
-            "dicas": rec.get("dicas"),
-            "alimentacao": rec.get("alimentacao"),
+    # -------------------------
+    # Salvar resultado em session_state e oferecer exportação
+    # -------------------------
+    dominant_rec_serializable = None
+    secondary_rec_serializable = None
+
+    if dominant_rec:
+        dominant_rec_serializable = {
+            "key": dominant_key,
+            "nome": dominant_rec.get("nome"),
+            "resumo": dominant_rec.get("resumo"),
+            "pedras": dominant_rec.get("pedras"),
+            "cor": dominant_rec.get("cor"),
+            "oleo": dominant_rec.get("oleo"),
+            "dicas": dominant_rec.get("dicas"),
+            "alimentacao": dominant_rec.get("alimentacao"),
         }
 
-    dominant_rec_serializable = _serializable_rec(dominant_rec, dominant_key)
-    secondary_rec_serializable = _serializable_rec(secondary_rec, secondary_key) if show_secondary else None
+    if show_secondary and secondary_rec:
+        secondary_rec_serializable = {
+            "key": secondary_key,
+            "nome": secondary_rec.get("nome"),
+            "resumo": secondary_rec.get("resumo"),
+            "pedras": secondary_rec.get("pedras"),
+            "cor": secondary_rec.get("cor"),
+            "oleo": secondary_rec.get("oleo"),
+            "dicas": secondary_rec.get("dicas"),
+            "alimentacao": secondary_rec.get("alimentacao"),
+        }
 
     result = {
         "timestamp": datetime.utcnow().isoformat(),
@@ -312,20 +354,27 @@ if st.button("Calcular resultado"):
         result["secondary_rec"] = secondary_rec_serializable
 
     st.session_state.last_result = result
+
     st.markdown("---")
+    
     st.success("Autoestudo concluído. Se desejar, repita em duas semanas para comparar resultados.")
 
-# -------------------------
-# PDF generation helpers
-# -------------------------
+# --- construção do PDF ---
+
 from io import BytesIO
 from datetime import datetime as _dt
 
 def _create_pdf_bytes_reportlab(result: dict) -> bytes:
+    """
+    Gera PDF em memória usando reportlab. Retorna bytes do PDF.
+    Espera que `result` contenha, além de scores/dominant/secondary:
+      - "dominant_rec": dict (opcional) com keys: nome, resumo, pedras, cor, oleo, dicas, alimentacao
+      - "secondary_rec": dict (opcional) com a mesma estrutura
+    """
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     except Exception as e:
         raise ImportError("reportlab não disponível") from e
@@ -333,17 +382,23 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     styles = getSampleStyleSheet()
+
+    # estilos adicionais (opcionais)
     title_style = styles["Title"]
     normal = styles["Normal"]
     heading = styles["Heading3"]
+    small = ParagraphStyle("Small", parent=styles["Normal"], fontSize=9, leading=11)
 
     story = []
+
+    # Cabeçalho
     story.append(Paragraph("Autoestudo — Temperamentos", title_style))
     story.append(Spacer(1, 8))
     ts = result.get("timestamp") or _dt.utcnow().isoformat()
     story.append(Paragraph(f"Gerado em: {ts}", normal))
     story.append(Spacer(1, 12))
 
+    # Scores (tabela)
     scores = result.get("scores", {})
     if scores:
         data = [["Temperamento", "Pontuação"]]
@@ -361,6 +416,7 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
         story.append(table)
         story.append(Spacer(1, 12))
 
+    # Dominante / secundário (resumo)
     dominant = result.get("dominant", "-")
     dominant_score = result.get("dominant_score", "-")
     story.append(Paragraph(f"<b>Temperamento dominante:</b> {dominant} — {dominant_score}", heading))
@@ -368,83 +424,117 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
         story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
     story.append(Spacer(1, 12))
 
-    # recomendações serializadas
-    def _append_rec(rec_obj, title=None):
+    # Recuperar recomendações já serializadas no result (mais confiável)
+    rec = result.get("dominant_rec")
+    sec_rec = result.get("secondary_rec")
+
+    def _append_rec_to_story(rec_obj, title=None):
         if not rec_obj:
             return
         if title:
             story.append(Paragraph(title, styles["Heading4"]))
             story.append(Spacer(1, 6))
+
+        # resumo
         resumo = rec_obj.get("resumo", "")
         if resumo:
             story.append(Paragraph(resumo, normal))
             story.append(Spacer(1, 6))
+
+        # pedras, cor, oleo
         pedras = rec_obj.get("pedras") or []
-        if pedras:
-            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {', '.join(pedras)}", normal))
+        pedras_text = ", ".join(pedras) if pedras else ""
+        cor = rec_obj.get("cor", "") or ""
+        oleo = rec_obj.get("oleo", "") or ""
+
+        if pedras_text:
+            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras_text}", normal))
             story.append(Spacer(1, 4))
-        cor = rec_obj.get("cor", "")
         if cor:
             story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
             story.append(Spacer(1, 4))
-        oleo = rec_obj.get("oleo", "")
         if oleo:
             story.append(Paragraph(f"<b>Aromaterapia (óleo):</b> {oleo}", normal))
             story.append(Spacer(1, 6))
+
+        # dicas práticas
         dicas = rec_obj.get("dicas") or []
         if dicas:
             story.append(Paragraph("Dicas práticas:", styles["Normal"]))
             for d in dicas:
                 story.append(Paragraph(f"- {d}", normal))
-            story.append(Spacer(1, 6))
-        alimentacao = rec_obj.get("alimentacao", "") or ""
-        if alimentacao.strip():
+            story.append(Spacer(1, 8))
+
+        # alimentação (dividir em parágrafos)
+        alimentacao_text = rec_obj.get("alimentacao", "") or ""
+        if alimentacao_text.strip():
             story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
-            paras = [p.strip() for p in alimentacao.split("\n\n") if p.strip()]
+            # separar por parágrafos duplos ou simples
+            paras = [p.strip() for p in alimentacao_text.split("\n\n") if p.strip()]
             if not paras:
-                paras = [p.strip() for p in alimentacao.split("\n") if p.strip()]
-            for p in paras:
-                story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+                paras = [p.strip() for p in alimentacao_text.split("\n") if p.strip()]
+            for para in paras:
+                # substituir quebras simples por <br/> para manter formatação
+                story.append(Paragraph(para.replace("\n", "<br/>"), normal))
                 story.append(Spacer(1, 4))
-            story.append(Spacer(1, 6))
+            story.append(Spacer(1, 8))
 
-    dominant_rec = result.get("dominant_rec") or {}
-    _append_rec(dominant_rec, title="Resumo e recomendações (dominante)")
+    # adicionar recomendações do dominante
+    _append_rec_to_story(rec, title="Resumo e recomendações")
 
-    secondary_rec = result.get("secondary_rec") or {}
-    if secondary_rec:
-        _append_rec(secondary_rec, title="Resumo e recomendações (secundário)")
+    # adicionar recomendações do secundário, se houver
+    if sec_rec:
+        _append_rec_to_story(sec_rec, title="Temperamento secundário — Recomendações")
 
+    # Observações finais
     story.append(Paragraph("Observações:", styles["Heading4"]))
     story.append(Paragraph("Este relatório resume as pontuações do autoestudo. Use-o como referência e não como diagnóstico.", normal))
     story.append(Spacer(1, 12))
 
+    # Construir PDF
     doc.build(story)
     pdf_bytes = buf.getvalue()
     buf.close()
     return pdf_bytes
 
+# Função wrapper que tenta reportlab e informa se não estiver instalado
+def create_pdf_bytes(result: dict) -> bytes:
+    try:
+        return _create_pdf_bytes_reportlab(result)
+    except ImportError:
+        raise
+
+# --- Helper: create_pdf_bytes_with_model_text (cole após _create_pdf_bytes_reportlab) ---
+# --- Substitua/cole esta versão de create_pdf_bytes_with_model_text ---
 def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     """
-    Gera PDF incluindo model_report_text quando presente.
-    """
-    model_text = (result.get("model_report_text") or "").strip()
-    # se não houver model_text, usar create_pdf_bytes padrão
-    if not model_text:
-        try:
-            return _create_pdf_bytes_reportlab(result)
-        except Exception:
-            pass
+    Gera bytes de PDF que incluem:
+      - scores, dominante/secundário,
+      - recomendações serializadas (dominant_rec / secondary_rec) se existirem,
+      - e, se presente, o texto do modelo em 'model_report_text'.
 
-    # gerar PDF que inclui model_text
+    Esta versão PRIORIZA a inclusão de model_report_text: se ele existir e não for vazio,
+    gera um PDF que o contém. Caso contrário, tenta usar create_pdf_bytes(result) como fallback.
+    """
+    # se não houver model text, tentar usar create_pdf_bytes (se existir)
+    model_text = (result.get("model_report_text") or "").strip()
+    if not model_text:
+        if "create_pdf_bytes" in globals() and callable(globals().get("create_pdf_bytes")):
+            try:
+                return create_pdf_bytes(result)
+            except Exception:
+                # se falhar, prosseguir para fallback que gera PDF manualmente
+                pass
+
+    # Fallback / geração direta que inclui model_text
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
-        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
         from io import BytesIO
     except Exception as e:
-        raise ImportError("reportlab não disponível") from e
+        raise ImportError("reportlab não disponível para gerar PDF") from e
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -454,13 +544,15 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     heading = styles["Heading3"]
 
     story = []
+
+    # Cabeçalho
     story.append(Paragraph("Introdução ao Perfil Bioenergético e Distribuição de Temperamentos", title_style))
     story.append(Spacer(1, 8))
     ts = result.get("timestamp") or _dt.utcnow().isoformat()
     story.append(Paragraph(f"Gerado em: {ts}", normal))
     story.append(Spacer(1, 12))
 
-    # tabela de scores
+    # Scores (tabela)
     scores = result.get("scores", {})
     if scores:
         data = [["Temperamento", "Pontuação"]]
@@ -478,6 +570,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
         story.append(table)
         story.append(Spacer(1, 12))
 
+    # Dominante / secundário
     dominant = result.get("dominant", "-")
     dominant_score = result.get("dominant_score", "-")
     story.append(Paragraph(f"<b>Temperamento dominante:</b> {dominant} — {dominant_score}", heading))
@@ -485,9 +578,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
         story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
     story.append(Spacer(1, 12))
 
-    # recomendações serializadas
-    dominant_rec = result.get("dominant_rec") or {}
-    secondary_rec = result.get("secondary_rec") or {}
+    # Recomendações serializadas (dominant_rec / secondary_rec) se existirem
     def _append_rec_simple(rec_obj, title=None):
         if not rec_obj:
             return
@@ -527,21 +618,26 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
                 story.append(Spacer(1, 4))
             story.append(Spacer(1, 6))
 
+    dominant_rec = result.get("dominant_rec") or {}
     _append_rec_simple(dominant_rec, title="Resumo e recomendações (dominante)")
+
+    secondary_rec = result.get("secondary_rec") or {}
     if secondary_rec:
         _append_rec_simple(secondary_rec, title="Resumo e recomendações (secundário)")
 
-    # inserir texto do modelo em nova página
-    story.append(PageBreak())
-    story.append(Paragraph("Relatório diagnóstico (modelo)", styles["Heading4"]))
-    story.append(Spacer(1, 6))
-    paras = [p.strip() for p in model_text.split("\n\n") if p.strip()]
-    if not paras:
-        paras = [p.strip() for p in model_text.split("\n") if p.strip()]
-    for p in paras:
-        story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+    # Se houver texto do modelo, adicioná-lo em nova seção (garante inclusão)
+    if model_text:
+        story.append(PageBreak())
+        story.append(Paragraph("Relatório diagnóstico (modelo)", styles["Heading4"]))
         story.append(Spacer(1, 6))
+        paras = [p.strip() for p in model_text.split("\n\n") if p.strip()]
+        if not paras:
+            paras = [p.strip() for p in model_text.split("\n") if p.strip()]
+        for p in paras:
+            story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+            story.append(Spacer(1, 6))
 
+    # Observações finais / disclaimer
     story.append(Paragraph("Observações:", styles["Heading4"]))
     story.append(Paragraph("Este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.", normal))
     story.append(Spacer(1, 12))
@@ -551,94 +647,68 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     buf.close()
     return pdf_bytes
 
-# -------------------------
-# Gerar relatório diagnóstico via IA
-# -------------------------
+# --- Botão de download (colocar após a criação de st.session_state["last_result"]) ---
+if "last_result" in st.session_state:
+    try:
+        pdf_bytes = create_pdf_bytes(st.session_state["last_result"])
+        st.download_button(
+            label="Baixar resultado em PDF",
+            data=pdf_bytes,
+            file_name="temperamentos_resultado.pdf",
+            mime="application/pdf"
+        )
+    except ImportError:
+        st.error("Para habilitar exportação em PDF instale a dependência 'reportlab' no ambiente (pip install reportlab).")
+    except Exception as e:
+        st.error(f"Erro ao gerar PDF: {e}")
+
+# --- Integração em 09_Temperamentos.py (cole após a criação de st.session_state["last_result"]) ---
+
+from etheria.services.temperamento_prompt import generate_diagnostic_report
+# assume generate_ai_text_from_chart já importado no topo do arquivo
+
 st.markdown("---")
-st.subheader("Gerar relatório diagnóstico com IA Etheria")
+st.subheader("Relatório diagnóstico com IA Etheria")
+st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório personalizado.")
 st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.")
 
-def _generator_wrapper(chart_summary, prompt):
-    """
-    Wrapper que garante instrução no chart_summary e fallback para btime.
-    Ajuste se generate_ai_text_from_chart aceitar (chart_summary, prompt) ou apenas chart_summary.
-    """
-    cs = dict(chart_summary)
-    cs["instruction"] = prompt
-    cs.setdefault("btime", "00:00")
-    # Tentar chamar com duas assinaturas possíveis
-    try:
-        return generate_ai_text_from_chart(cs, prompt)
-    except TypeError:
-        return generate_ai_text_from_chart(cs)
+def _render_and_save_model_report(result: dict, model_text: str):
+    """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
+    st.markdown("### Relatório diagnóstico (modelo)")
+    st.write(model_text)
 
-if st.button("Gerar relatório diagnóstico"):
-    if not st.session_state.last_result:
+    # anexar o texto do modelo ao result para inclusão no PDF
+    result_for_pdf = dict(result)  # cópia rasa
+    result_for_pdf["model_report_text"] = model_text
+    st.session_state["last_result"] = result_for_pdf
+
+    # gerar PDF que inclua o texto do modelo (usa create_pdf_bytes_with_model_text definido anteriormente)
+    try:
+        pdf_bytes = create_pdf_bytes_with_model_text(result_for_pdf)
+        st.download_button(
+            label="Baixar relatório diagnóstico em PDF",
+            data=pdf_bytes,
+            file_name="temperamentos_diagnostico.pdf",
+            mime="application/pdf"
+        )
+    except Exception as e:
+        st.error(f"Erro ao gerar PDF do relatório: {e}")
+
+if st.button("Gerar relatório"):
+    if "last_result" not in st.session_state:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
-        result = st.session_state.last_result
-        # chamar o serviço de geração com wrapper
-        try:
-            out = generate_diagnostic_report(result, generator=_generator_wrapper)
-        except Exception as e:
-            st.error("Erro ao chamar o serviço de geração.")
-            st.exception(e)
-            out = None
+        result = st.session_state["last_result"]
 
-        if out:
-            # debug: mostrar prompt (limitado)
-            with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-                st.code(out.get("prompt", "")[:4000])
+        # chamar o gerador via serviço; passa generate_ai_text_from_chart como generator
+        out = generate_diagnostic_report(result, generator=generate_ai_text_from_chart)
 
-            model_text = out.get("model_text")
-            if not model_text:
-                st.error("O modelo não retornou texto. Verifique logs do serviço.")
-                # mostrar raw result para debug
-                st.write(out.get("raw_model_result"))
-            else:
-                # renderizar e salvar
-                st.markdown("### Relatório diagnóstico (modelo)")
-                st.write(model_text)
+        # mostrar prompt em expander para debug (opcional)
+        with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+            st.code(out["prompt"][:4000])
 
-                # anexar ao result e persistir
-                result_for_pdf = dict(result)
-                result_for_pdf["model_report_text"] = model_text
-                st.session_state.last_result = result_for_pdf
-
-                # gerar PDF com texto do modelo
-                try:
-                    pdf_bytes = create_pdf_bytes_with_model_text(result_for_pdf)
-                    st.download_button(
-                        label="Baixar relatório diagnóstico em PDF",
-                        data=pdf_bytes,
-                        file_name="temperamentos_diagnostico.pdf",
-                        mime="application/pdf"
-                    )
-                except Exception as e:
-                    st.error("Erro ao gerar PDF do relatório.")
-                    st.exception(e)
-
-# -------------------------
-# Exportar resultado simples (PDF/Parquet/JSON)
-# -------------------------
-if st.session_state.last_result:
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        try:
-            pdf_bytes = create_pdf_bytes_with_model_text(st.session_state.last_result)
-            st.download_button("Baixar relatório completo (PDF)", data=pdf_bytes, file_name="temperamentos_resultado.pdf", mime="application/pdf")
-        except Exception:
-            st.info("PDF não disponível (reportlab ausente ou erro).")
-    with col_b:
-        st.download_button("Baixar resultado (JSON)", data=pd.io.json.dumps(st.session_state.last_result, ensure_ascii=False, indent=2), file_name="temperamentos_resultado.json", mime="application/json")
-    with col_c:
-        # salvar Parquet simples com scores
-        try:
-            df_scores = pd.DataFrame(list(st.session_state.last_result["scores"].items()), columns=["Temperamento", "Pontuação"])
-            buf = BytesIO()
-            df_scores.to_parquet(buf, index=False)
-            st.download_button("Baixar scores (Parquet)", data=buf.getvalue(), file_name="temperamentos_scores.parquet", mime="application/octet-stream")
-        except Exception:
-            st.info("Export Parquet indisponível.")
-
-# Fim do arquivo
+        model_text = out.get("model_text")
+        if not model_text:
+            st.error("O modelo não retornou texto. Verifique logs do serviço.")
+        else:
+            _render_and_save_model_report(result, model_text)
