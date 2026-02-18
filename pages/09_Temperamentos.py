@@ -664,9 +664,8 @@ if "last_result" in st.session_state:
         st.error(f"Erro ao gerar PDF: {e}")
 
 # -------------------------
-# Geração direta text-only (substituir o bloco antigo)
+# Geração direta text-only com spinner (sem re-chamada por hora)
 # -------------------------
-# Import do serviço de prompt (ajuste o caminho conforme seu projeto)
 try:
     from etheria.services.temperamento_prompt import build_prompt_from_result, generate_text_only
 except Exception:
@@ -679,13 +678,11 @@ st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um 
 
 def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None):
     """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
-    #st.markdown("### Relatório diagnóstico IA Etheria")
     st.write(model_text)
 
     # anexar o texto do modelo ao result para inclusão no PDF
     result_for_pdf = dict(result)  # cópia rasa
     result_for_pdf["model_report_text"] = model_text
-    # opcional: guardar raw para debug
     if raw is not None:
         result_for_pdf["raw_model_result"] = raw
     st.session_state["last_result"] = result_for_pdf
@@ -701,68 +698,44 @@ def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None
         )
     except Exception as e:
         st.error(f"Erro ao gerar PDF do diagnóstico: {e}")
+
 if st.button("Gerar diagnóstico"):
     if "last_result" not in st.session_state or not st.session_state["last_result"]:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
         result = st.session_state["last_result"]
 
-        # 1) montar prompt text-only (o builder já inclui instrução para ignorar cálculos astrológicos)
-        prompt = build_prompt_from_result(result)
+        # reservar placeholder para evitar renderização parcial
+        placeholder = st.empty()
 
-        # mostrar prompt em expander para debug (opcional)
-        #with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-        #    st.code(prompt[:4000])
+        # spinner enquanto a chamada ao modelo é executada
+        with st.spinner("Gerando relatório diagnóstico — aguarde..."):
+            # montar prompt text-only (o builder já inclui instrução para ignorar cálculos astrológicos)
+            prompt = build_prompt_from_result(result)
 
-        # 2) chamar generate_text_only diretamente (retorna dict com 'text' e 'raw' ou 'error')
-        try:
-            raw_out = generate_text_only(prompt)
-        except Exception as e:
-            st.error("Erro ao chamar o serviço de geração de texto.")
-            st.exception(e)
-            raw_out = {"error": str(e), "text": None, "raw": None}
-
-        # 3) extrair texto e tratar retorno
-        model_text = None
-        raw_model = None
-        if isinstance(raw_out, dict):
-            model_text = raw_out.get("text") or raw_out.get("analysis_text") or raw_out.get("raw_text")
-            raw_model = raw_out.get("raw") or raw_out
-        elif isinstance(raw_out, str):
-            model_text = raw_out
-            raw_model = raw_out
-        else:
-            model_text = str(raw_out)
-            raw_model = raw_out
-
-        # 4) se o modelo pedir hora de nascimento, tentar re-chamada com instrução reforçada (uma tentativa)
-        if isinstance(model_text, str) and "hora" in model_text.lower() and "nascimento" in model_text.lower():
-            st.warning("O modelo solicitou hora de nascimento. Reforçando instrução para ignorar e tentando novamente.")
-            prompt2 = prompt + "\n\nINSTRUÇÃO ADICIONAL: Ignore solicitações de hora de nascimento e gere o relatório com os dados disponíveis."
+            # chamada direta ao serviço text-only
             try:
-                raw_out2 = generate_text_only(prompt2)
-                if isinstance(raw_out2, dict):
-                    model_text2 = raw_out2.get("text")
-                    raw_model2 = raw_out2.get("raw") or raw_out2
-                elif isinstance(raw_out2, str):
-                    model_text2 = raw_out2
-                    raw_model2 = raw_out2
-                else:
-                    model_text2 = str(raw_out2)
-                    raw_model2 = raw_out2
-
-                # aceitar a segunda resposta se não pedir hora
-                if model_text2 and "hora" not in model_text2.lower():
-                    model_text = model_text2
-                    raw_model = raw_model2
+                raw_out = generate_text_only(prompt)
             except Exception as e:
-                st.info("Rechamada falhou; mantendo resultado anterior.")
-                st.exception(e)
+                raw_out = {"error": str(e), "text": None, "raw": None}
 
-        # 5) exibir/debugar e persistir
-        if not model_text:
-            st.error("O modelo não retornou texto. Verifique raw_model_result para diagnóstico.")
-            with st.expander("raw_model_result (debug)", expanded=True):
-                st.write(raw_model or raw_out)
-        else:
-            _render_and_save_model_report(result, model_text, raw=raw_model)
+            # extrair texto e raw
+            model_text = None
+            raw_model = None
+            if isinstance(raw_out, dict):
+                model_text = raw_out.get("text") or raw_out.get("analysis_text") or raw_out.get("raw_text")
+                raw_model = raw_out.get("raw") or raw_out
+            elif isinstance(raw_out, str):
+                model_text = raw_out
+                raw_model = raw_out
+            else:
+                model_text = str(raw_out)
+                raw_model = raw_out
+
+        # preencher o placeholder após a execução (sem re-chamada adicional)
+        with placeholder.container():
+            if not model_text:
+                st.error("O modelo não retornou texto. Verifique raw_model_result para diagnóstico.")
+                
+            else:
+                _render_and_save_model_report(result, model_text, raw=raw_model)
