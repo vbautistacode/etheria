@@ -504,6 +504,24 @@ def create_pdf_bytes(result: dict) -> bytes:
     except ImportError:
         raise
 
+# Wrapper que adapta a assinatura do gerador e evita a solicitação de hora
+def _generator_wrapper(chart_summary, prompt):
+    """
+    Garante que chart_summary tenha btime (fallback "00:00") e injeta a instrução/prompt
+    no campo 'instruction' caso o gerador espere chart_summary.
+    Em seguida chama a função real do gerador (ajuste o nome se necessário).
+    """
+    cs = dict(chart_summary)  # cópia rasa
+    # injeta prompt na chave que seu gerador espera (instruction) para garantir que o texto seja usado
+    cs["instruction"] = prompt
+    # fallback para hora se ausente (evita validações que pedem hora)
+    cs.setdefault("btime", "00:00")
+    # chamar o gerador real — ajuste o nome conforme sua implementação
+    # Exemplo: return generate_ai_text_from_chart(cs)
+    return generate_ai_text_from_chart(cs)
+
+out = generate_diagnostic_report(result, generator=_generator_wrapper)
+
 # --- Helper: create_pdf_bytes_with_model_text (cole após _create_pdf_bytes_reportlab) ---
 # --- Substitua/cole esta versão de create_pdf_bytes_with_model_text ---
 def create_pdf_bytes_with_model_text(result: dict) -> bytes:
