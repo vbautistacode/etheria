@@ -672,8 +672,8 @@ from etheria.services.temperamento_prompt import generate_diagnostic_report
 # assume generate_ai_text_from_chart já importado no topo do arquivo
 
 st.markdown("---")
-st.subheader("Gerar relatório diagnóstico com o modelo")
-st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório diagnóstico (texto + PDF).")
+st.subheader("Relatório diagnóstico com IA Etheria")
+st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório personalizado.")
 st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.")
 
 def _render_and_save_model_report(result: dict, model_text: str):
@@ -698,7 +698,7 @@ def _render_and_save_model_report(result: dict, model_text: str):
     except Exception as e:
         st.error(f"Erro ao gerar PDF do relatório: {e}")
 
-if st.button("Gerar relatório diagnóstico"):
+if st.button("Gerar relatório"):
     if "last_result" not in st.session_state:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
