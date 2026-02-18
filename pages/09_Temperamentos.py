@@ -516,3 +516,54 @@ if "last_result" in st.session_state:
         st.error("Para habilitar exportação em PDF instale a dependência 'reportlab' no ambiente (pip install reportlab).")
     except Exception as e:
         st.error(f"Erro ao gerar PDF: {e}")
+
+# --- Integração em 09_Temperamentos.py (cole após a criação de st.session_state["last_result"]) ---
+
+from etheria.services.temperamento_prompt import generate_diagnostic_report
+# assume generate_ai_text_from_chart já importado no topo do arquivo
+
+st.markdown("---")
+st.subheader("Gerar relatório diagnóstico com o modelo")
+st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório diagnóstico (texto + PDF).")
+st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.")
+
+def _render_and_save_model_report(result: dict, model_text: str):
+    """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
+    st.markdown("### Relatório diagnóstico (modelo)")
+    st.write(model_text)
+
+    # anexar o texto do modelo ao result para inclusão no PDF
+    result_for_pdf = dict(result)  # cópia rasa
+    result_for_pdf["model_report_text"] = model_text
+    st.session_state["last_result"] = result_for_pdf
+
+    # gerar PDF que inclua o texto do modelo (usa create_pdf_bytes_with_model_text definido anteriormente)
+    try:
+        pdf_bytes = create_pdf_bytes_with_model_text(result_for_pdf)
+        st.download_button(
+            label="Baixar relatório diagnóstico em PDF",
+            data=pdf_bytes,
+            file_name="temperamentos_diagnostico.pdf",
+            mime="application/pdf"
+        )
+    except Exception as e:
+        st.error(f"Erro ao gerar PDF do relatório: {e}")
+
+if st.button("Gerar relatório diagnóstico"):
+    if "last_result" not in st.session_state:
+        st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
+    else:
+        result = st.session_state["last_result"]
+
+        # chamar o gerador via serviço; passa generate_ai_text_from_chart como generator
+        out = generate_diagnostic_report(result, generator=generate_ai_text_from_chart)
+
+        # mostrar prompt em expander para debug (opcional)
+        with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+            st.code(out["prompt"][:4000])
+
+        model_text = out.get("model_text")
+        if not model_text:
+            st.error("O modelo não retornou texto. Verifique logs do serviço.")
+        else:
+            _render_and_save_model_report(result, model_text)
