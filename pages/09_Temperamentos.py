@@ -678,7 +678,7 @@ st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um 
 
 def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None):
     """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
-    st.markdown("### Relatório diagnóstico (modelo)")
+    #st.markdown("### Relatório diagnóstico IA Etheria")
     st.write(model_text)
 
     # anexar o texto do modelo ao result para inclusão no PDF
@@ -699,9 +699,8 @@ def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None
             mime="application/pdf"
         )
     except Exception as e:
-        st.error(f"Erro ao gerar PDF do relatório: {e}")
-
-if st.button("Gerar relatório"):
+        st.error(f"Erro ao gerar PDF do diagnóstico: {e}")
+if st.button("Gerar diagnóstico"):
     if "last_result" not in st.session_state or not st.session_state["last_result"]:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
@@ -711,8 +710,8 @@ if st.button("Gerar relatório"):
         prompt = build_prompt_from_result(result)
 
         # mostrar prompt em expander para debug (opcional)
-        with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-            st.code(prompt[:4000])
+        #with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+        #    st.code(prompt[:4000])
 
         # 2) chamar generate_text_only diretamente (retorna dict com 'text' e 'raw' ou 'error')
         try:
