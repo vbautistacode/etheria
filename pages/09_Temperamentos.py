@@ -674,7 +674,7 @@ st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um 
 
 def _render_and_save_model_report(result: dict, model_text: str):
     """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
-    st.markdown("### Relatório diagnóstico (modelo)")
+    #st.markdown("### Relatório diagnóstico (modelo)")
     st.write(model_text)
 
     # anexar o texto do modelo ao result para inclusão no PDF
@@ -686,7 +686,7 @@ def _render_and_save_model_report(result: dict, model_text: str):
     try:
         pdf_bytes = create_pdf_bytes_with_model_text(result_for_pdf)
         st.download_button(
-            label="Baixar relatório diagnóstico em PDF",
+            label="Baixar diagnóstico em PDF",
             data=pdf_bytes,
             file_name="temperamentos_diagnostico.pdf",
             mime="application/pdf"
@@ -704,8 +704,8 @@ if st.button("Gerar relatório"):
         out = generate_diagnostic_report(result, generator=generate_ai_text_from_chart)
 
         # mostrar prompt em expander para debug (opcional)
-        with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-            st.code(out["prompt"][:4000])
+        #with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+        #    st.code(out["prompt"][:4000])
 
         model_text = out.get("model_text")
         if not model_text:
