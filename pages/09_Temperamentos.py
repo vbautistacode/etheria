@@ -365,6 +365,9 @@ from datetime import datetime as _dt
 def _create_pdf_bytes_reportlab(result: dict) -> bytes:
     """
     Gera PDF em memória usando reportlab. Retorna bytes do PDF.
+    Espera que `result` contenha, além de scores/dominant/secondary:
+      - "dominant_rec": dict (opcional) com keys: nome, resumo, pedras, cor, oleo, dicas, alimentacao
+      - "secondary_rec": dict (opcional) com a mesma estrutura
     """
     try:
         from reportlab.lib.pagesizes import A4
@@ -377,20 +380,23 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
     styles = getSampleStyleSheet()
-    story = []
 
-    # Cabeçalho
+    # estilos adicionais (opcionais)
     title_style = styles["Title"]
     normal = styles["Normal"]
     heading = styles["Heading3"]
+    small = ParagraphStyle("Small", parent=styles["Normal"], fontSize=9, leading=11)
 
+    story = []
+
+    # Cabeçalho
     story.append(Paragraph("Autoestudo — Temperamentos", title_style))
     story.append(Spacer(1, 8))
     ts = result.get("timestamp") or _dt.utcnow().isoformat()
     story.append(Paragraph(f"Gerado em: {ts}", normal))
     story.append(Spacer(1, 12))
 
-    # Scores
+    # Scores (tabela)
     scores = result.get("scores", {})
     if scores:
         data = [["Temperamento", "Pontuação"]]
@@ -408,7 +414,7 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
         story.append(table)
         story.append(Spacer(1, 12))
 
-    # Dominante / secundário
+    # Dominante / secundário (resumo)
     dominant = result.get("dominant", "-")
     dominant_score = result.get("dominant_score", "-")
     story.append(Paragraph(f"<b>Temperamento dominante:</b> {dominant} — {dominant_score}", heading))
@@ -416,25 +422,31 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
         story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
     story.append(Spacer(1, 12))
 
-    # Recomendações (tentar recuperar do dicionário RECOMMENDATIONS se disponível)
-    try:
-        rec_key = (result.get("dominant") or "").replace(" ", "_")
-        rec = RECOMMENDATIONS.get(rec_key)
-    except Exception:
-        rec = None
+    # Recuperar recomendações já serializadas no result (mais confiável)
+    rec = result.get("dominant_rec")
+    sec_rec = result.get("secondary_rec")
 
-    if rec:
-        story.append(Paragraph("Resumo e recomendações", styles["Heading4"]))
-        story.append(Spacer(1, 6))
+    def _append_rec_to_story(rec_obj, title=None):
+        if not rec_obj:
+            return
+        if title:
+            story.append(Paragraph(title, styles["Heading4"]))
+            story.append(Spacer(1, 6))
+
         # resumo
-        story.append(Paragraph(rec.get("resumo", ""), normal))
-        story.append(Spacer(1, 6))
-        # pedras, cor, óleo (novos campos)
-        pedras = ", ".join(rec.get("pedras", []))
-        cor = rec.get("cor", "")
-        oleo = rec.get("oleo", "")
-        if pedras:
-            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras}", normal))
+        resumo = rec_obj.get("resumo", "")
+        if resumo:
+            story.append(Paragraph(resumo, normal))
+            story.append(Spacer(1, 6))
+
+        # pedras, cor, oleo
+        pedras = rec_obj.get("pedras") or []
+        pedras_text = ", ".join(pedras) if pedras else ""
+        cor = rec_obj.get("cor", "") or ""
+        oleo = rec_obj.get("oleo", "") or ""
+
+        if pedras_text:
+            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras_text}", normal))
             story.append(Spacer(1, 4))
         if cor:
             story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
@@ -444,56 +456,40 @@ def _create_pdf_bytes_reportlab(result: dict) -> bytes:
             story.append(Spacer(1, 6))
 
         # dicas práticas
-        story.append(Paragraph("Dicas práticas:", styles["Normal"]))
-        for d in rec.get("dicas", []):
-            story.append(Paragraph(f"- {d}", normal))
-        story.append(Spacer(1, 8))
-
-        # alimentação (resumo)
-        story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
-        # reportlab Paragraph aceita HTML limitado; substituir quebras de linha por <br/> já feito antes
-        alimentacao_text = rec.get("alimentacao", "").replace("\n", "<br/>")
-        story.append(Paragraph(alimentacao_text, normal))
-        story.append(Spacer(1, 12))
-
-    # Incluir recomendações do secundário, se houver
-    if result.get("secondary"):
-        try:
-            sec_key = (result.get("secondary") or "").replace(" ", "_")
-            sec_rec = RECOMMENDATIONS.get(sec_key)
-        except Exception:
-            sec_rec = None
-
-        if sec_rec:
-            story.append(Paragraph("Temperamento secundário — Recomendações", styles["Heading4"]))
-            story.append(Spacer(1, 6))
-            story.append(Paragraph(sec_rec.get("resumo", ""), normal))
-            story.append(Spacer(1, 6))
-            pedras = ", ".join(sec_rec.get("pedras", []))
-            if pedras:
-                story.append(Paragraph(f"<b>Pedras sugeridas:</b> {pedras}", normal))
-                story.append(Spacer(1, 4))
-            cor = sec_rec.get("cor", "")
-            if cor:
-                story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
-                story.append(Spacer(1, 4))
-            oleo = sec_rec.get("oleo", "")
-            if oleo:
-                story.append(Paragraph(f"<b>Aromaterapia (óleo):</b> {oleo}", normal))
-                story.append(Spacer(1, 6))
+        dicas = rec_obj.get("dicas") or []
+        if dicas:
             story.append(Paragraph("Dicas práticas:", styles["Normal"]))
-            for d in sec_rec.get("dicas", []):
+            for d in dicas:
                 story.append(Paragraph(f"- {d}", normal))
             story.append(Spacer(1, 8))
+
+        # alimentação (dividir em parágrafos)
+        alimentacao_text = rec_obj.get("alimentacao", "") or ""
+        if alimentacao_text.strip():
             story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
-            story.append(Paragraph(sec_rec.get("alimentacao", "").replace("\n", "<br/>"), normal))
-            story.append(Spacer(1, 12))
+            # separar por parágrafos duplos ou simples
+            paras = [p.strip() for p in alimentacao_text.split("\n\n") if p.strip()]
+            if not paras:
+                paras = [p.strip() for p in alimentacao_text.split("\n") if p.strip()]
+            for para in paras:
+                # substituir quebras simples por <br/> para manter formatação
+                story.append(Paragraph(para.replace("\n", "<br/>"), normal))
+                story.append(Spacer(1, 4))
+            story.append(Spacer(1, 8))
+
+    # adicionar recomendações do dominante
+    _append_rec_to_story(rec, title="Resumo e recomendações")
+
+    # adicionar recomendações do secundário, se houver
+    if sec_rec:
+        _append_rec_to_story(sec_rec, title="Temperamento secundário — Recomendações")
 
     # Observações finais
     story.append(Paragraph("Observações:", styles["Heading4"]))
     story.append(Paragraph("Este relatório resume as pontuações do autoestudo. Use-o como referência e não como diagnóstico.", normal))
     story.append(Spacer(1, 12))
 
+    # Construir PDF
     doc.build(story)
     pdf_bytes = buf.getvalue()
     buf.close()
@@ -504,11 +500,9 @@ def create_pdf_bytes(result: dict) -> bytes:
     try:
         return _create_pdf_bytes_reportlab(result)
     except ImportError:
-        # fallback simples: gerar um PDF mínimo via texto plano com reportlab ausente não é trivial;
-        # informar ao usuário que a dependência é necessária.
         raise
 
-# --- Botões de download (colocar após a criação de st.session_state["last_result"]) ---
+# --- Botão de download (colocar após a criação de st.session_state["last_result"]) ---
 if "last_result" in st.session_state:
     try:
         pdf_bytes = create_pdf_bytes(st.session_state["last_result"])
