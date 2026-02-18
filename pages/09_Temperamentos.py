@@ -662,10 +662,13 @@ if "last_result" in st.session_state:
     except Exception as e:
         st.error(f"Erro ao gerar PDF: {e}")
 
-# --- Integração em 09_Temperamentos.py (cole após a criação de st.session_state["last_result"]) ---
+# Import do serviço de prompt (ajuste o caminho conforme sua estrutura)
+try:
+    from etheria.services.temperamento_prompt import generate_diagnostic_report
+except Exception:
+    from etheria.services.temperamento_prompt import generate_diagnostic_report
 
-from etheria.services.temperamento_prompt import generate_diagnostic_report
-# assume generate_ai_text_from_chart já importado no topo do arquivo
+# assume generate_ai_text_from_chart já importado no topo do arquivo (se disponível)
 
 st.markdown("---")
 st.subheader("Relatório diagnóstico com IA Etheria")
@@ -674,7 +677,7 @@ st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um 
 
 def _render_and_save_model_report(result: dict, model_text: str):
     """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
-    #st.markdown("### Relatório diagnóstico IA Etheria")
+    st.markdown("### Relatório diagnóstico (modelo)")
     st.write(model_text)
 
     # anexar o texto do modelo ao result para inclusão no PDF
@@ -694,21 +697,81 @@ def _render_and_save_model_report(result: dict, model_text: str):
     except Exception as e:
         st.error(f"Erro ao gerar PDF do relatório: {e}")
 
+# Fallback generator wrapper (tenta enviar apenas prompt/texto ao gerador de IA se possível)
+def _fallback_generator(chart_summary, prompt):
+    """
+    Wrapper que tenta chamar generate_ai_text_from_chart em várias assinaturas,
+    priorizando o envio do prompt como string para evitar pré-processamento astrológico.
+    Ajuste se o nome/assinatura do seu gerador for diferente.
+    """
+    # se generate_ai_text_from_chart não estiver disponível, devolve None para que generate_diagnostic_report trate
+    try:
+        gen = generate_ai_text_from_chart  # nome importado no topo do arquivo
+    except NameError:
+        return None
+
+    # 1) tentar apenas prompt (texto)
+    try:
+        return gen(prompt)
+    except TypeError:
+        pass
+    except Exception as e:
+        return {"error": f"generate_ai_text_from_chart(prompt) failed: {e}"}
+
+    # 2) tentar (chart_summary, prompt)
+    try:
+        return gen(chart_summary, prompt)
+    except TypeError:
+        pass
+    except Exception as e:
+        return {"error": f"generate_ai_text_from_chart(chart_summary, prompt) failed: {e}"}
+
+    # 3) tentar apenas chart_summary (com instruction já injetada)
+    try:
+        cs = dict(chart_summary)
+        cs.setdefault("btime", "00:00")
+        cs["instruction"] = prompt
+        return gen(cs)
+    except Exception as e:
+        return {"error": f"generate_ai_text_from_chart(chart_summary) failed: {e}"}
+
+# Botão que dispara a geração do relatório
 if st.button("Gerar relatório"):
-    if "last_result" not in st.session_state:
+    if "last_result" not in st.session_state or not st.session_state["last_result"]:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
         result = st.session_state["last_result"]
 
-        # chamar o gerador via serviço; passa generate_ai_text_from_chart como generator
-        out = generate_diagnostic_report(result, generator=generate_ai_text_from_chart)
+        # 1) tentativa principal: chamar generate_diagnostic_report sem generator (ele pode preferir text-only internamente)
+        try:
+            out = generate_diagnostic_report(result)
+        except Exception as e:
+            st.error("Erro ao chamar generate_diagnostic_report.")
+            st.exception(e)
+            out = None
+
+        # 2) se não obteve texto, tentar com fallback generator que prioriza prompt-only
+        if not out or not out.get("model_text"):
+            try:
+                out = generate_diagnostic_report(result, generator=_fallback_generator)
+            except Exception as e:
+                st.error("Erro ao chamar generate_diagnostic_report com fallback generator.")
+                st.exception(e)
+                out = None
 
         # mostrar prompt em expander para debug (opcional)
-        #with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-        #    st.code(out["prompt"][:4000])
+        if out and out.get("prompt"):
+            with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+                st.code(out["prompt"][:4000])
 
-        model_text = out.get("model_text")
-        if not model_text:
-            st.error("O modelo não retornou texto. Verifique logs do serviço.")
-        else:
+        # mostrar raw_model_result para depuração se não houver model_text
+        if out and not out.get("model_text"):
+            st.error("O modelo não retornou texto. Verifique raw_model_result para diagnóstico.")
+            with st.expander("raw_model_result (debug)", expanded=True):
+                st.write(out.get("raw_model_result"))
+        elif out and out.get("model_text"):
+            model_text = out.get("model_text")
+            # garantir persistência e gerar PDF
             _render_and_save_model_report(result, model_text)
+        else:
+            st.error("Falha ao gerar relatório: nenhuma resposta do serviço de geração.")

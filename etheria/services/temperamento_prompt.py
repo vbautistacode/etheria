@@ -2,6 +2,11 @@
 from typing import Optional, Callable, Dict, Any
 from datetime import datetime
 
+try:
+    from etheria.services.generator_service import generate_text_only
+except Exception:
+    generate_text_only = None # fallback se não existir 
+
 def build_prompt_from_result(result: Dict[str, Any]) -> str:
     """
     Constrói o prompt a partir do dicionário `result` (conforme salvo em st.session_state).
@@ -104,93 +109,42 @@ def build_prompt_from_result(result: Dict[str, Any]) -> str:
 
 def generate_diagnostic_report(
     result: Dict[str, Any],
-    generator: Optional[Callable[..., Any]] = None,
+    generator: Optional[Callable[[Dict[str, Any], Optional[str]], Any]] = None,
     prompt_override: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Gera o relatório diagnóstico usando o `generator` fornecido.
-    Tenta várias assinaturas para compatibilidade:
-      1) generator(chart_summary, prompt)
-      2) generator(prompt)  # se o gerador aceita apenas string
-      3) generator(chart_summary)  # com prompt em chart_summary['instruction']
-    Retorna dict: { "prompt": str, "model_text": str|None, "raw_model_result": Any }
+    Gera o relatório diagnóstico (estilo clínico, não diagnóstico) usando o `generator` fornecido.
+    - result: dicionário salvo em session_state (deve conter dominant_rec/secondary_rec idealmente).
+    - generator: função que recebe (chart_summary, prompt_template) e retorna dict ou str com texto.
+                 Se None, a função retorna apenas o prompt (útil para testes).
+    - prompt_override: se fornecido, usa esse prompt em vez do gerado automaticamente.
+
+    Retorna um dict com:
+      { "prompt": <str>, "model_text": <str or None>, "raw_model_result": <raw return from generator> }
     """
     prompt = prompt_override or build_prompt_from_result(result)
 
-    # instrução explícita para ignorar falta de hora
-    prompt += "\n\nNota: se a hora de nascimento não estiver disponível, NÃO solicite-a; gere o relatório com base nos dados fornecidos."
-
+    # se não houver generator, devolve apenas o prompt (útil para debug/unit tests)
     if generator is None:
         return {"prompt": prompt, "model_text": None, "raw_model_result": None}
 
-    # montar chart_summary mínimo
+    # montar chart_summary mínimo compatível com generate_ai_text_from_chart
     chart_summary = {
         "place": result.get("dominant", ""),
-        "bdate": (result.get("timestamp") or "")[:10],
-        "btime": result.get("btime") or "00:00",
-        "lat": result.get("lat", ""),
-        "lon": result.get("lon", ""),
+        "bdate": result.get("timestamp", ""),
+        "btime": "",
+        "lat": "",
+        "lon": "",
         "focus": "Diagnostic report",
         "instruction": prompt
     }
 
-    raw = None
+    # chamar o gerador e extrair texto
+    model_result = generator(chart_summary, prompt)
     model_text = None
+    if isinstance(model_result, dict):
+        model_text = model_result.get("analysis_text") or model_result.get("raw_text") or model_result.get("text") or model_result.get("output")
+    elif isinstance(model_result, str):
+        model_text = model_result
 
-    # tentativa 1: generator(chart_summary, prompt)
-    try:
-        raw = generator(chart_summary, prompt)
-    except TypeError:
-        raw = None
-    except Exception as e:
-        # guardar exceção no raw para debug
-        raw = {"error": f"call failed (chart_summary, prompt): {e}"}
-
-    # tentativa 2: generator(prompt) se 1 falhou ou retornou pedido de hora
-    if not raw or (isinstance(raw, dict) and raw.get("error")):
-        try:
-            raw = generator(prompt)
-        except TypeError:
-            raw = raw or None
-        except Exception as e:
-            raw = {"error": f"call failed (prompt): {e}"}
-
-    # tentativa 3: generator(chart_summary) (prompt já injetado em instruction)
-    if not raw or (isinstance(raw, dict) and raw.get("error")):
-        try:
-            raw = generator(chart_summary)
-        except Exception as e:
-            raw = raw or {"error": f"call failed (chart_summary): {e}"}
-
-    # extrair texto do raw
-    if isinstance(raw, dict):
-        model_text = raw.get("analysis_text") or raw.get("raw_text") or raw.get("text") or raw.get("output")
-    elif isinstance(raw, str):
-        model_text = raw
-
-    # se o modelo devolveu mensagem pedindo hora, tentar forçar ignorar (segunda tentativa)
-    if isinstance(model_text, str) and "hora" in model_text.lower() and "nascimento" in model_text.lower():
-        # tentar uma chamada final com prompt reforçado
-        prompt2 = prompt + "\n\nINSTRUÇÃO ADICIONAL: Ignore solicitações de hora de nascimento e gere o relatório com os dados disponíveis."
-        try:
-            raw2 = None
-            try:
-                raw2 = generator(chart_summary, prompt2)
-            except Exception:
-                try:
-                    raw2 = generator(prompt2)
-                except Exception:
-                    raw2 = None
-            if isinstance(raw2, dict):
-                model_text2 = raw2.get("analysis_text") or raw2.get("raw_text") or raw2.get("text") or raw2.get("output")
-            elif isinstance(raw2, str):
-                model_text2 = raw2
-            else:
-                model_text2 = None
-            if model_text2 and "hora" not in model_text2.lower():
-                raw = raw2
-                model_text = model_text2
-        except Exception:
-            pass
-
-    return {"prompt": prompt, "model_text": model_text, "raw_model_result": raw}
+    return {"prompt": prompt, "model_text": model_text, "raw_model_result": model_result}

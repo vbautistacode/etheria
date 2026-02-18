@@ -42,6 +42,41 @@ _last_call_ts = 0.0
 # -------------------------
 # Utilitários: cache & rate
 # -------------------------
+
+# Exemplo genérico: adapte a chamada à sua API de LLM (OpenAI, Anthropic, etc.)
+def _call_model_api(prompt: str, max_tokens: int = 1200, temperature: float = 0.7) -> Dict[str, Any]:
+    """
+    Chamada direta ao provedor de LLM. Substitua pelo cliente real da sua infra.
+    Deve retornar um dict com chaves como 'text' ou 'analysis_text' ou apenas uma string.
+    """
+    # Exemplo ilustrativo (não executa): adapte para sua implementação real
+    # response = client.create_completion(prompt=prompt, max_tokens=max_tokens, temperature=temperature)
+    # return {"text": response.text, "raw": response}
+    raise NotImplementedError("_call_model_api precisa ser implementado conforme sua infra")
+
+def generate_text_only(prompt: str, *, max_tokens: int = 1200, temperature: float = 0.7) -> Dict[str, Any]:
+    """
+    Função pública para gerar texto diretamente a partir de um prompt string.
+    Retorna um dict com pelo menos a chave 'text' contendo o texto gerado.
+    Use esta função quando não quiser pré-processamento astrológico.
+    """
+    if not isinstance(prompt, str) or not prompt.strip():
+        return {"error": "prompt vazio"}
+
+    try:
+        model_result = _call_model_api(prompt, max_tokens=max_tokens, temperature=temperature)
+    except Exception as e:
+        return {"error": f"model call failed: {e}"}
+
+    # Normalizar retorno
+    if isinstance(model_result, dict):
+        text = model_result.get("text") or model_result.get("analysis_text") or model_result.get("raw_text") or model_result.get("output")
+        return {"text": text, "raw": model_result}
+    elif isinstance(model_result, str):
+        return {"text": model_result, "raw": model_result}
+    else:
+        return {"error": "unexpected model result type", "raw": model_result}
+
 def _cache_get(key: str):
     with _cache_lock:
         entry = _cache.get(key)
