@@ -165,7 +165,7 @@ if "started" not in st.session_state:
 
 col1, col2 = st.columns([3, 1])
 with col2:
-    if st.button("Iniciar / Reiniciar"):
+    if st.button("Iniciar"):
         st.session_state.started = True
         st.session_state.responses = {}
 
