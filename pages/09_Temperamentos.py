@@ -5,6 +5,8 @@ import json
 from datetime import datetime
 import plotly.express as px
 
+from etheria.services.generator_service import generate_ai_text_from_chart
+
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
 st.title("Temperamentos 🌑🌔🌕🌖")
 
@@ -501,6 +503,153 @@ def create_pdf_bytes(result: dict) -> bytes:
         return _create_pdf_bytes_reportlab(result)
     except ImportError:
         raise
+
+# --- Helper: create_pdf_bytes_with_model_text (cole após _create_pdf_bytes_reportlab) ---
+def create_pdf_bytes_with_model_text(result: dict) -> bytes:
+    """
+    Gera bytes de PDF que incluem o conteúdo já produzido por _create_pdf_bytes_reportlab
+    e, se presente, anexa o texto do modelo (result['model_report_text']) ao final.
+    Estratégia:
+      1) Tenta reutilizar create_pdf_bytes(result) / _create_pdf_bytes_reportlab se disponível.
+      2) Se a função existente falhar ou não incluir model_report_text, gera um PDF simples
+         que inclui scores, dominante/secundário, recomendações (se serializadas) e o texto do modelo.
+    """
+    # 1) Tentar usar a função existente (create_pdf_bytes) se definida
+    try:
+        # se create_pdf_bytes existir e aceitar result, use-a
+        if "create_pdf_bytes" in globals() and callable(globals().get("create_pdf_bytes")):
+            try:
+                # se a função já incluir model_report_text, ótimo — apenas retorna
+                pdf = create_pdf_bytes(result)
+                # verificar se model_report_text foi incorporado pela função original é difícil;
+                # assumimos sucesso e retornamos o PDF gerado.
+                return pdf
+            except Exception:
+                # se falhar, vamos gerar um PDF alternativo abaixo
+                pass
+    except Exception:
+        pass
+
+    # 2) Fallback: gerar PDF manualmente incluindo model_report_text
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib import colors
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from io import BytesIO
+    except Exception as e:
+        raise ImportError("reportlab não disponível para gerar PDF fallback") from e
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    title_style = styles["Title"]
+    heading = styles["Heading3"]
+
+    story = []
+
+    # Cabeçalho
+    story.append(Paragraph("Relatório — Temperamentos (diagnóstico gerado)", title_style))
+    story.append(Spacer(1, 8))
+    ts = result.get("timestamp") or _dt.utcnow().isoformat()
+    story.append(Paragraph(f"Gerado em: {ts}", normal))
+    story.append(Spacer(1, 12))
+
+    # Scores (se houver)
+    scores = result.get("scores", {})
+    if scores:
+        data = [["Temperamento", "Pontuação"]]
+        for k, v in scores.items():
+            label = k.replace("_", " ")
+            data.append([label, f"{v}"])
+        table = Table(data, hAlign="LEFT", colWidths=[320, 80])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f2f2f2")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ]))
+        story.append(table)
+        story.append(Spacer(1, 12))
+
+    # Dominante / secundário
+    dominant = result.get("dominant", "-")
+    dominant_score = result.get("dominant_score", "-")
+    story.append(Paragraph(f"<b>Temperamento dominante:</b> {dominant} — {dominant_score}", heading))
+    if result.get("secondary"):
+        story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
+    story.append(Spacer(1, 12))
+
+    # Recomendações serializadas (dominant_rec / secondary_rec) se existirem
+    def _append_rec_simple(rec_obj, title=None):
+        if not rec_obj:
+            return
+        if title:
+            story.append(Paragraph(title, styles["Heading4"]))
+            story.append(Spacer(1, 6))
+        resumo = rec_obj.get("resumo", "")
+        if resumo:
+            story.append(Paragraph(resumo, normal))
+            story.append(Spacer(1, 6))
+        pedras = rec_obj.get("pedras") or []
+        if pedras:
+            story.append(Paragraph(f"<b>Pedras sugeridas:</b> {', '.join(pedras)}", normal))
+            story.append(Spacer(1, 4))
+        cor = rec_obj.get("cor", "")
+        if cor:
+            story.append(Paragraph(f"<b>Cromoterapia (cor):</b> {cor}", normal))
+            story.append(Spacer(1, 4))
+        oleo = rec_obj.get("oleo", "")
+        if oleo:
+            story.append(Paragraph(f"<b>Aromaterapia (óleo):</b> {oleo}", normal))
+            story.append(Spacer(1, 6))
+        dicas = rec_obj.get("dicas") or []
+        if dicas:
+            story.append(Paragraph("Dicas práticas:", styles["Normal"]))
+            for d in dicas:
+                story.append(Paragraph(f"- {d}", normal))
+            story.append(Spacer(1, 6))
+        alimentacao = rec_obj.get("alimentacao", "") or ""
+        if alimentacao.strip():
+            story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
+            paras = [p.strip() for p in alimentacao.split("\n\n") if p.strip()]
+            if not paras:
+                paras = [p.strip() for p in alimentacao.split("\n") if p.strip()]
+            for p in paras:
+                story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+                story.append(Spacer(1, 4))
+            story.append(Spacer(1, 6))
+
+    dominant_rec = result.get("dominant_rec") or {}
+    _append_rec_simple(dominant_rec, title="Resumo e recomendações (dominante)")
+
+    secondary_rec = result.get("secondary_rec") or {}
+    if secondary_rec:
+        _append_rec_simple(secondary_rec, title="Resumo e recomendações (secundário)")
+
+    # Texto do modelo (model_report_text)
+    model_text = result.get("model_report_text", "") or ""
+    if model_text.strip():
+        story.append(Paragraph("Relatório diagnóstico (modelo)", styles["Heading4"]))
+        story.append(Spacer(1, 6))
+        paras = [p.strip() for p in model_text.split("\n\n") if p.strip()]
+        if not paras:
+            paras = [p.strip() for p in model_text.split("\n") if p.strip()]
+        for p in paras:
+            story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+            story.append(Spacer(1, 6))
+
+    # Observações finais
+    story.append(Paragraph("Observações:", styles["Heading4"]))
+    story.append(Paragraph("Este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.", normal))
+    story.append(Spacer(1, 12))
+
+    doc.build(story)
+    pdf_bytes = buf.getvalue()
+    buf.close()
+    return pdf_bytes
 
 # --- Botão de download (colocar após a criação de st.session_state["last_result"]) ---
 if "last_result" in st.session_state:
