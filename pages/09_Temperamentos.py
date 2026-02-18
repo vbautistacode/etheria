@@ -673,7 +673,7 @@ except Exception:
 
 st.markdown("---")
 st.subheader("Relatório diagnóstico com IA Etheria")
-st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório personalizado.")
+st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório personalizado e completo, com dietas, exercícios e recomendações de estilo de vida.")
 st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.")
 
 def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None):
