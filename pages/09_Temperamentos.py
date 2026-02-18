@@ -357,7 +357,7 @@ if st.button("Calcular resultado"):
     
     st.success("Autoestudo concluído. Se desejar, repita em duas semanas para comparar resultados.")
 
-# --- Incluir ao final de 09_Temperamentos.py ---
+# --- construção do PDF ---
 
 from io import BytesIO
 from datetime import datetime as _dt
