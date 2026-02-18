@@ -505,40 +505,36 @@ def create_pdf_bytes(result: dict) -> bytes:
         raise
 
 # --- Helper: create_pdf_bytes_with_model_text (cole após _create_pdf_bytes_reportlab) ---
+# --- Substitua/cole esta versão de create_pdf_bytes_with_model_text ---
 def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     """
-    Gera bytes de PDF que incluem o conteúdo já produzido por _create_pdf_bytes_reportlab
-    e, se presente, anexa o texto do modelo (result['model_report_text']) ao final.
-    Estratégia:
-      1) Tenta reutilizar create_pdf_bytes(result) / _create_pdf_bytes_reportlab se disponível.
-      2) Se a função existente falhar ou não incluir model_report_text, gera um PDF simples
-         que inclui scores, dominante/secundário, recomendações (se serializadas) e o texto do modelo.
+    Gera bytes de PDF que incluem:
+      - scores, dominante/secundário,
+      - recomendações serializadas (dominant_rec / secondary_rec) se existirem,
+      - e, se presente, o texto do modelo em 'model_report_text'.
+
+    Esta versão PRIORIZA a inclusão de model_report_text: se ele existir e não for vazio,
+    gera um PDF que o contém. Caso contrário, tenta usar create_pdf_bytes(result) como fallback.
     """
-    # 1) Tentar usar a função existente (create_pdf_bytes) se definida
-    try:
-        # se create_pdf_bytes existir e aceitar result, use-a
+    # se não houver model text, tentar usar create_pdf_bytes (se existir)
+    model_text = (result.get("model_report_text") or "").strip()
+    if not model_text:
         if "create_pdf_bytes" in globals() and callable(globals().get("create_pdf_bytes")):
             try:
-                # se a função já incluir model_report_text, ótimo — apenas retorna
-                pdf = create_pdf_bytes(result)
-                # verificar se model_report_text foi incorporado pela função original é difícil;
-                # assumimos sucesso e retornamos o PDF gerado.
-                return pdf
+                return create_pdf_bytes(result)
             except Exception:
-                # se falhar, vamos gerar um PDF alternativo abaixo
+                # se falhar, prosseguir para fallback que gera PDF manualmente
                 pass
-    except Exception:
-        pass
 
-    # 2) Fallback: gerar PDF manualmente incluindo model_report_text
+    # Fallback / geração direta que inclui model_text
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
         from io import BytesIO
     except Exception as e:
-        raise ImportError("reportlab não disponível para gerar PDF fallback") from e
+        raise ImportError("reportlab não disponível para gerar PDF") from e
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -550,13 +546,13 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     story = []
 
     # Cabeçalho
-    story.append(Paragraph("Relatório — Temperamentos (diagnóstico gerado)", title_style))
+    story.append(Paragraph("Introdução ao Perfil Bioenergético e Distribuição de Temperamentos", title_style))
     story.append(Spacer(1, 8))
     ts = result.get("timestamp") or _dt.utcnow().isoformat()
     story.append(Paragraph(f"Gerado em: {ts}", normal))
     story.append(Spacer(1, 12))
 
-    # Scores (se houver)
+    # Scores (tabela)
     scores = result.get("scores", {})
     if scores:
         data = [["Temperamento", "Pontuação"]]
@@ -629,9 +625,9 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     if secondary_rec:
         _append_rec_simple(secondary_rec, title="Resumo e recomendações (secundário)")
 
-    # Texto do modelo (model_report_text)
-    model_text = result.get("model_report_text", "") or ""
-    if model_text.strip():
+    # Se houver texto do modelo, adicioná-lo em nova seção (garante inclusão)
+    if model_text:
+        story.append(PageBreak())
         story.append(Paragraph("Relatório diagnóstico (modelo)", styles["Heading4"]))
         story.append(Spacer(1, 6))
         paras = [p.strip() for p in model_text.split("\n\n") if p.strip()]
@@ -641,7 +637,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
             story.append(Paragraph(p.replace("\n", "<br/>"), normal))
             story.append(Spacer(1, 6))
 
-    # Observações finais
+    # Observações finais / disclaimer
     story.append(Paragraph("Observações:", styles["Heading4"]))
     story.append(Paragraph("Este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.", normal))
     story.append(Spacer(1, 12))
