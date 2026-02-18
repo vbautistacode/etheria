@@ -312,15 +312,44 @@ if st.button("Calcular resultado"):
     # -------------------------
     # Salvar resultado em session_state e oferecer exportação
     # -------------------------
+    dominant_rec_serializable = None
+    secondary_rec_serializable = None
+
+    if dominant_rec:
+        dominant_rec_serializable = {
+            "key": dominant_key,
+            "nome": dominant_rec.get("nome"),
+            "resumo": dominant_rec.get("resumo"),
+            "pedras": dominant_rec.get("pedras"),
+            "cor": dominant_rec.get("cor"),
+            "oleo": dominant_rec.get("oleo"),
+            "dicas": dominant_rec.get("dicas"),
+            "alimentacao": dominant_rec.get("alimentacao"),
+        }
+
+    if show_secondary and secondary_rec:
+        secondary_rec_serializable = {
+            "key": secondary_key,
+            "nome": secondary_rec.get("nome"),
+            "resumo": secondary_rec.get("resumo"),
+            "pedras": secondary_rec.get("pedras"),
+            "cor": secondary_rec.get("cor"),
+            "oleo": secondary_rec.get("oleo"),
+            "dicas": secondary_rec.get("dicas"),
+            "alimentacao": secondary_rec.get("alimentacao"),
+        }
+
     result = {
         "timestamp": datetime.utcnow().isoformat(),
         "scores": scores,
         "dominant": dominant_label,
         "dominant_score": dominant_val,
+        "dominant_rec": dominant_rec_serializable,
     }
     if show_secondary:
-        result["secondary"] = secondary_rec["nome"] if secondary_rec else secondary_key.replace("_", " ")
+        result["secondary"] = secondary_rec_serializable["nome"] if secondary_rec_serializable else secondary_key.replace("_", " ")
         result["secondary_score"] = secondary_val
+        result["secondary_rec"] = secondary_rec_serializable
 
     st.session_state.last_result = result
 
