@@ -6,7 +6,7 @@ import plotly.express as px
 
 # Gerador de IA (ajuste o import conforme sua estrutura)
 from etheria.services.generator_service import generate_ai_text_from_chart
-from services.temperamento_prompt import generate_diagnostic_report
+from etheria.services.temperamento_prompt import generate_diagnostic_report
 
 # Configuração da página
 st.set_page_config(page_title="09 — Temperamentos", layout="wide")
