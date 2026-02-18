@@ -662,20 +662,21 @@ if "last_result" in st.session_state:
     except Exception as e:
         st.error(f"Erro ao gerar PDF: {e}")
 
-# Import do serviço de prompt (ajuste o caminho conforme sua estrutura)
+# -------------------------
+# Geração direta text-only (substituir o bloco antigo)
+# -------------------------
+# Import do serviço de prompt (ajuste o caminho conforme seu projeto)
 try:
-    from etheria.services.temperamento_prompt import generate_diagnostic_report
+    from etheria.services.temperamento_prompt import build_prompt_from_result, generate_text_only
 except Exception:
-    from etheria.services.temperamento_prompt import generate_diagnostic_report
-
-# assume generate_ai_text_from_chart já importado no topo do arquivo (se disponível)
+    from etheria.services.temperamento_prompt import build_prompt_from_result, generate_text_only
 
 st.markdown("---")
 st.subheader("Relatório diagnóstico com IA Etheria")
 st.markdown("Clique para enviar os dados do último resultado ao modelo e gerar um relatório personalizado.")
 st.caption("Aviso: este relatório não é um diagnóstico médico. Consulte um profissional de saúde antes de seguir recomendações clínicas.")
 
-def _render_and_save_model_report(result: dict, model_text: str):
+def _render_and_save_model_report(result: dict, model_text: str, raw: Any = None):
     """Renderiza o texto do modelo na UI e atualiza st.session_state['last_result'] com o texto para PDF."""
     st.markdown("### Relatório diagnóstico (modelo)")
     st.write(model_text)
@@ -683,6 +684,9 @@ def _render_and_save_model_report(result: dict, model_text: str):
     # anexar o texto do modelo ao result para inclusão no PDF
     result_for_pdf = dict(result)  # cópia rasa
     result_for_pdf["model_report_text"] = model_text
+    # opcional: guardar raw para debug
+    if raw is not None:
+        result_for_pdf["raw_model_result"] = raw
     st.session_state["last_result"] = result_for_pdf
 
     # gerar PDF que inclua o texto do modelo (usa create_pdf_bytes_with_model_text definido anteriormente)
@@ -697,81 +701,68 @@ def _render_and_save_model_report(result: dict, model_text: str):
     except Exception as e:
         st.error(f"Erro ao gerar PDF do relatório: {e}")
 
-# Fallback generator wrapper (tenta enviar apenas prompt/texto ao gerador de IA se possível)
-def _fallback_generator(chart_summary, prompt):
-    """
-    Wrapper que tenta chamar generate_ai_text_from_chart em várias assinaturas,
-    priorizando o envio do prompt como string para evitar pré-processamento astrológico.
-    Ajuste se o nome/assinatura do seu gerador for diferente.
-    """
-    # se generate_ai_text_from_chart não estiver disponível, devolve None para que generate_diagnostic_report trate
-    try:
-        gen = generate_ai_text_from_chart  # nome importado no topo do arquivo
-    except NameError:
-        return None
-
-    # 1) tentar apenas prompt (texto)
-    try:
-        return gen(prompt)
-    except TypeError:
-        pass
-    except Exception as e:
-        return {"error": f"generate_ai_text_from_chart(prompt) failed: {e}"}
-
-    # 2) tentar (chart_summary, prompt)
-    try:
-        return gen(chart_summary, prompt)
-    except TypeError:
-        pass
-    except Exception as e:
-        return {"error": f"generate_ai_text_from_chart(chart_summary, prompt) failed: {e}"}
-
-    # 3) tentar apenas chart_summary (com instruction já injetada)
-    try:
-        cs = dict(chart_summary)
-        cs.setdefault("btime", "00:00")
-        cs["instruction"] = prompt
-        return gen(cs)
-    except Exception as e:
-        return {"error": f"generate_ai_text_from_chart(chart_summary) failed: {e}"}
-
-# Botão que dispara a geração do relatório
 if st.button("Gerar relatório"):
     if "last_result" not in st.session_state or not st.session_state["last_result"]:
         st.warning("Nenhum resultado disponível. Execute o autoestudo primeiro.")
     else:
         result = st.session_state["last_result"]
 
-        # 1) tentativa principal: chamar generate_diagnostic_report sem generator (ele pode preferir text-only internamente)
-        try:
-            out = generate_diagnostic_report(result)
-        except Exception as e:
-            st.error("Erro ao chamar generate_diagnostic_report.")
-            st.exception(e)
-            out = None
-
-        # 2) se não obteve texto, tentar com fallback generator que prioriza prompt-only
-        if not out or not out.get("model_text"):
-            try:
-                out = generate_diagnostic_report(result, generator=_fallback_generator)
-            except Exception as e:
-                st.error("Erro ao chamar generate_diagnostic_report com fallback generator.")
-                st.exception(e)
-                out = None
+        # 1) montar prompt text-only (o builder já inclui instrução para ignorar cálculos astrológicos)
+        prompt = build_prompt_from_result(result)
 
         # mostrar prompt em expander para debug (opcional)
-        if out and out.get("prompt"):
-            with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
-                st.code(out["prompt"][:4000])
+        with st.expander("Prompt enviado ao modelo (debug)", expanded=False):
+            st.code(prompt[:4000])
 
-        # mostrar raw_model_result para depuração se não houver model_text
-        if out and not out.get("model_text"):
+        # 2) chamar generate_text_only diretamente (retorna dict com 'text' e 'raw' ou 'error')
+        try:
+            raw_out = generate_text_only(prompt)
+        except Exception as e:
+            st.error("Erro ao chamar o serviço de geração de texto.")
+            st.exception(e)
+            raw_out = {"error": str(e), "text": None, "raw": None}
+
+        # 3) extrair texto e tratar retorno
+        model_text = None
+        raw_model = None
+        if isinstance(raw_out, dict):
+            model_text = raw_out.get("text") or raw_out.get("analysis_text") or raw_out.get("raw_text")
+            raw_model = raw_out.get("raw") or raw_out
+        elif isinstance(raw_out, str):
+            model_text = raw_out
+            raw_model = raw_out
+        else:
+            model_text = str(raw_out)
+            raw_model = raw_out
+
+        # 4) se o modelo pedir hora de nascimento, tentar re-chamada com instrução reforçada (uma tentativa)
+        if isinstance(model_text, str) and "hora" in model_text.lower() and "nascimento" in model_text.lower():
+            st.warning("O modelo solicitou hora de nascimento. Reforçando instrução para ignorar e tentando novamente.")
+            prompt2 = prompt + "\n\nINSTRUÇÃO ADICIONAL: Ignore solicitações de hora de nascimento e gere o relatório com os dados disponíveis."
+            try:
+                raw_out2 = generate_text_only(prompt2)
+                if isinstance(raw_out2, dict):
+                    model_text2 = raw_out2.get("text")
+                    raw_model2 = raw_out2.get("raw") or raw_out2
+                elif isinstance(raw_out2, str):
+                    model_text2 = raw_out2
+                    raw_model2 = raw_out2
+                else:
+                    model_text2 = str(raw_out2)
+                    raw_model2 = raw_out2
+
+                # aceitar a segunda resposta se não pedir hora
+                if model_text2 and "hora" not in model_text2.lower():
+                    model_text = model_text2
+                    raw_model = raw_model2
+            except Exception as e:
+                st.info("Rechamada falhou; mantendo resultado anterior.")
+                st.exception(e)
+
+        # 5) exibir/debugar e persistir
+        if not model_text:
             st.error("O modelo não retornou texto. Verifique raw_model_result para diagnóstico.")
             with st.expander("raw_model_result (debug)", expanded=True):
-                st.write(out.get("raw_model_result"))
-        elif out and out.get("model_text"):
-            model_text = out.get("model_text")
-            # garantir persistência e gerar PDF
-            _render_and_save_model_report(result, model_text)
+                st.write(raw_model or raw_out)
         else:
-            st.error("Falha ao gerar relatório: nenhuma resposta do serviço de geração.")
+            _render_and_save_model_report(result, model_text, raw=raw_model)
