@@ -50,11 +50,11 @@ st.markdown(
 """
 )
 
-# Substitua o bloco Mermaid anterior por este
+# Substitua o bloco Mermaid anterior por este (cole no pages/11_Biohacking.py)
 import streamlit as st
 import json
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo robusto)")
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo corrigido)")
 
 # (opcional) exibir imagem local se houver
 path_local = None
@@ -107,9 +107,11 @@ details_map = {
     "Limite": "Jejum intermitente, sono polifásico, suspiro fisiológico."
 }
 
-# JSON para injetar no JS
+# JSON para injetar no JS (serializado)
 details_json = json.dumps(details_map)
-mermaid_html = f"""
+
+# Template HTML/JS com placeholders seguros: {{MERMAID}} e {{DETAILS}}
+mermaid_template = """
 <div style="display:flex; gap:16px; align-items:flex-start;">
   <div style="flex:1; min-width:60%;">
     <div style="margin-bottom:8px;">
@@ -122,7 +124,7 @@ mermaid_html = f"""
     </div>
     <div id="mermaid-container" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
       <div id="mermaid-diagram" class="mermaid">
-{mermaid_source}
+{{MERMAID}}
       </div>
     </div>
   </div>
@@ -149,159 +151,154 @@ mermaid_html = f"""
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 <script>
-  // Configuração segura do Mermaid: não usar startOnLoad automático
-  mermaid.initialize({{ startOnLoad: false, theme: 'default', securityLevel: 'loose' }});
-  const DETAILS = {details_json};
+  // DETAILS placeholder será substituído pelo Python
+  const DETAILS = {{DETAILS}};
 
-  // Renderiza o diagrama via mermaidAPI.render para garantir que o SVG esteja disponível imediatamente
-  (async function renderMermaid() {{
-    try {{
-      const graphDefinition = `{mermaid_source.replace("`","\\`")}`;
-      // gerar id único
+  // Inicializa mermaid sem startOnLoad para controlar render
+  mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+  (async function renderMermaid() {
+    try {
+      const graphDefinition = `{MERMAID_RAW}`;
       const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
-      // mermaidAPI.render retorna SVG string
-      mermaid.mermaidAPI.render(renderId, graphDefinition, (svgCode) => {{
+      mermaid.mermaidAPI.render(renderId, graphDefinition, (svgCode) => {
         const container = document.getElementById('mermaid-container');
-        // substituir conteúdo por SVG
         container.innerHTML = svgCode;
         initInteractivity();
-      }});
-    }} catch (err) {{
+      });
+    } catch (err) {
       console.error('Erro ao renderizar Mermaid:', err);
       document.getElementById('mermaid-container').innerText = 'Falha ao renderizar diagrama.';
-    }}
-  }})();
+    }
+  })();
 
-  function initInteractivity() {{
+  function initInteractivity() {
     const svg = document.querySelector('#mermaid-container svg');
-    if (!svg) {{
+    if (!svg) {
       console.warn('SVG do Mermaid não encontrado.');
       return;
-    }}
+    }
 
-    // inicializar pan/zoom e manter instância global
-    try {{
-      window._mz = svgPanZoom(svg, {{
+    // pan/zoom
+    try {
+      window._mz = svgPanZoom(svg, {
         zoomEnabled: true,
         controlIconsEnabled: false,
         fit: true,
         center: true,
         minZoom: 0.5,
         maxZoom: 4
-      }});
-    }} catch(e) {{ console.warn('svg-pan-zoom falhou', e); }}
+      });
+    } catch(e) { console.warn('svg-pan-zoom falhou', e); }
 
-    // selecionar nós de forma robusta (várias variações de Mermaid)
+    // selecionar nós de forma robusta
     const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
-    const nodes = nodeGroups.map(g => {{
-      // extrair texto (tspan/text)
+    const nodes = nodeGroups.map(g => {
       const textEl = g.querySelector('text') || g.querySelector('tspan');
       const label = textEl ? textEl.textContent.trim() : null;
-      return {{ group: g, label }};
-    }}).filter(n => n.label);
+      return { group: g, label };
+    }).filter(n => n.label);
 
-    // limpar destaques
-    function clearHighlights() {{
-      nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+    function clearHighlights() {
+      nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
         el.style.stroke = '';
         el.style.strokeWidth = '';
         el.style.opacity = '';
-      }}));
-    }}
+      }));
+    }
 
-    // clique em nó: destacar, mostrar detalhes e enviar seleção ao Streamlit (URL segura)
-    nodes.forEach(n => {{
+    // clique em nó
+    nodes.forEach(n => {
       n.group.style.cursor = 'pointer';
-      n.group.addEventListener('click', (ev) => {{
+      n.group.addEventListener('click', (ev) => {
         ev.stopPropagation();
         clearHighlights();
-        n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+        n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
           el.style.stroke = '#ff7f50';
           el.style.strokeWidth = '2px';
-        }});
+        });
         const title = n.label;
         const key = title.split('\\n')[0].trim();
         const detail = DETAILS[key] || DETAILS[title] || 'Descrição não disponível.';
         document.getElementById('nodeTitle').innerText = title;
         document.getElementById('nodeDetail').innerText = detail;
 
-        // atualizar query params de forma segura (pathname + search)
-        try {{
+        // atualizar query params de forma segura
+        try {
           const params = new URLSearchParams(window.location.search);
           params.set('selected_node', key);
           const newSearch = params.toString();
           const newUrl = window.location.pathname + (newSearch ? ('?' + newSearch) : '');
           window.location.href = newUrl;
-        }} catch (err) {{
+        } catch (err) {
           console.error('Erro ao atualizar query params:', err);
           window.location.href = window.location.pathname + '?selected_node=' + encodeURIComponent(key);
-        }}
-      }});
-    }});
+        }
+      });
+    });
 
-    // busca: destaca nós que contenham o termo
-    document.getElementById('btnSearch').addEventListener('click', () => {{
+    // busca
+    document.getElementById('btnSearch').addEventListener('click', () => {
       const q = document.getElementById('searchBox').value.trim().toLowerCase();
       if (!q) return;
       clearHighlights();
       let found = false;
-      nodes.forEach(n => {{
-        if (n.label.toLowerCase().includes(q)) {{
-          n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+      nodes.forEach(n => {
+        if (n.label.toLowerCase().includes(q)) {
+          n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
             el.style.stroke = '#2b8cbe';
             el.style.strokeWidth = '2px';
-          }});
-          // centralizar no nó (se svg-pan-zoom disponível)
-          try {{
+          });
+          try {
             const bbox = n.group.getBBox();
             const cx = bbox.x + bbox.width/2;
             const cy = bbox.y + bbox.height/2;
-            if (window._mz && typeof window._mz.pan === 'function') {{
+            if (window._mz && typeof window._mz.pan === 'function') {
               const vb = svg.viewBox.baseVal;
               const zoom = window._mz.getZoom();
               const newPanX = -cx * zoom + vb.width/2;
               const newPanY = -cy * zoom + vb.height/2;
-              window._mz.pan({{ x: newPanX, y: newPanY }});
-            }}
-          }} catch(e){{ console.warn(e); }}
+              window._mz.pan({ x: newPanX, y: newPanY });
+            }
+          } catch(e) { console.warn(e); }
           found = true;
-        }}
-      }});
+        }
+      });
       if (!found) alert('Nenhum nó encontrado para: ' + q);
-    }});
+    });
 
-    document.getElementById('btnClear').addEventListener('click', () => {{
+    document.getElementById('btnClear').addEventListener('click', () => {
       clearHighlights();
       document.getElementById('searchBox').value = '';
-    }});
+    });
 
-    // collapse/expand: esconder/exibir nós não-top-level
+    // collapse/expand
     const topLevelKeys = ['Guia de Biohacking e Neurofisiologia','Hemisférios','Autorregulação','QuímicaCerebral','Suplementação','Protocolos'];
-    document.getElementById('btnCollapse').addEventListener('click', () => {{
-      nodes.forEach(n => {{
+    document.getElementById('btnCollapse').addEventListener('click', () => {
+      nodes.forEach(n => {
         const key = n.label.split('\\n')[0].trim();
-        if (!topLevelKeys.includes(key)) {{
+        if (!topLevelKeys.includes(key)) {
           n.group.style.display = 'none';
-        }}
-      }});
-    }});
-    document.getElementById('btnExpand').addEventListener('click', () => {{
+        }
+      });
+    });
+    document.getElementById('btnExpand').addEventListener('click', () => {
       nodes.forEach(n => n.group.style.display = '');
-    }});
+    });
 
-    // exportar PNG (SVG -> canvas)
-    document.getElementById('btnExport').addEventListener('click', () => {{
-      try {{
+    // export PNG
+    document.getElementById('btnExport').addEventListener('click', () => {
+      try {
         const serializer = new XMLSerializer();
         let source = serializer.serializeToString(svg);
-        if(!source.match(/^<svg[^>]+xmlns="http\\:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {{
+        if(!source.match(/^<svg[^>]+xmlns="http\\:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {
           source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-        }}
+        }
         source = '<?xml version="1.0" standalone="no"?>\\r\\n' + source;
         const svg64 = btoa(unescape(encodeURIComponent(source)));
         const image64 = 'data:image/svg+xml;base64,' + svg64;
         const img = new Image();
-        img.onload = function() {{
+        img.onload = function() {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
@@ -316,32 +313,38 @@ mermaid_html = f"""
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-        }};
+        };
         img.src = image64;
-      }} catch (err) {{
+      } catch (err) {
         console.error('Erro ao exportar PNG:', err);
         alert('Falha ao exportar PNG. Veja console para detalhes.');
-      }}
-    }});
+      }
+    });
 
-    // clique no fundo limpa seleção
-    svg.addEventListener('click', (ev) => {{
-      if (ev.target === svg) {{
+    // click background clears selection
+    svg.addEventListener('click', (ev) => {
+      if (ev.target === svg) {
         clearHighlights();
         document.getElementById('nodeTitle').innerText = 'Clique em um nó';
         document.getElementById('nodeDetail').innerText = 'Ao clicar em um nó, a descrição aparecerá aqui.';
-      }}
-    }});
-  }}
+      }
+    });
+  }
 </script>
 
 <style>
-  #mermaid-container {{ max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }}
-  #mermaid-container svg {{ max-width: 100%; height: auto; display:block; }}
+  #mermaid-container { max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }
+  #mermaid-container svg { max-width: 100%; height: auto; display:block; }
 </style>
 """
 
-st.components.v1.html(mermaid_html, height=600, scrolling=True)
+# Substituições seguras: inserir o mermaid_source e o JSON details
+# Evita f-strings com chaves conflitantes
+mermaid_html = mermaid_template.replace("{{MERMAID}}", mermaid_source).replace("{{MERMAID_RAW}}", mermaid_source.replace("`", "\\`")).replace("{{DETAILS}}", details_json)
+
+# Render the component
+st.components.v1.html(mermaid_html, height=620, scrolling=True)
+
 
 
 st.markdown("---")
