@@ -23,8 +23,7 @@ st.markdown(
 
 st.markdown("---")
 
-# Quick profile
-st.header("Perfil rápido (opcional)")
+# Consent checkbox to unlock practical tools
 colp1 = st.columns([1])
 with colp1[0]:
     consent = st.checkbox("Li o aviso: este conteúdo é informativo e não substitui avaliação médica", value=False)
