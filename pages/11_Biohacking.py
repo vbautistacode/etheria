@@ -93,97 +93,106 @@ mindmap
 
 # Template HTML/JS minimalista (sem controles, sem painel)
 mermaid_template = """
+<!-- Cole este bloco no seu st.components.v1.html(...) -->
 <div id="mermaid-wrapper" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
-  <div id="mermaid-diagram" class="mermaid">
-MERMAID_SOURCE_PLACEHOLDER
-  </div>
+  <div id="mermaid-container"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
-
 <script>
-  // Inicializa mermaid sem startOnLoad
-  mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+  // URLs CDN (mude se precisar usar versão local)
+  const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js";
+  const SVGPANZOOM_URL = "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js";
 
-  (function renderMermaid() {
-    try {
-      const graphDefinition = `MERMAID_RAW_PLACEHOLDER`;
-      const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
-      mermaid.mermaidAPI.render(renderId, graphDefinition, function(svgCode) {
-        const container = document.getElementById('mermaid-wrapper');
-        container.innerHTML = svgCode;
-        // pequeno atraso para garantir DOM
-        setTimeout(initMinimalInteractivity, 60);
-      });
-    } catch (err) {
-      console.error('Erro ao renderizar Mermaid:', err);
-      document.getElementById('mermaid-wrapper').innerText = 'Falha ao renderizar diagrama.';
-    }
-  })();
-
-  function initMinimalInteractivity() {
-    const svg = document.querySelector('#mermaid-wrapper svg');
-    if (!svg) {
-      console.warn('SVG do Mermaid não encontrado.');
-      return;
-    }
-
-    // inicializa pan/zoom (instância guardada em window._mz)
-    try {
-      window._mz = svgPanZoom(svg, {
-        zoomEnabled: true,
-        controlIconsEnabled: false,
-        fit: true,
-        center: true,
-        minZoom: 0.5,
-        maxZoom: 4
-      });
-    } catch(e) { console.warn('svg-pan-zoom falhou', e); }
-
-    // selecionar nós de forma tolerante
-    const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
-    const nodes = nodeGroups.map(g => {
-      const textEl = g.querySelector('text') || g.querySelector('tspan');
-      const label = textEl ? textEl.textContent.trim() : null;
-      return { group: g, label };
-    }).filter(n => n.label);
-
-    // destaque simples ao clicar (sem painel)
-    function clearHighlights() {
-      nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
-        el.style.stroke = '';
-        el.style.strokeWidth = '';
-        el.style.opacity = '';
-      }));
-    }
-
-    nodes.forEach(n => {
-      n.group.style.cursor = 'pointer';
-      n.group.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        clearHighlights();
-        n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
-          el.style.stroke = '#ff7f50';
-          el.style.strokeWidth = '2px';
-        });
-      });
-      // hover visual sutil
-      n.group.addEventListener('mouseenter', () => {
-        n.group.style.opacity = 0.9;
-      });
-      n.group.addEventListener('mouseleave', () => {
-        n.group.style.opacity = 1;
-      });
-    });
-
-    // clique no fundo limpa destaque
-    svg.addEventListener('click', (ev) => {
-      if (ev.target === svg) {
-        clearHighlights();
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      // se já carregado, resolve imediatamente
+      if (Array.from(document.scripts).some(s => s.src && s.src.indexOf(src) !== -1)) {
+        // esperar um tick para garantir execução
+        return setTimeout(() => resolve(), 20);
       }
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = false;
+      s.onload = () => resolve();
+      s.onerror = (e) => reject(new Error('Falha ao carregar ' + src));
+      document.head.appendChild(s);
     });
   }
+
+  // seu mermaid source (substitua pelo seu mermaid_source)
+  const MERMAID_SOURCE = `
+mindmap
+  root((Guia de Biohacking e Neurofisiologia))
+    Hemisférios Cerebrais
+      LadoEsquerdo[Lado Esquerdo (Analista)\\nLógica e Matemática; Linguagem e Fala; Análise de Detalhes; Controle Motor Direito]
+      LadoDireito[Lado Direito (Sintetizador)\\nHolístico e Criativo; Processamento Espacial; Linguagem Não-Verbal; Controle Motor Esquerdo]
+      CorpoCaloso[Corpo Caloso (Integração)]
+    Autorregulação (Biohacks)
+      RespiraçãoNasal[Respiração Nasal\\nNarina Direita: Alerta/Simpático; Narina Esquerda: Calma/Parassimpático; Ciclo Nasal Natural]
+      ControleVisual[Controle Visual\\nVisão Foveal (Foco/Norepinefrina); Visão Panorâmica (Calma/Criatividade); Movimentos Sacádicos (Desarmar Stress)]
+      Termorregulação[Termorregulação\\nFrio: Dopamina e Resiliência; Calor: Reparação Celular]
+    Química Cerebral
+      Neurotransmissores[Neurotransmissores\\nDopamina (Motivação); Noradrenalina (Alerta); GABA (Calma); Acetilcolina (Aprendizado)]
+      Hormônios[Hormônios\\nCortisol (Energia/Stress); Melatonina (Sono); Ocitocina (Vínculo)]
+    Suplementação e Nutrição
+      Nootrópicos[Nootrópicos\\nCafeína + L-Teanina (Foco Limpo); Alfa-GPC (Acetilcolina); Magnésio (Relaxamento); L-Tirosina (Dopamina)]
+      Vitaminas[Vitaminas\\nComplexo B (Energia); Vitamina D (Hormonal/Imunidade); Vitamina C (Antioxidante)]
+    Protocolos de Limite
+      Jejum[Jejum Intermitente (Autofagia)]
+      Sono[Sono Polifásico]
+      Suspiro[Suspiro Fisiológico (Alívio de Stress)]
+`;
+
+  (async function init() {
+    try {
+      // 1) carregar Mermaid primeiro, depois svg-pan-zoom
+      await loadScript(MERMAID_URL);
+      await loadScript(SVGPANZOOM_URL);
+
+      if (typeof mermaid === 'undefined') throw new Error('Mermaid não disponível após carregamento');
+      // configurar mermaid sem startOnLoad
+      mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+      // 2) renderizar via API (garante SVG pronto)
+      const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
+      mermaid.mermaidAPI.render(renderId, MERMAID_SOURCE, function(svgCode) {
+        const container = document.getElementById('mermaid-container');
+        container.innerHTML = svgCode;
+
+        // 3) garantir que o SVG esteja no DOM e inicializar interatividade
+        const tryInit = () => {
+          const svg = container.querySelector('svg');
+          if (!svg) return setTimeout(tryInit, 40);
+
+          // inicializa pan/zoom
+          try {
+            window._mz = svgPanZoom(svg, { zoomEnabled:true, controlIconsEnabled:false, fit:true, center:true, minZoom:0.5, maxZoom:4 });
+          } catch(e) { console.warn('svg-pan-zoom falhou', e); }
+
+          // seleção tolerante de nós e destaque simples
+          const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
+          nodeGroups.forEach(g => {
+            g.style.cursor = 'pointer';
+            g.addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              nodeGroups.forEach(x => x.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke=''; el.style.strokeWidth=''; }));
+              g.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke = '#ff7f50'; el.style.strokeWidth = '2px'; });
+            });
+          });
+
+          // clique no fundo limpa
+          svg.addEventListener('click', (ev) => { if (ev.target === svg) nodeGroups.forEach(x => x.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke=''; el.style.strokeWidth=''; })); });
+
+          console.log('Mermaid + interatividade inicializados. nodeGroups:', nodeGroups.length);
+        };
+        tryInit();
+      });
+    } catch (err) {
+      console.error('Erro na inicialização do Mermaid interativo:', err);
+      const container = document.getElementById('mermaid-container');
+      if (container) container.innerText = 'Falha ao inicializar diagrama: ' + err.message;
+    }
+  })();
 </script>
 
 <style>
@@ -197,7 +206,6 @@ mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_so
 
 # Render the component
 st.components.v1.html(mermaid_html, height=640, scrolling=True)
-
 
 st.markdown("---")
 
