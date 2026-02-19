@@ -50,7 +50,7 @@ st.markdown(
 """
 )
 
-# --- Inserir mapa mental (imagem + diagrama interativo) ---
+# Substitua o bloco Mermaid anterior por este (cole no seu pages/11_Biohacking.py)
 import streamlit as st
 import io
 from datetime import datetime
@@ -69,14 +69,13 @@ if path_local:
     except Exception:
         uploaded = None
 
-# Exibir imagem se houver
+# Exibir imagem se houver (use_container_width substitui use_column_width)
 if uploaded:
-    st.image(uploaded, use_column_width=True, caption="Mapa mental enviado")
+    st.image(uploaded, use_container_width=True, caption="Mapa mental enviado")
 
 st.markdown("---")
 
-# Construir o diagrama Mermaid a partir do conteúdo do mapa (nós principais)
-# O texto abaixo foi extraído e resumido do mapa que você enviou.
+# Mermaid source (resumido do mapa)
 mermaid_source = """
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -94,35 +93,261 @@ mindmap
     Suplementação
       Nootrópicos[Cafeína+L-Teanina; Alfa-GPC; Magnésio; L-Tirosina]
       Vitaminas[B-complex; Vit D; Vit C]
-      Alimentos[Eggs, Liver, Sardines]
+      Alimentos[Ovos; Fígado; Sardinha]
     Protocolos
       Limite[Jejum intermitente; Sono polifásico; Suspiro fisiológico]
 """
 
-# Renderizar Mermaid via HTML embed (Mermaid CDN)
-# O HTML abaixo cria um container Mermaid e inicializa a lib para renderizar o diagrama.
+# Mapeamento de detalhes (usado no painel de detalhes ao clicar)
+# Você pode estender/editar as descrições abaixo conforme desejar.
+details_map = {
+    "Guia de Biohacking e Neurofisiologia": "Visão geral: Hemisférios, Autorregulação, Química, Suplementação, Protocolos.",
+    "Esquerdo": "Lado esquerdo: linguagem, lógica, análise de detalhes; controla o lado direito do corpo.",
+    "Direito": "Lado direito: criatividade, processamento espacial, linguagem não-verbal; controla o lado esquerdo do corpo.",
+    "CorpoCaloso": "Corpo caloso: integra os dois hemisférios.",
+    "RespiraçãoNasal": "Respiração nasal: narina direita -> alerta/simpático; narina esquerda -> calma/parassimpático; existe ciclo nasal natural.",
+    "ControleVisual": "Controle visual: visão foveal para foco; visão panorâmica para criatividade; movimentos sacádicos ajudam a reduzir stress.",
+    "Termorregulação": "Termorregulação: exposição ao frio aumenta dopamina; calor favorece reparação celular.",
+    "Neurotransmissores": "Neurotransmissores chave: Dopamina, Noradrenalina, GABA, Acetilcolina.",
+    "Hormônios": "Hormônios relevantes: Cortisol (stress/energia), Melatonina (sono), Ocitocina (vínculo).",
+    "Nootrópicos": "Nootrópicos: Cafeína+L-Teanina, Alfa-GPC, Magnésio, L-Tirosina (uso com cautela).",
+    "Vitaminas": "Vitaminas: Complexo B, Vitamina D, Vitamina C.",
+    "Alimentos": "Alimentos ricos: ovos (colina), fígado (multivitamínico), sardinha (ômega-3).",
+    "Limite": "Protocolos de limite: jejum intermitente, sono polifásico (experimental), suspiro fisiológico."
+}
+
+# HTML que renderiza Mermaid e adiciona interatividade via JS
 mermaid_html = f"""
-<div id="mermaid-container">
-  <div class="mermaid">
+<div style="display:flex; gap:16px; align-items:flex-start;">
+  <div style="flex:1; min-width:60%;">
+    <div style="margin-bottom:8px;">
+      <input id="searchBox" placeholder="Buscar nó (ex.: Dopamina, RespiraçãoNasal)" style="width:60%; padding:6px;"/>
+      <button id="btnSearch" style="margin-left:8px;padding:6px 10px;">Buscar</button>
+      <button id="btnClear" style="margin-left:6px;padding:6px 10px;">Limpar destaque</button>
+      <button id="btnExport" style="float:right;padding:6px 10px;">Exportar PNG</button>
+    </div>
+    <div id="mermaid-container" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
+      <div class="mermaid">
 {mermaid_source}
+      </div>
+    </div>
+  </div>
+
+  <div style="width:34%; min-width:260px;">
+    <div style="padding:10px;border:1px solid #eee;border-radius:6px;background:#fafafa;">
+      <h4 style="margin:6px 0 8px 0;">Detalhes do nó</h4>
+      <div id="nodeTitle" style="font-weight:600;color:#2b8cbe;margin-bottom:6px;">Clique em um nó</div>
+      <div id="nodeDetail" style="font-size:13px;color:#333;line-height:1.4;">Ao clicar em um nó, a descrição aparecerá aqui.</div>
+      <hr style="margin:12px 0;">
+      <div style="font-size:12px;color:#666;">
+        <strong>Dicas de interação</strong>
+        <ul style="padding-left:18px;margin:6px 0;">
+          <li>Use o mouse para arrastar e rolar para dar zoom.</li>
+          <li>Busque por rótulos com a caixa de busca.</li>
+          <li>Exporte o diagrama como PNG com o botão Exportar.</li>
+        </ul>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- Mermaid -->
 <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<!-- svg-pan-zoom para pan/zoom do SVG -->
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+
 <script>
   // Inicializa mermaid
-  if (typeof mermaid !== 'undefined') {{
-    mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+  mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
+
+  // Função utilitária: aguarda o SVG do Mermaid estar presente
+  function waitForMermaidSVG(timeout = 3000) {{
+    return new Promise((resolve, reject) => {{
+      const start = Date.now();
+      (function check() {{
+        const svg = document.querySelector('#mermaid-container svg');
+        if (svg) return resolve(svg);
+        if (Date.now() - start > timeout) return reject(new Error('SVG não encontrado'));
+        requestAnimationFrame(check);
+      }})();
+    }});
   }}
+
+  // Mapeamento de detalhes (mesmo conteúdo do Python)
+  const DETAILS = {json.dumps(details_map)};
+
+  // Após render do SVG, adicionamos interatividade
+  waitForMermaidSVG(5000).then(svg => {{
+    // 1) aplicar pan/zoom
+    try {{
+      const panZoomInstance = svgPanZoom(svg, {{
+        zoomEnabled: true,
+        controlIconsEnabled: false,
+        fit: true,
+        center: true,
+        minZoom: 0.5,
+        maxZoom: 4
+      }});
+    }} catch (e) {{
+      console.warn('svg-pan-zoom falhou:', e);
+    }}
+
+    // 2) localizar elementos de texto/nó e transformar em "clicáveis"
+    // Mermaid gera <g class="node"> com <text> dentro; vamos selecionar por 'g.node' ou 'g[class*="node"]'
+    const nodeGroups = svg.querySelectorAll('g[class*="node"], g.node');
+    const nodes = [];
+    nodeGroups.forEach(g => {{
+      // extrair texto principal (primeira <text> ou tspan)
+      const textEl = g.querySelector('text');
+      if (!textEl) return;
+      const label = textEl.textContent.trim();
+      // guardar referência
+      nodes.push({{ group: g, label }});
+      // estilo cursor
+      g.style.cursor = 'pointer';
+      // hover effect
+      g.addEventListener('mouseenter', () => {{
+        g.style.opacity = 0.85;
+      }});
+      g.addEventListener('mouseleave', () => {{
+        g.style.opacity = 1;
+      }});
+      // click handler: destacar e mostrar detalhes
+      g.addEventListener('click', (ev) => {{
+        ev.stopPropagation();
+        // limpar destaque anterior
+        nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => el.style.stroke = ''));
+        // destacar borda do nó clicado (se houver rect/ellipse)
+        g.querySelectorAll('rect, ellipse, path').forEach(el => {{
+          el.style.stroke = '#ff7f50';
+          el.style.strokeWidth = '2px';
+        }});
+        // preencher painel de detalhes
+        const title = label || 'Nó';
+        const key = label.split('\\n')[0].trim(); // tentativa de chave curta
+        const detail = DETAILS[key] || DETAILS[title] || DETAILS[label] || 'Descrição não disponível.';
+        document.getElementById('nodeTitle').innerText = title;
+        document.getElementById('nodeDetail').innerText = detail;
+      }});
+    }});
+
+    // 3) busca por rótulo: destaca nós que contenham o termo
+    document.getElementById('btnSearch').addEventListener('click', () => {{
+      const q = document.getElementById('searchBox').value.trim().toLowerCase();
+      if (!q) return;
+      let found = false;
+      nodes.forEach(n => {{
+        const label = n.label.toLowerCase();
+        if (label.includes(q)) {{
+          // destacar
+          n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+            el.style.stroke = '#2b8cbe';
+            el.style.strokeWidth = '2px';
+          }});
+          // scroll/zoom to node: compute bbox and center
+          try {{
+            const bbox = n.group.getBBox();
+            const svgEl = svg;
+            const svgWidth = svgEl.viewBox.baseVal.width || svgEl.clientWidth;
+            const svgHeight = svgEl.viewBox.baseVal.height || svgEl.clientHeight;
+            const cx = bbox.x + bbox.width/2;
+            const cy = bbox.y + bbox.height/2;
+            // pan/zoom via svg-pan-zoom instance if exists
+            if (window.svgPanZoom && typeof window.svgPanZoom === 'function') {{
+              // try to get instance (we didn't keep reference), so re-init quick fit
+              // fallback: no reliable instance handle; just set viewBox centered (best-effort)
+              // (Note: advanced control would require storing the instance globally)
+            }}
+          }} catch(e){{}}
+          found = true;
+        }} else {{
+          // remover destaque
+          n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+            el.style.stroke = '';
+            el.style.strokeWidth = '';
+          }});
+        }}
+      }});
+      if (!found) {{
+        alert('Nenhum nó encontrado para: ' + q);
+      }}
+    }});
+
+    // limpar destaque
+    document.getElementById('btnClear').addEventListener('click', () => {{
+      nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
+        el.style.stroke = '';
+        el.style.strokeWidth = '';
+      }}));
+      document.getElementById('searchBox').value = '';
+    }});
+
+    // exportar PNG (converte SVG para canvas e baixa)
+    document.getElementById('btnExport').addEventListener('click', () => {{
+      try {{
+        const svgEl = svg;
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(svgEl);
+        // add name spaces
+        if(!source.match(/^<svg[^>]+xmlns="http\\:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {{
+          source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }}
+        if(!source.match(/^<svg[^>]+"http\\:\\/\\/www\\.w3\\.org\\/1999\\/xlink"/)) {{
+          source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        }}
+        // add xml declaration
+        source = '<?xml version="1.0" standalone="no"?>\\r\\n' + source;
+        const svg64 = btoa(unescape(encodeURIComponent(source)));
+        const b64Start = 'data:image/svg+xml;base64,';
+        const image64 = b64Start + svg64;
+        const img = new Image();
+        img.onload = function() {{
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          // white background
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0,0,canvas.width,canvas.height);
+          ctx.drawImage(img,0,0);
+          const png = canvas.toDataURL('image/png');
+          const a = document.createElement('a');
+          a.href = png;
+          a.download = 'mapa_biohacking.png';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }};
+        img.src = image64;
+      }} catch (err) {{
+        console.error('Erro ao exportar PNG:', err);
+        alert('Falha ao exportar PNG. Veja console para detalhes.');
+      }}
+    }});
+
+    // clique no fundo limpa seleção
+    svg.addEventListener('click', (ev) => {{
+      if (ev.target === svg) {{
+        nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => el.style.stroke = ''));
+        document.getElementById('nodeTitle').innerText = 'Clique em um nó';
+        document.getElementById('nodeDetail').innerText = 'Ao clicar em um nó, a descrição aparecerá aqui.';
+      }}
+    }});
+
+  }}).catch(err => {{
+    console.warn('Não foi possível inicializar interatividade do Mermaid:', err);
+  }});
 </script>
+
 <style>
-  /* Ajustes visuais para o container */
-  #mermaid-container {{ max-width: 100%; overflow-x: auto; padding: 8px 0; }}
-  .mermaid svg {{ max-width: 100%; height: auto; }}
+  /* Ajustes visuais para o container Mermaid */
+  #mermaid-container {{ max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }}
+  .mermaid svg {{ max-width: 100%; height: auto; display:block; }}
 </style>
 """
 
 st.markdown("#### Versão interativa do mapa")
-st.components.v1.html(mermaid_html, height=420, scrolling=True)
+st.components.v1.html(mermaid_html, height=520, scrolling=True)
 
 st.markdown("---")
 
