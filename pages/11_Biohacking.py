@@ -1,6 +1,4 @@
 # pages/11_Biohacking.py
-from tkinter import Image
-from PIL import UnidentifiedImageError
 import streamlit as st
 import io
 from datetime import datetime
@@ -54,7 +52,10 @@ st.markdown(
 
 st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
 
-# Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
+from pathlib import Path
+from PIL import Image, UnidentifiedImageError
+
+# path_local pode ser None ou "assets/mindmap.png"
 path_local = "assets/mindmap.png"
 
 # --- carregar arquivo local (compatível com seu código original) ---
