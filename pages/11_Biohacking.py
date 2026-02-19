@@ -57,9 +57,10 @@ st.markdown("---")
 st.markdown("### Mapa mental interativo")
 st.markdown("Explore o mapa: clique em um nó para ver detalhes; use colapsar/expandir e exportar PNG.")
 
-# Read selected node from query params (callback from the Cytoscape component)
+# Read selected node and action from query params (use st.query_params property)
 params = st.query_params
 selected_node_id = params.get("selected_node", [None])[0]
+action_param = params.get("action", [None])[0]
 
 # Detailed graph structure (expanded with sub-nodes)
 graph_data = {
@@ -126,7 +127,7 @@ graph_data = {
 # Convert to JSON string for embedding
 graph_json = json.dumps(graph_data)
 
-# HTML/JS for Cytoscape with collapse/expand and query-string callback
+# HTML/JS for Cytoscape with collapse/expand and safe query-string updates
 html = f"""
 <!doctype html>
 <html>
@@ -246,13 +247,11 @@ html = f"""
 
     // Collapse: hide all nodes that have a parent (except top-level parents)
     function collapseAll() {{
-      // hide nodes that have a parent (i.e., sub-nodes)
       cy.nodes().forEach(n => {{
         if (n.data('parent')) {{
           n.addClass('hidden');
         }}
       }});
-      // hide edges connected to hidden nodes
       cy.edges().forEach(e => {{
         if (e.source().hasClass('hidden') || e.target().hasClass('hidden')) {{
           e.addClass('hidden');
@@ -284,10 +283,18 @@ html = f"""
       cy.elements().unselect();
       node.select();
 
-      // Send selection to Python by updating query string (this reloads the page)
-      const url = new URL(window.location.href);
-      url.searchParams.set('selected_node', id);
-      window.location.href = url.toString();
+      // Build query params safely and navigate using pathname + search
+      try {{
+        const params = new URLSearchParams(window.location.search);
+        params.set('selected_node', id);
+        // preserve other params if needed
+        const newSearch = params.toString();
+        const newUrl = window.location.pathname + (newSearch ? ('?' + newSearch) : '');
+        window.location.href = newUrl;
+      }} catch (err) {{
+        console.error('Erro ao atualizar query params:', err);
+        window.location.href = window.location.pathname + '?selected_node=' + encodeURIComponent(id);
+      }}
     }});
 
     // Reset / centralizar
@@ -323,6 +330,13 @@ html = f"""
           document.getElementById('nodedetail').innerText = node.data('detail') || '';
           cy.animate({{ fit: {{ eles: node }}, duration: 600 }});
         }}
+      }}
+      // If an action param is present, perform collapse/expand accordingly
+      const action = params.get('action');
+      if (action === 'collapse') {{
+        collapseAll();
+      }} else if (action === 'expand') {{
+        expandAll();
       }}
     }})();
   </script>
@@ -394,7 +408,7 @@ cards = [
         "title": "Sono",
         "summary": "Melhorar início e qualidade do sono com higiene e rotinas.",
         "items": [
-            "Exposição à luz solar matinal 5-10 minutos para regular o ciclo circadiano.",
+            "Exposição à luz solar matinal 5–10 minutos para regular o ciclo circadiano.",
             "Evitar luz azul 60-90 minutos antes de dormir; usar luzes quentes/alaranjadas.",
             "Banho morno 60 minutos antes de deitar para facilitar queda de temperatura corporal.",
             "Suplemento opcional: magnésio (bisglicinato/treonato) 1h antes, se indicado."
@@ -556,3 +570,18 @@ st.markdown(
 4. Consulte um profissional antes de suplementos fortes, hormônios ou procedimentos invasivos.
 """
 )
+
+# Optional: controls to programmatically collapse/expand from Python using safe API
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("Colapsar todos os ramos (Python)"):
+        params = dict(st.query_params)
+        params["action"] = "collapse"
+        st.set_query_params(**params)
+        st.experimental_rerun()
+with col2:
+    if st.button("Expandir todos os ramos (Python)"):
+        params = dict(st.query_params)
+        params["action"] = "expand"
+        st.set_query_params(**params)
+        st.experimental_rerun()
