@@ -59,7 +59,6 @@ from datetime import datetime
 path_local = None  # ou "assets/mindmap.png"
 
 st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
-st.markdown("Você pode fazer upload do mapa mental (PNG/JPG) ou usar a versão interativa gerada automaticamente a partir do conteúdo do guia.")
 
 # upload do arquivo (opcional)
 uploaded = None
@@ -101,7 +100,6 @@ mindmap
 """
 
 # Ajuste os caminhos para os arquivos JS locais no repositório
-# Ex.: coloque mermaid.min.js e svg-pan-zoom.min.js em ./assets/ e mantenha esses caminhos
 MERMAID_URL = "/assets/mermaid.min.js"
 SVGPANZOOM_URL = "/assets/svg-pan-zoom.min.js"
 
