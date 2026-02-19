@@ -69,11 +69,6 @@ if path_local:
     except Exception:
         uploaded = None
 
-if not uploaded:
-    file = st.file_uploader("Enviar imagem do mapa mental (opcional)", type=["png", "jpg", "jpeg"])
-    if file is not None:
-        uploaded = file.read()
-
 # Exibir imagem se houver
 if uploaded:
     st.image(uploaded, use_column_width=True, caption="Mapa mental enviado")
@@ -126,7 +121,7 @@ mermaid_html = f"""
 </style>
 """
 
-st.markdown("#### Versão interativa do mapa (Mermaid)")
+st.markdown("#### Versão interativa do mapa")
 st.components.v1.html(mermaid_html, height=420, scrolling=True)
 
 st.markdown("---")
