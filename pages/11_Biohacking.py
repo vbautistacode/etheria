@@ -192,9 +192,7 @@ mindmap
 mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_source).replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`"))
 
 # Render the component
-st.components.v1.html(mermaid_html, height=640, scrolling=True)
-
-st.markdown("---")
+st.components.v1.html(mermaid_html, height=700, scrolling=True)
 
 # Permitir ao usuário selecionar quais ramos incluir no PDF
 st.markdown("#### Selecionar ramos para o folheto imprimível")
