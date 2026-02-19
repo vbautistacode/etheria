@@ -76,7 +76,7 @@ with st.expander("Visualize o mapa mental"):
             img.verify()  # valida sem carregar totalmente
             # reabrir para exibir (verify() deixa o objeto inválido)
             img = Image.open(io.BytesIO(uploaded)).convert("RGBA")
-            st.image(img, use_column_width=True, caption="Mapa mental enviado")
+            st.image(img, use_container_width=True)
         except UnidentifiedImageError:
             st.error("O arquivo local não é uma imagem válida ou está corrompido.")
         except Exception as e:
