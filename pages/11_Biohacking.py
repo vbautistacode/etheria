@@ -56,7 +56,7 @@ import io
 from datetime import datetime
 
 # Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
-path_local = None  # ou "assets/mindmap.png"
+path_local = "assets/mindmap.png"
 
 st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
 st.markdown("Você pode fazer upload do mapa mental (PNG/JPG) ou usar a versão interativa gerada automaticamente a partir do conteúdo do guia.")
