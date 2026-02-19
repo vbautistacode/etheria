@@ -50,11 +50,11 @@ st.markdown(
 """
 )
 
-# --- Mermaid interativo gerado a partir da estrutura macro fornecida ---
+# Mermaid minimalista: sem controles e sem painel de detalhes
 import streamlit as st
 import json
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo)")
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (versão limpa)")
 
 # (opcional) exibir imagem local se houver
 path_local = None
@@ -67,7 +67,7 @@ if path_local:
 
 st.markdown("---")
 
-# Mermaid source gerado a partir da estrutura que você enviou
+# Mermaid source gerado a partir da sua estrutura
 mermaid_source = """
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -91,61 +91,11 @@ mindmap
       Suspiro[Suspiro Fisiológico (Alívio de Stress)]
 """
 
-# details_map preenchido a partir da sua estrutura (prioriza as descrições que você forneceu)
-details_map = {
-    "Guia de Biohacking e Neurofisiologia": "Mapa geral: Hemisférios, Autorregulação, Química cerebral, Suplementação e Protocolos de limite.",
-    "LadoEsquerdo": "Lado Esquerdo (Analista): Lógica e Matemática; Linguagem e Fala; Análise de Detalhes; Controle Motor Direito.",
-    "LadoDireito": "Lado Direito (Sintetizador): Pensamento holístico e criativo; Processamento espacial; Linguagem não-verbal; Controle Motor Esquerdo.",
-    "CorpoCaloso": "Corpo Caloso: estrutura que integra os dois hemisférios e facilita comunicação inter-hemisférica.",
-    "RespiraçãoNasal": "Respiração Nasal: Narina Direita tende a ativar o simpático (alerta); Narina Esquerda tende a ativar o parassimpático (calma). Existe um ciclo nasal natural.",
-    "ControleVisual": "Controle Visual: visão foveal aumenta foco (associada a norepinefrina); visão panorâmica favorece calma e criatividade; movimentos sacádicos ajudam a reduzir stress.",
-    "Termorregulação": "Termorregulação: exposição ao frio aumenta dopamina e resiliência; calor favorece reparação celular e proteínas de choque térmico.",
-    "Neurotransmissores": "Neurotransmissores: Dopamina (motivação), Noradrenalina (alerta), GABA (inibição/calma), Acetilcolina (atenção e aprendizado).",
-    "Hormônios": "Hormônios: Cortisol (resposta ao stress/energia), Melatonina (regulação do sono), Ocitocina (vínculo social).",
-    "Nootrópicos": "Nootrópicos: Cafeína + L-Teanina (foco limpo), Alfa-GPC (colina/acetilcolina), Magnésio (relaxamento), L-Tirosina (precursor de dopamina).",
-    "Vitaminas": "Vitaminas: Complexo B (energia metabólica), Vitamina D (função hormonal/imunidade), Vitamina C (antioxidante).",
-    "Jejum": "Jejum Intermitente: protocolos para autofagia e periodização alimentar (uso experimental e com cautela).",
-    "Sono": "Sono Polifásico: padrões alternativos de sono; experimental e exige monitoramento.",
-    "Suspiro": "Suspiro Fisiológico: técnica respiratória curta para alívio de stress agudo."
-}
-
-# Serializa para injetar no JS
-details_json = json.dumps(details_map)
-
-# Template HTML/JS com placeholders (evita conflitos de chaves)
+# Template HTML/JS minimalista (sem controles, sem painel)
 mermaid_template = """
-<div style="display:flex; gap:16px; align-items:flex-start;">
-  <div style="flex:1; min-width:60%;">
-    <div style="margin-bottom:8px;">
-      <input id="searchBox" placeholder="Buscar nó (ex.: Dopamina, RespiraçãoNasal)" style="width:60%; padding:6px;"/>
-      <button id="btnSearch" style="margin-left:8px;padding:6px 10px;">Buscar</button>
-      <button id="btnClear" style="margin-left:6px;padding:6px 10px;">Limpar</button>
-      <button id="btnCollapse" style="margin-left:6px;padding:6px 10px;">Colapsar ramos</button>
-      <button id="btnExpand" style="margin-left:6px;padding:6px 10px;">Expandir ramos</button>
-      <button id="btnExport" style="float:right;padding:6px 10px;">Exportar PNG</button>
-    </div>
-    <div id="mermaid-container" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
-      <div id="mermaid-diagram" class="mermaid">
+<div id="mermaid-wrapper" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
+  <div id="mermaid-diagram" class="mermaid">
 MERMAID_SOURCE_PLACEHOLDER
-      </div>
-    </div>
-  </div>
-
-  <div style="width:34%; min-width:260px;">
-    <div style="padding:10px;border:1px solid #eee;border-radius:6px;background:#fafafa;">
-      <h4 style="margin:6px 0 8px 0;">Detalhes do nó</h4>
-      <div id="nodeTitle" style="font-weight:600;color:#2b8cbe;margin-bottom:6px;">Clique em um nó</div>
-      <div id="nodeDetail" style="font-size:13px;color:#333;line-height:1.4;">Ao clicar em um nó, a descrição aparecerá aqui.</div>
-      <hr style="margin:12px 0;">
-      <div style="font-size:12px;color:#666;">
-        <strong>Dicas</strong>
-        <ul style="padding-left:18px;margin:6px 0;">
-          <li>Arraste para mover; role para zoom.</li>
-          <li>Use busca para destacar nós.</li>
-          <li>Exporte como PNG.</li>
-        </ul>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -153,35 +103,33 @@ MERMAID_SOURCE_PLACEHOLDER
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 <script>
-  const DETAILS = DETAILS_JSON_PLACEHOLDER;
-
-  // Inicializa mermaid sem startOnLoad para controlar render
+  // Inicializa mermaid sem startOnLoad
   mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
-  (function renderMermaidSafe() {
+  (function renderMermaid() {
     try {
       const graphDefinition = `MERMAID_RAW_PLACEHOLDER`;
       const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
       mermaid.mermaidAPI.render(renderId, graphDefinition, function(svgCode) {
-        const container = document.getElementById('mermaid-container');
+        const container = document.getElementById('mermaid-wrapper');
         container.innerHTML = svgCode;
-        // pequeno atraso para garantir que o SVG esteja no DOM
-        setTimeout(initInteractivity, 80);
+        // pequeno atraso para garantir DOM
+        setTimeout(initMinimalInteractivity, 60);
       });
     } catch (err) {
       console.error('Erro ao renderizar Mermaid:', err);
-      document.getElementById('mermaid-container').innerText = 'Falha ao renderizar diagrama.';
+      document.getElementById('mermaid-wrapper').innerText = 'Falha ao renderizar diagrama.';
     }
   })();
 
-  function initInteractivity() {
-    const svg = document.querySelector('#mermaid-container svg');
+  function initMinimalInteractivity() {
+    const svg = document.querySelector('#mermaid-wrapper svg');
     if (!svg) {
       console.warn('SVG do Mermaid não encontrado.');
       return;
     }
 
-    // inicializa pan/zoom e guarda instância global
+    // inicializa pan/zoom (instância guardada em window._mz)
     try {
       window._mz = svgPanZoom(svg, {
         zoomEnabled: true,
@@ -193,7 +141,7 @@ MERMAID_SOURCE_PLACEHOLDER
       });
     } catch(e) { console.warn('svg-pan-zoom falhou', e); }
 
-    // seletores robustos para nós
+    // selecionar nós de forma tolerante
     const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
     const nodes = nodeGroups.map(g => {
       const textEl = g.querySelector('text') || g.querySelector('tspan');
@@ -201,6 +149,7 @@ MERMAID_SOURCE_PLACEHOLDER
       return { group: g, label };
     }).filter(n => n.label);
 
+    // destaque simples ao clicar (sem painel)
     function clearHighlights() {
       nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
         el.style.stroke = '';
@@ -209,7 +158,6 @@ MERMAID_SOURCE_PLACEHOLDER
       }));
     }
 
-    // clique em nó: destacar, mostrar detalhes e atualizar URL com segurança
     nodes.forEach(n => {
       n.group.style.cursor = 'pointer';
       n.group.addEventListener('click', (ev) => {
@@ -219,132 +167,37 @@ MERMAID_SOURCE_PLACEHOLDER
           el.style.stroke = '#ff7f50';
           el.style.strokeWidth = '2px';
         });
-        const title = n.label;
-        const key = title.split('\\n')[0].trim().replace(/\\s+/g, '');
-        const detail = DETAILS[key] || DETAILS[title] || 'Descrição não disponível.';
-        document.getElementById('nodeTitle').innerText = title;
-        document.getElementById('nodeDetail').innerText = detail;
-
-        // atualizar query params de forma segura (pathname + search)
-        try {
-          const params = new URLSearchParams(window.location.search);
-          params.set('selected_node', key);
-          const newSearch = params.toString();
-          const newUrl = window.location.pathname + (newSearch ? ('?' + newSearch) : '');
-          window.location.href = newUrl;
-        } catch (err) {
-          console.error('Erro ao atualizar query params:', err);
-          window.location.href = window.location.pathname + '?selected_node=' + encodeURIComponent(key);
-        }
+      });
+      // hover visual sutil
+      n.group.addEventListener('mouseenter', () => {
+        n.group.style.opacity = 0.9;
+      });
+      n.group.addEventListener('mouseleave', () => {
+        n.group.style.opacity = 1;
       });
     });
 
-    // busca: destaca e tenta centralizar
-    document.getElementById('btnSearch').addEventListener('click', () => {
-      const q = document.getElementById('searchBox').value.trim().toLowerCase();
-      if (!q) return;
-      clearHighlights();
-      let found = false;
-      nodes.forEach(n => {
-        if (n.label.toLowerCase().includes(q)) {
-          n.group.querySelectorAll('rect, ellipse, path').forEach(el => {
-            el.style.stroke = '#2b8cbe';
-            el.style.strokeWidth = '2px';
-          });
-          try {
-            const bbox = n.group.getBBox();
-            const cx = bbox.x + bbox.width/2;
-            const cy = bbox.y + bbox.height/2;
-            if (window._mz && typeof window._mz.pan === 'function') {
-              const vb = svg.viewBox.baseVal;
-              const zoom = window._mz.getZoom();
-              const newPanX = -cx * zoom + vb.width/2;
-              const newPanY = -cy * zoom + vb.height/2;
-              window._mz.pan({ x: newPanX, y: newPanY });
-            }
-          } catch(e) { console.warn(e); }
-          found = true;
-        }
-      });
-      if (!found) alert('Nenhum nó encontrado para: ' + q);
-    });
-
-    document.getElementById('btnClear').addEventListener('click', () => {
-      clearHighlights();
-      document.getElementById('searchBox').value = '';
-    });
-
-    // collapse/expand (esconde nós não-top-level)
-    const topLevelKeys = ['Guia de Biohacking e Neurofisiologia','HemisfériosCerebrais','Autorregulação(Biohacks)','QuímicaCerebral','SuplementaçãoeNutrição','ProtocolosdeLimite'];
-    document.getElementById('btnCollapse').addEventListener('click', () => {
-      nodes.forEach(n => {
-        const key = n.label.split('\\n')[0].trim().replace(/\\s+/g, '');
-        if (!topLevelKeys.includes(key)) {
-          n.group.style.display = 'none';
-        }
-      });
-    });
-    document.getElementById('btnExpand').addEventListener('click', () => {
-      nodes.forEach(n => n.group.style.display = '');
-    });
-
-    // export PNG (SVG -> canvas)
-    document.getElementById('btnExport').addEventListener('click', () => {
-      try {
-        const serializer = new XMLSerializer();
-        let source = serializer.serializeToString(svg);
-        if(!source.match(/^<svg[^>]+xmlns="http\\:\\/\\/www\\.w3\\.org\\/2000\\/svg"/)) {
-          source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-        }
-        source = '<?xml version="1.0" standalone="no"?>\\r\\n' + source;
-        const svg64 = btoa(unescape(encodeURIComponent(source)));
-        const image64 = 'data:image/svg+xml;base64,' + svg64;
-        const img = new Image();
-        img.onload = function() {
-          const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0,0,canvas.width,canvas.height);
-          ctx.drawImage(img,0,0);
-          const png = canvas.toDataURL('image/png');
-          const a = document.createElement('a');
-          a.href = png;
-          a.download = 'mapa_biohacking.png';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        };
-        img.src = image64;
-      } catch (err) {
-        console.error('Erro ao exportar PNG:', err);
-        alert('Falha ao exportar PNG. Veja console para detalhes.');
-      }
-    });
-
-    // clique no fundo limpa seleção
+    // clique no fundo limpa destaque
     svg.addEventListener('click', (ev) => {
       if (ev.target === svg) {
         clearHighlights();
-        document.getElementById('nodeTitle').innerText = 'Clique em um nó';
-        document.getElementById('nodeDetail').innerText = 'Ao clicar em um nó, a descrição aparecerá aqui.';
       }
     });
   }
 </script>
 
 <style>
-  #mermaid-container { max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }
-  #mermaid-container svg { max-width: 100%; height: auto; display:block; }
+  #mermaid-wrapper { max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }
+  #mermaid-wrapper svg { max-width: 100%; height: auto; display:block; }
 </style>
 """
 
-# Substituições seguras: inserir o mermaid_source e o JSON details
-mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_source).replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`")).replace("DETAILS_JSON_PLACEHOLDER", details_json)
+# Substituições seguras
+mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_source).replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`"))
 
 # Render the component
-st.components.v1.html(mermaid_html, height=700, scrolling=True)
+st.components.v1.html(mermaid_html, height=640, scrolling=True)
+
 
 st.markdown("---")
 
