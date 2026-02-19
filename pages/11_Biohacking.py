@@ -1,7 +1,6 @@
 # pages/11_Biohacking.py
 import streamlit as st
 import io
-import json
 from datetime import datetime
 from typing import List
 
@@ -51,318 +50,167 @@ st.markdown(
 """
 )
 
+# --- Inserir mapa mental (imagem + diagrama interativo) ---
+import streamlit as st
+import io
+from datetime import datetime
+
+# Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
+path_local = None  # ou "assets/mindmap.png"
+
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
+
+# upload do arquivo (opcional)
+uploaded = None
+if path_local:
+    try:
+        with open(path_local, "rb") as f:
+            uploaded = f.read()
+    except Exception:
+        uploaded = None
+
+if not uploaded:
+    file = st.file_uploader("Enviar imagem do mapa mental (opcional)", type=["png", "jpg", "jpeg"])
+    if file is not None:
+        uploaded = file.read()
+
+# Exibir imagem se houver
+if uploaded:
+    st.image(uploaded, use_column_width=True, caption="Mapa mental enviado")
+
 st.markdown("---")
 
-# --- Mapa mental interativo com Cytoscape.js ---
-st.markdown("### Mapa mental interativo")
-st.markdown("Explore o mapa: clique em um nó para ver detalhes; use colapsar/expandir e exportar PNG.")
-
-# Read selected node and action from query params (use st.query_params property)
-params = st.query_params
-selected_node_id = params.get("selected_node", [None])[0]
-action_param = params.get("action", [None])[0]
-
-# Detailed graph structure (expanded with sub-nodes)
-graph_data = {
-    "nodes": [
-        {"data": {"id": "root", "label": "Guia de Biohacking e Neurofisiologia", "detail": "Visão geral: Hemisférios, Autorregulação, Química, Suplementação, Protocolos."}},
-        # Hemisférios
-        {"data": {"id": "hemis", "label": "Hemisférios Cerebrais", "detail": "Especializações e integração via corpo caloso."}},
-        {"data": {"id": "left", "label": "Lado Esquerdo (Analítico)", "detail": "Linguagem, lógica, análise de detalhes, controle motor direito.", "parent": "hemis"}},
-        {"data": {"id": "right", "label": "Lado Direito (Sintetizador)", "detail": "Criatividade, processamento espacial, linguagem não-verbal, controle motor esquerdo.", "parent": "hemis"}},
-        {"data": {"id": "cc", "label": "Corpo Caloso", "detail": "Integração entre hemisférios.", "parent": "hemis"}},
-        # Autorregulação
-        {"data": {"id": "autor", "label": "Autorregulação (Biohack)", "detail": "Respiração nasal, controle visual, termorregulação."}},
-        {"data": {"id": "resp", "label": "Respiração Nasal", "detail": "Narina direita -> alerta; narina esquerda -> calma; ciclo nasal natural.", "parent": "autor"}},
-        {"data": {"id": "resp_right", "label": "Narina Direita (Alerta)", "detail": "Aumenta alerta, frequência cardíaca e energia.", "parent": "resp"}},
-        {"data": {"id": "resp_left", "label": "Narina Esquerda (Calma)", "detail": "Ativa parassimpático, reduz frequência cardíaca.", "parent": "resp"}},
-        {"data": {"id": "visual", "label": "Controle Visual", "detail": "Visão foveal para foco; visão panorâmica para criatividade; movimentos sacádicos reduzem stress.", "parent": "autor"}},
-        {"data": {"id": "thermo", "label": "Termorregulação", "detail": "Frio -> dopamina/resiliência; calor -> proteínas de choque térmico e reparação.", "parent": "autor"}},
-        # Química cerebral
-        {"data": {"id": "chem", "label": "Química Cerebral", "detail": "Neurotransmissores e hormônios que modulam estados."}},
-        {"data": {"id": "dop", "label": "Dopamina", "detail": "Motivação, recompensa, aumentada por frio e conclusão de tarefas.", "parent": "chem"}},
-        {"data": {"id": "nor", "label": "Noradrenalina", "detail": "Alerta e vigilância.", "parent": "chem"}},
-        {"data": {"id": "gaba", "label": "GABA", "detail": "Inibição, calma e redução de ansiedade.", "parent": "chem"}},
-        {"data": {"id": "ach", "label": "Acetilcolina", "detail": "Aprendizado e atenção.", "parent": "chem"}},
-        {"data": {"id": "horm", "label": "Hormônios", "detail": "Cortisol, Melatonina, Ocitocina.", "parent": "chem"}},
-        # Suplementação e nutrição
-        {"data": {"id": "supp", "label": "Suplementação e Nutrição", "detail": "Nootrópicos, vitaminas e alimentos-chave."}},
-        {"data": {"id": "noots", "label": "Nootrópicos", "detail": "Cafeína+L-Teanina, Alfa-GPC, Magnésio, L-Tirosina.", "parent": "supp"}},
-        {"data": {"id": "vits", "label": "Vitaminas", "detail": "Complexo B, Vitamina D, Vitamina C.", "parent": "supp"}},
-        {"data": {"id": "foods", "label": "Alimentos-chave", "detail": "Ovos (colina), fígado (multivitamínico), sardinha (ômega-3).", "parent": "supp"}},
-        # Protocolos de limite
-        {"data": {"id": "prot", "label": "Protocolos de Limite", "detail": "Jejum intermitente, sono polifásico, suspiro fisiológico."}},
-        {"data": {"id": "fast", "label": "Jejum Intermitente", "detail": "Autofagia e periodização alimentar (experimental).", "parent": "prot"}},
-        {"data": {"id": "poly", "label": "Sono Polifásico", "detail": "Padrões de sono alternativos (experimental).", "parent": "prot"}},
-        {"data": {"id": "sigh", "label": "Suspiro Fisiológico", "detail": "Técnica rápida para alívio de stress.", "parent": "prot"}}
-    ],
-    "edges": [
-        {"data": {"source": "root", "target": "hemis"}},
-        {"data": {"source": "root", "target": "autor"}},
-        {"data": {"source": "root", "target": "chem"}},
-        {"data": {"source": "root", "target": "supp"}},
-        {"data": {"source": "root", "target": "prot"}},
-        {"data": {"source": "hemis", "target": "left"}},
-        {"data": {"source": "hemis", "target": "right"}},
-        {"data": {"source": "hemis", "target": "cc"}},
-        {"data": {"source": "autor", "target": "resp"}},
-        {"data": {"source": "resp", "target": "resp_right"}},
-        {"data": {"source": "resp", "target": "resp_left"}},
-        {"data": {"source": "autor", "target": "visual"}},
-        {"data": {"source": "autor", "target": "thermo"}},
-        {"data": {"source": "chem", "target": "dop"}},
-        {"data": {"source": "chem", "target": "nor"}},
-        {"data": {"source": "chem", "target": "gaba"}},
-        {"data": {"source": "chem", "target": "ach"}},
-        {"data": {"source": "chem", "target": "horm"}},
-        {"data": {"source": "supp", "target": "noots"}},
-        {"data": {"source": "supp", "target": "vits"}},
-        {"data": {"source": "supp", "target": "foods"}},
-        {"data": {"source": "prot", "target": "fast"}},
-        {"data": {"source": "prot", "target": "poly"}},
-        {"data": {"source": "prot", "target": "sigh"}}
-    ]
-}
-
-# Convert to JSON string for embedding
-graph_json = json.dumps(graph_data)
-
-# HTML/JS for Cytoscape with collapse/expand and safe query-string updates
-html = f"""
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Mapa Biohacking - Cytoscape</title>
-  <script src="https://unpkg.com/cytoscape@3.24.0/dist/cytoscape.min.js"></script>
-  <style>
-    body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; }}
-    #container {{ display:flex; gap:0; }}
-    #cy {{ width: 66%; height: 720px; display: inline-block; vertical-align: top; border: 1px solid #e6e6e6; box-sizing: border-box; }}
-    #panel {{ width: 34%; height: 720px; display: inline-block; vertical-align: top; padding: 12px; box-sizing: border-box; border-left: 1px solid #f0f0f0; overflow: auto; }}
-    .btn {{ display:inline-block; padding:8px 12px; margin:6px 6px 12px 0; background:#2b8cbe; color:#fff; border-radius:6px; cursor:pointer; text-decoration:none; }}
-    .btn-ghost {{ background:#f0f0f0; color:#333; border:1px solid #ddd; }}
-    .small {{ font-size: 13px; color:#666; }}
-    h3 {{ margin: 6px 0 8px 0; }}
-    p {{ margin: 6px 0; line-height:1.4; }}
-    .section-title {{ font-weight:600; margin-top:10px; }}
-  </style>
-</head>
-<body>
-  <div id="container">
-    <div id="cy"></div>
-    <div id="panel">
-      <h3>Detalhes do nó</h3>
-      <div id="nodetitle"><em>Clique em um nó no grafo</em></div>
-      <div id="nodedetail" class="small"></div>
-      <div style="margin-top:12px;">
-        <a id="btn-reset" class="btn">Centralizar grafo</a>
-        <a id="btn-collapse" class="btn btn-ghost">Colapsar ramos</a>
-        <a id="btn-expand" class="btn btn-ghost">Expandir ramos</a>
-        <a id="btn-export" class="btn">Exportar PNG</a>
-      </div>
-      <hr/>
-      <div class="small">
-        <strong>Interação</strong>
-        <ul>
-          <li>Clique em um nó para ver detalhes e enviar seleção ao app (recarrega a página).</li>
-          <li>Arraste o canvas para mover; role para dar zoom.</li>
-          <li>Use "Colapsar ramos" para ocultar sub-nós; "Expandir ramos" para restaurar.</li>
-        </ul>
-      </div>
-      <div class="section-title">Nó selecionado (Python)</div>
-      <div id="selected_python" class="small" style="background:#fafafa;padding:8px;border-radius:6px;margin-top:6px;"></div>
-    </div>
-  </div>
-
-  <script>
-    const graph = {graph_json};
-
-    // Initialize cytoscape
-    const cy = cytoscape({{
-      container: document.getElementById('cy'),
-      elements: graph,
-      style: [
-        {{
-          selector: 'node',
-          style: {{
-            'label': 'data(label)',
-            'text-valign': 'center',
-            'text-halign': 'center',
-            'background-color': '#2b8cbe',
-            'color': '#fff',
-            'text-wrap': 'wrap',
-            'text-max-width': 140,
-            'font-size': 12,
-            'padding': '8px',
-            'shape': 'round-rectangle',
-            'width': 'label',
-            'height': 'label'
-          }}
-        }},
-        {{
-          selector: 'edge',
-          style: {{
-            'curve-style': 'bezier',
-            'target-arrow-shape': 'triangle',
-            'line-color': '#cfd8dc',
-            'target-arrow-color': '#cfd8dc',
-            'width': 2
-          }}
-        }},
-        {{
-          selector: ':selected',
-          style: {{
-            'background-color': '#ff7f50',
-            'line-color': '#ff7f50',
-            'target-arrow-color': '#ff7f50'
-          }}
-        }},
-        {{
-          selector: '.hidden',
-          style: {{
-            'display': 'none'
-          }}
-        }}
-      ],
-      layout: {{
-        name: 'cose',
-        animate: true,
-        fit: true,
-        padding: 30,
-        nodeRepulsion: 8000,
-        idealEdgeLength: 120
-      }},
-      wheelSensitivity: 0.2
-    }});
-
-    cy.ready(function() {{
-      cy.fit(50);
-    }});
-
-    // Helper: get children of a parent node (by parent property)
-    function getChildren(parentId) {{
-      return cy.nodes().filter(n => n.data('parent') === parentId);
-    }}
-
-    // Collapse: hide all nodes that have a parent (except top-level parents)
-    function collapseAll() {{
-      cy.nodes().forEach(n => {{
-        if (n.data('parent')) {{
-          n.addClass('hidden');
-        }}
-      }});
-      cy.edges().forEach(e => {{
-        if (e.source().hasClass('hidden') || e.target().hasClass('hidden')) {{
-          e.addClass('hidden');
-        }}
-      }});
-    }}
-
-    // Expand: remove hidden class
-    function expandAll() {{
-      cy.nodes().removeClass('hidden');
-      cy.edges().removeClass('hidden');
-    }}
-
-    document.getElementById('btn-collapse').addEventListener('click', function() {{
-      collapseAll();
-    }});
-    document.getElementById('btn-expand').addEventListener('click', function() {{
-      expandAll();
-    }});
-
-    // Node click: show details and send selection to Python by updating query string (reload)
-    cy.on('tap', 'node', function(evt) {{
-      const node = evt.target;
-      const id = node.id();
-      const title = node.data('label') || 'Nó';
-      const detail = node.data('detail') || '';
-      document.getElementById('nodetitle').innerHTML = '<strong>' + title + '</strong>';
-      document.getElementById('nodedetail').innerText = detail;
-      cy.elements().unselect();
-      node.select();
-
-      // Build query params safely and navigate using pathname + search
-      try {{
-        const params = new URLSearchParams(window.location.search);
-        params.set('selected_node', id);
-        // preserve other params if needed
-        const newSearch = params.toString();
-        const newUrl = window.location.pathname + (newSearch ? ('?' + newSearch) : '');
-        window.location.href = newUrl;
-      }} catch (err) {{
-        console.error('Erro ao atualizar query params:', err);
-        window.location.href = window.location.pathname + '?selected_node=' + encodeURIComponent(id);
-      }}
-    }});
-
-    // Reset / centralizar
-    document.getElementById('btn-reset').addEventListener('click', function() {{
-      cy.fit(50);
-      cy.zoom(1);
-    }});
-
-    // Export PNG
-    document.getElementById('btn-export').addEventListener('click', function() {{
-      try {{
-        const png64 = cy.png({{ full: true, scale: 2 }});
-        const a = document.createElement('a');
-        a.href = png64;
-        a.download = 'mapa_biohacking.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }} catch (err) {{
-        alert('Falha ao exportar imagem: ' + err);
-      }}
-    }});
-
-    // If Python passed a selected node via query param, highlight it
-    (function highlightFromQuery() {{
-      const params = new URLSearchParams(window.location.search);
-      const sel = params.get('selected_node');
-      if (sel) {{
-        const node = cy.getElementById(sel);
-        if (node) {{
-          node.select();
-          document.getElementById('nodetitle').innerHTML = '<strong>' + node.data('label') + '</strong>';
-          document.getElementById('nodedetail').innerText = node.data('detail') || '';
-          cy.animate({{ fit: {{ eles: node }}, duration: 600 }});
-        }}
-      }}
-      // If an action param is present, perform collapse/expand accordingly
-      const action = params.get('action');
-      if (action === 'collapse') {{
-        collapseAll();
-      }} else if (action === 'expand') {{
-        expandAll();
-      }}
-    }})();
-  </script>
-</body>
-</html>
+# Construir o diagrama Mermaid a partir do conteúdo do mapa (nós principais)
+# O texto abaixo foi extraído e resumido do mapa que você enviou.
+mermaid_source = """
+mindmap
+  root((Guia de Biohacking e Neurofisiologia))
+    Hemisférios
+      Esquerdo[Esquerdo: Analítico\\nLógica, Linguagem, Detalhes, Controle motor direito]
+      Direito[Direito: Sintetizador\\nCriatividade, Espaço, Não-verbal, Controle motor esquerdo]
+      CorpoCaloso[Corpo Caloso: Integração]
+    Autorregulação
+      RespiraçãoNasal[Narinas\\nDireita=Alerta; Esquerda=Calma; Ciclo nasal]
+      ControleVisual[Visão foveal vs panorâmica\\nMovimentos sacádicos]
+      Termorregulação[Frio -> Dopamina; Calor -> Reparação]
+    QuímicaCerebral
+      Neurotransmissores[Dopamina; Noradrenalina; GABA; Acetilcolina]
+      Hormônios[Cortisol; Melatonina; Ocitocina]
+    Suplementação
+      Nootrópicos[Cafeína+L-Teanina; Alfa-GPC; Magnésio; L-Tirosina]
+      Vitaminas[B-complex; Vit D; Vit C]
+      Alimentos[Eggs, Liver, Sardines]
+    Protocolos
+      Limite[Jejum intermitente; Sono polifásico; Suspiro fisiológico]
 """
 
-# Render the Cytoscape component
-st.components.v1.html(html, height=760, scrolling=True)
+# Renderizar Mermaid via HTML embed (Mermaid CDN)
+# O HTML abaixo cria um container Mermaid e inicializa a lib para renderizar o diagrama.
+mermaid_html = f"""
+<div id="mermaid-container">
+  <div class="mermaid">
+{mermaid_source}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  // Inicializa mermaid
+  if (typeof mermaid !== 'undefined') {{
+    mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+  }}
+</script>
+<style>
+  /* Ajustes visuais para o container */
+  #mermaid-container {{ max-width: 100%; overflow-x: auto; padding: 8px 0; }}
+  .mermaid svg {{ max-width: 100%; height: auto; }}
+</style>
+"""
 
-# Show the selected node id (from Python side) and details if present
-if selected_node_id:
-    # find node in graph_data
-    node = next((n for n in graph_data["nodes"] if n["data"]["id"] == selected_node_id), None)
-    if node:
-        st.markdown("---")
-        st.subheader("Nó selecionado (recebido pelo app)")
-        st.markdown(f"**ID:** `{selected_node_id}`")
-        st.markdown(f"**Título:** {node['data'].get('label')}")
-        st.markdown(f"**Descrição:** {node['data'].get('detail')}")
-        st.info("A página foi recarregada para enviar a seleção ao app. Use o botão 'Centralizar grafo' no painel para reposicionar a visualização.")
-    else:
-        st.warning("Nó selecionado não encontrado no grafo.")
-else:
-    st.markdown("---")
-    st.info("Nenhum nó selecionado. Clique em um nó no grafo para enviar a seleção ao app (a página será recarregada).")
+st.markdown("#### Versão interativa do mapa (Mermaid)")
+st.components.v1.html(mermaid_html, height=420, scrolling=True)
+
+st.markdown("---")
+
+# Permitir ao usuário selecionar quais ramos incluir no PDF
+st.markdown("#### Selecionar ramos para o folheto imprimível")
+opts = {
+    "Hemisférios": st.checkbox("Hemisférios Cerebrais", value=True),
+    "Autorregulação": st.checkbox("Autorregulação (respiração, visual, termorregulação)", value=True),
+    "Química": st.checkbox("Química Cerebral (neurotransmissores e hormônios)", value=True),
+    "Suplementação": st.checkbox("Suplementação e Nutrição", value=True),
+    "Protocolos": st.checkbox("Protocolos de Limite", value=True),
+}
+
+# Função simples para montar texto do folheto
+def _build_text_for_pdf(opts):
+    lines = []
+    lines.append("Guia de Biohacking e Neurofisiologia")
+    lines.append(f"Gerado em: {datetime.utcnow().isoformat()}")
+    lines.append("")
+    if opts["Hemisférios"]:
+        lines.append("HEMISFÉRIOS CEREBRAIS")
+        lines.append("- Esquerdo (Analítico): lógica, linguagem, análise de detalhes, controle motor direito.")
+        lines.append("- Direito (Sintetizador): criatividade, processamento espacial, linguagem não-verbal, controle motor esquerdo.")
+        lines.append("- Corpo caloso: integração entre hemisférios.")
+        lines.append("")
+    if opts["Autorregulação"]:
+        lines.append("AUTORREGULAÇÃO")
+        lines.append("- Respiração nasal: narina direita -> alerta/simpático; narina esquerda -> calma/parassimpático; ciclo nasal natural.")
+        lines.append("- Controle visual: visão foveal para foco; visão panorâmica para criatividade; movimentos sacádicos reduzem stress.")
+        lines.append("- Termorregulação: frio aumenta dopamina; calor favorece reparação celular.")
+        lines.append("")
+    if opts["Química"]:
+        lines.append("QUÍMICA CEREBRAL")
+        lines.append("- Neurotransmissores: Dopamina (motivação), Noradrenalina (alerta), GABA (calma), Acetilcolina (aprendizado).")
+        lines.append("- Hormônios: Cortisol (stress/energia), Melatonina (sono), Ocitocina (vínculo).")
+        lines.append("")
+    if opts["Suplementação"]:
+        lines.append("SUPLEMENTAÇÃO E NUTRIÇÃO")
+        lines.append("- Nootrópicos: Cafeína+L-Teanina, Alfa-GPC, Magnésio, L-Tirosina.")
+        lines.append("- Vitaminas: Complexo B, Vitamina D, Vitamina C.")
+        lines.append("- Estratégia econômica: ovos (colina), fígado (multivitamínico), sardinha (ômega-3).")
+        lines.append("")
+    if opts["Protocolos"]:
+        lines.append("PROTOCOLOS DE LIMITE")
+        lines.append("- Jejum intermitente (autofagia), Sono polifásico (experimental), Suspiro fisiológico (alívio de stress).")
+        lines.append("")
+    lines.append("AVISO: Este folheto é informativo e não substitui avaliação médica. Consulte um profissional antes de intervenções médicas.")
+    return "\n".join(lines)
+
+# Gerar PDF/texto em memória e oferecer download
+def _build_pdf_bytes_from_text(text: str) -> bytes:
+    # tenta usar reportlab; se não disponível, retorna bytes de texto simples
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.units import mm
+        import io as _io
+        buf = _io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+        styles = getSampleStyleSheet()
+        story = []
+        for line in text.split("\n"):
+            if not line.strip():
+                story.append(Spacer(1, 6))
+            else:
+                style = styles["Normal"]
+                # título simples
+                if line.isupper() and len(line.split()) < 6:
+                    style = styles["Heading2"]
+                story.append(Paragraph(line.replace("  ", "&nbsp;&nbsp;"), style))
+        doc.build(story)
+        pdf = buf.getvalue()
+        buf.close()
+        return pdf
+    except Exception:
+        return text.encode("utf-8")
+
+if st.button("Gerar folheto PDF com seleção"):
+    text = _build_text_for_pdf(opts)
+    pdf_bytes = _build_pdf_bytes_from_text(text)
+    st.success("Folheto pronto para download.")
+    st.download_button("Baixar folheto (PDF)", data=pdf_bytes, file_name="mapa_biohacking.pdf", mime="application/pdf")
 
 st.markdown("---")
 
@@ -408,7 +256,7 @@ cards = [
         "title": "Sono",
         "summary": "Melhorar início e qualidade do sono com higiene e rotinas.",
         "items": [
-            "Exposição à luz solar matinal 5–10 minutos para regular o ciclo circadiano.",
+            "Exposição à luz solar matinal 5-10 minutos para regular o ciclo circadiano.",
             "Evitar luz azul 60-90 minutos antes de dormir; usar luzes quentes/alaranjadas.",
             "Banho morno 60 minutos antes de deitar para facilitar queda de temperatura corporal.",
             "Suplemento opcional: magnésio (bisglicinato/treonato) 1h antes, se indicado."
@@ -570,18 +418,3 @@ st.markdown(
 4. Consulte um profissional antes de suplementos fortes, hormônios ou procedimentos invasivos.
 """
 )
-
-# Optional: controls to programmatically collapse/expand from Python using safe API
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("Colapsar todos os ramos (Python)"):
-        params = dict(st.query_params)
-        params["action"] = "collapse"
-        st.set_query_params(**params)
-        st.experimental_rerun()
-with col2:
-    if st.button("Expandir todos os ramos (Python)"):
-        params = dict(st.query_params)
-        params["action"] = "expand"
-        st.set_query_params(**params)
-        st.experimental_rerun()
