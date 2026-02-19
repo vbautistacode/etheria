@@ -51,7 +51,7 @@ st.markdown(
 )
 
 # Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
-path_local = "assets/mindmap.png"
+path_local = "assets/mindmap.svg"
 
 st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
 
