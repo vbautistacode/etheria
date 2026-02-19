@@ -64,6 +64,9 @@ if path_local:
     except Exception:
         uploaded = None
 
+# Exibir imagem se houver
+if uploaded:
+    st.image(uploaded, use_container_width=True)
 
 # Cards for objectives
 st.header("Escolha um objetivo e ative os biohacks correspondentes")
