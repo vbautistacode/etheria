@@ -3,12 +3,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Biohacking — Guia prático", layout="wide")
+st.set_page_config(page_title="Biohacking", layout="wide")
 st.title("Biohacking — 🧬")
 
 st.markdown(
     """
-**O que é Biohacking (explicação curta)**
+**O que é Biohacking**
 
 Biohacking é o conjunto de práticas, ferramentas e experimentos pessoais usados para **otimizar saúde, desempenho cognitivo e longevidade** — do simples (sono, alimentação, rastreio com wearables) ao experimental (peptídeos, implantes, biologia DIY).  
 Priorize sempre intervenções não invasivas e baseadas em evidência; intervenções médicas, hormônios, peptídeos e procedimentos invasivos exigem supervisão clínica.
@@ -23,14 +23,10 @@ st.markdown(
 
 st.markdown("---")
 
-# Quick profile (no sidebar)
+# Quick profile
 st.header("Perfil rápido (opcional)")
-colp1, colp2, colp3 = st.columns([2, 1, 1])
-with colp1:
-    name = st.text_input("Nome (opcional)")
-with colp2:
-    age = st.number_input("Idade", min_value=0, max_value=120, value=30)
-with colp3:
+colp1 = st.columns([1])
+with colp1[0]:
     consent = st.checkbox("Li o aviso: este conteúdo é informativo e não substitui avaliação médica", value=False)
 
 if not consent:
@@ -62,7 +58,7 @@ st.markdown(
 st.markdown("---")
 
 # Section: Planner / experiments (N-of-1)
-st.header("Planejador de experimentos pessoais (N-of-1)")
+st.header("Planejador de experimentos pessoais")
 st.markdown("Crie um experimento simples, defina métricas e duração. Comece pequeno (1–4 semanas).")
 
 with st.form("experiment_form"):
