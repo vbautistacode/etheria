@@ -50,24 +50,33 @@ st.markdown(
 """
 )
 
-# Mermaid minimalista: sem controles e sem painel de detalhes
+# --- Inserir mapa mental (imagem + diagrama interativo) ---
 import streamlit as st
-import json
+import io
+from datetime import datetime
+
+# Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
+path_local = None  # ou "assets/mindmap.png"
 
 st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
+st.markdown("Você pode fazer upload do mapa mental (PNG/JPG) ou usar a versão interativa gerada automaticamente a partir do conteúdo do guia.")
 
-# (opcional) exibir imagem local se houver
-path_local = None
+# upload do arquivo (opcional)
+uploaded = None
 if path_local:
     try:
         with open(path_local, "rb") as f:
-            st.image(f.read(), use_container_width=True, caption="Mapa mental (arquivo local)")
+            uploaded = f.read()
     except Exception:
-        pass
+        uploaded = None
+
+# Exibir imagem se houver
+if uploaded:
+    st.image(uploaded, use_column_width=True, caption="Mapa mental enviado")
 
 st.markdown("---")
 
-# Mermaid source gerado a partir da sua estrutura
+# Mermaid source gerado a partir da estrutura fornecida
 mermaid_source = """
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -91,16 +100,18 @@ mindmap
       Suspiro[Suspiro Fisiológico (Alívio de Stress)]
 """
 
-# Template HTML/JS minimalista (sem controles, sem painel)
+# Ajuste os caminhos para os arquivos JS locais no repositório
+# Ex.: coloque mermaid.min.js e svg-pan-zoom.min.js em ./assets/ e mantenha esses caminhos
+MERMAID_URL = "/assets/mermaid.min.js"
+SVGPANZOOM_URL = "/assets/svg-pan-zoom.min.js"
+
+# Template HTML/JS minimalista que carrega bibliotecas localmente, renderiza Mermaid e ativa pan/zoom + clique destaque
 mermaid_template = """
 <div id="mermaid-wrapper" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
   <div id="mermaid-container"></div>
 </div>
 
 <script>
-  const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js";
-  const SVGPANZOOM_URL = "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js";
-
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       if (Array.from(document.scripts).some(s => s.src && s.src.indexOf(src) !== -1)) {
@@ -115,35 +126,14 @@ mermaid_template = """
     });
   }
 
-  const MERMAID_SOURCE = `
-mindmap
-  root((Guia de Biohacking e Neurofisiologia))
-    Hemisférios Cerebrais
-      LadoEsquerdo[Lado Esquerdo (Analista)\\nLógica e Matemática; Linguagem e Fala; Análise de Detalhes; Controle Motor Direito]
-      LadoDireito[Lado Direito (Sintetizador)\\nHolístico e Criativo; Processamento Espacial; Linguagem Não-Verbal; Controle Motor Esquerdo]
-      CorpoCaloso[Corpo Caloso (Integração)]
-    Autorregulação (Biohacks)
-      RespiraçãoNasal[Respiração Nasal\\nNarina Direita: Alerta/Simpático; Narina Esquerda: Calma/Parassimpático; Ciclo Nasal Natural]
-      ControleVisual[Controle Visual\\nVisão Foveal (Foco/Norepinefrina); Visão Panorâmica (Calma/Criatividade); Movimentos Sacádicos (Desarmar Stress)]
-      Termorregulação[Termorregulação\\nFrio: Dopamina e Resiliência; Calor: Reparação Celular]
-    Química Cerebral
-      Neurotransmissores[Neurotransmissores\\nDopamina (Motivação); Noradrenalina (Alerta); GABA (Calma); Acetilcolina (Aprendizado)]
-      Hormônios[Hormônios\\nCortisol (Energia/Stress); Melatonina (Sono); Ocitocina (Vínculo)]
-    Suplementação e Nutrição
-      Nootrópicos[Nootrópicos\\nCafeína + L-Teanina (Foco Limpo); Alfa-GPC (Acetilcolina); Magnésio (Relaxamento); L-Tirosina (Dopamina)]
-      Vitaminas[Vitaminas\\nComplexo B (Energia); Vitamina D (Hormonal/Imunidade); Vitamina C (Antioxidante)]
-    Protocolos de Limite
-      Jejum[Jejum Intermitente (Autofagia)]
-      Sono[Sono Polifásico]
-      Suspiro[Suspiro Fisiológico (Alívio de Stress)]
-`;
+  const MERMAID_SOURCE = `MERMAID_RAW_PLACEHOLDER`;
 
   (async function init() {
     try {
-      await loadScript(MERMAID_URL);
-      await loadScript(SVGPANZOOM_URL);
+      await loadScript("MERMAID_URL_PLACEHOLDER");
+      await loadScript("SVGPANZOOM_URL_PLACEHOLDER");
 
-      if (typeof mermaid === 'undefined') throw new Error('Mermaid não disponível');
+      if (typeof mermaid === 'undefined') throw new Error('Mermaid não disponível após carregamento local');
       mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
       const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
@@ -166,16 +156,18 @@ mindmap
               nodeGroups.forEach(x => x.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke=''; el.style.strokeWidth=''; }));
               g.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke = '#ff7f50'; el.style.strokeWidth = '2px'; });
             });
+            g.addEventListener('mouseenter', () => { g.style.opacity = 0.95; });
+            g.addEventListener('mouseleave', () => { g.style.opacity = 1; });
           });
 
           svg.addEventListener('click', (ev) => { if (ev.target === svg) nodeGroups.forEach(x => x.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke=''; el.style.strokeWidth=''; })); });
 
-          console.log('Mermaid inicializado com interatividade. nodeGroups:', nodeGroups.length);
+          console.log('Mermaid local inicializado. nodeGroups:', nodeGroups.length);
         };
         tryInit();
       });
     } catch (err) {
-      console.error('Erro na inicialização do Mermaid interativo:', err);
+      console.error('Erro na inicialização do Mermaid local:', err);
       const container = document.getElementById('mermaid-container');
       if (container) container.innerText = 'Falha ao inicializar diagrama: ' + err.message;
     }
@@ -188,11 +180,13 @@ mindmap
 </style>
 """
 
-# Substituições seguras
-mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_source).replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`"))
+# Substituições seguras no template
+mermaid_html = mermaid_template.replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`")).replace("MERMAID_URL_PLACEHOLDER", MERMAID_URL).replace("SVGPANZOOM_URL_PLACEHOLDER", SVGPANZOOM_URL)
 
-# Render the component
-st.components.v1.html(mermaid_html, height=700, scrolling=True)
+# Render the component (altura ajustável)
+st.components.v1.html(mermaid_html, height=680, scrolling=True)
+
+st.markdown("---")
 
 # Permitir ao usuário selecionar quais ramos incluir no PDF
 st.markdown("#### Selecionar ramos para o folheto imprimível")
