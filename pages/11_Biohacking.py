@@ -50,6 +50,169 @@ st.markdown(
 """
 )
 
+# --- Inserir mapa mental (imagem + diagrama interativo) ---
+import streamlit as st
+import io
+from datetime import datetime
+
+# Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
+path_local = None  # ou "assets/mindmap.png"
+
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
+st.markdown("Você pode fazer upload do mapa mental (PNG/JPG) ou usar a versão interativa gerada automaticamente a partir do conteúdo do guia.")
+
+# upload do arquivo (opcional)
+uploaded = None
+if path_local:
+    try:
+        with open(path_local, "rb") as f:
+            uploaded = f.read()
+    except Exception:
+        uploaded = None
+
+if not uploaded:
+    file = st.file_uploader("Enviar imagem do mapa mental (opcional)", type=["png", "jpg", "jpeg"])
+    if file is not None:
+        uploaded = file.read()
+
+# Exibir imagem se houver
+if uploaded:
+    st.image(uploaded, use_column_width=True, caption="Mapa mental enviado")
+
+st.markdown("---")
+
+# Construir o diagrama Mermaid a partir do conteúdo do mapa (nós principais)
+# O texto abaixo foi extraído e resumido do mapa que você enviou.
+mermaid_source = """
+mindmap
+  root((Guia de Biohacking e Neurofisiologia))
+    Hemisférios
+      Esquerdo[Esquerdo: Analítico\\nLógica, Linguagem, Detalhes, Controle motor direito]
+      Direito[Direito: Sintetizador\\nCriatividade, Espaço, Não-verbal, Controle motor esquerdo]
+      CorpoCaloso[Corpo Caloso: Integração]
+    Autorregulação
+      RespiraçãoNasal[Narinas\\nDireita=Alerta; Esquerda=Calma; Ciclo nasal]
+      ControleVisual[Visão foveal vs panorâmica\\nMovimentos sacádicos]
+      Termorregulação[Frio -> Dopamina; Calor -> Reparação]
+    QuímicaCerebral
+      Neurotransmissores[Dopamina; Noradrenalina; GABA; Acetilcolina]
+      Hormônios[Cortisol; Melatonina; Ocitocina]
+    Suplementação
+      Nootrópicos[Cafeína+L-Teanina; Alfa-GPC; Magnésio; L-Tirosina]
+      Vitaminas[B-complex; Vit D; Vit C]
+      Alimentos[Eggs, Liver, Sardines]
+    Protocolos
+      Limite[Jejum intermitente; Sono polifásico; Suspiro fisiológico]
+"""
+
+# Renderizar Mermaid via HTML embed (Mermaid CDN)
+# O HTML abaixo cria um container Mermaid e inicializa a lib para renderizar o diagrama.
+mermaid_html = f"""
+<div id="mermaid-container">
+  <div class="mermaid">
+{mermaid_source}
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+<script>
+  // Inicializa mermaid
+  if (typeof mermaid !== 'undefined') {{
+    mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+  }}
+</script>
+<style>
+  /* Ajustes visuais para o container */
+  #mermaid-container {{ max-width: 100%; overflow-x: auto; padding: 8px 0; }}
+  .mermaid svg {{ max-width: 100%; height: auto; }}
+</style>
+"""
+
+st.markdown("#### Versão interativa do mapa (Mermaid)")
+st.components.v1.html(mermaid_html, height=420, scrolling=True)
+
+st.markdown("---")
+
+# Permitir ao usuário selecionar quais ramos incluir no PDF
+st.markdown("#### Selecionar ramos para o folheto imprimível")
+opts = {
+    "Hemisférios": st.checkbox("Hemisférios Cerebrais", value=True),
+    "Autorregulação": st.checkbox("Autorregulação (respiração, visual, termorregulação)", value=True),
+    "Química": st.checkbox("Química Cerebral (neurotransmissores e hormônios)", value=True),
+    "Suplementação": st.checkbox("Suplementação e Nutrição", value=True),
+    "Protocolos": st.checkbox("Protocolos de Limite", value=True),
+}
+
+# Função simples para montar texto do folheto
+def _build_text_for_pdf(opts):
+    lines = []
+    lines.append("Guia de Biohacking e Neurofisiologia")
+    lines.append(f"Gerado em: {datetime.utcnow().isoformat()}")
+    lines.append("")
+    if opts["Hemisférios"]:
+        lines.append("HEMISFÉRIOS CEREBRAIS")
+        lines.append("- Esquerdo (Analítico): lógica, linguagem, análise de detalhes, controle motor direito.")
+        lines.append("- Direito (Sintetizador): criatividade, processamento espacial, linguagem não-verbal, controle motor esquerdo.")
+        lines.append("- Corpo caloso: integração entre hemisférios.")
+        lines.append("")
+    if opts["Autorregulação"]:
+        lines.append("AUTORREGULAÇÃO")
+        lines.append("- Respiração nasal: narina direita -> alerta/simpático; narina esquerda -> calma/parassimpático; ciclo nasal natural.")
+        lines.append("- Controle visual: visão foveal para foco; visão panorâmica para criatividade; movimentos sacádicos reduzem stress.")
+        lines.append("- Termorregulação: frio aumenta dopamina; calor favorece reparação celular.")
+        lines.append("")
+    if opts["Química"]:
+        lines.append("QUÍMICA CEREBRAL")
+        lines.append("- Neurotransmissores: Dopamina (motivação), Noradrenalina (alerta), GABA (calma), Acetilcolina (aprendizado).")
+        lines.append("- Hormônios: Cortisol (stress/energia), Melatonina (sono), Ocitocina (vínculo).")
+        lines.append("")
+    if opts["Suplementação"]:
+        lines.append("SUPLEMENTAÇÃO E NUTRIÇÃO")
+        lines.append("- Nootrópicos: Cafeína+L-Teanina, Alfa-GPC, Magnésio, L-Tirosina.")
+        lines.append("- Vitaminas: Complexo B, Vitamina D, Vitamina C.")
+        lines.append("- Estratégia econômica: ovos (colina), fígado (multivitamínico), sardinha (ômega-3).")
+        lines.append("")
+    if opts["Protocolos"]:
+        lines.append("PROTOCOLOS DE LIMITE")
+        lines.append("- Jejum intermitente (autofagia), Sono polifásico (experimental), Suspiro fisiológico (alívio de stress).")
+        lines.append("")
+    lines.append("AVISO: Este folheto é informativo e não substitui avaliação médica. Consulte um profissional antes de intervenções médicas.")
+    return "\n".join(lines)
+
+# Gerar PDF/texto em memória e oferecer download
+def _build_pdf_bytes_from_text(text: str) -> bytes:
+    # tenta usar reportlab; se não disponível, retorna bytes de texto simples
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+        from reportlab.lib.units import mm
+        import io as _io
+        buf = _io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=20*mm)
+        styles = getSampleStyleSheet()
+        story = []
+        for line in text.split("\n"):
+            if not line.strip():
+                story.append(Spacer(1, 6))
+            else:
+                style = styles["Normal"]
+                # título simples
+                if line.isupper() and len(line.split()) < 6:
+                    style = styles["Heading2"]
+                story.append(Paragraph(line.replace("  ", "&nbsp;&nbsp;"), style))
+        doc.build(story)
+        pdf = buf.getvalue()
+        buf.close()
+        return pdf
+    except Exception:
+        return text.encode("utf-8")
+
+if st.button("Gerar folheto PDF com seleção"):
+    text = _build_text_for_pdf(opts)
+    pdf_bytes = _build_pdf_bytes_from_text(text)
+    st.success("Folheto pronto para download.")
+    st.download_button("Baixar folheto (PDF)", data=pdf_bytes, file_name="mapa_biohacking.pdf", mime="application/pdf")
+
 st.markdown("---")
 
 # Cards for objectives
