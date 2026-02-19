@@ -54,7 +54,7 @@ st.markdown(
 import streamlit as st
 import json
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo corrigido)")
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo — versão robusta)")
 
 # (opcional) exibir imagem local se houver
 path_local = None
@@ -67,7 +67,7 @@ if path_local:
 
 st.markdown("---")
 
-# Mermaid source (resumido)
+# Mermaid source (texto puro)
 mermaid_source = """
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -90,7 +90,7 @@ mindmap
       Limite[Jejum intermitente; Sono polifásico; Suspiro fisiológico]
 """
 
-# details_map (pode ser gerado dinamicamente; aqui usamos fallback)
+# Mapa de descrições (fallback). Se você já extraiu do PDF, substitua por esse JSON.
 details_map = {
     "Guia de Biohacking e Neurofisiologia": "Visão geral: Hemisférios, Autorregulação, Química, Suplementação, Protocolos.",
     "Esquerdo": "Hemisfério esquerdo: linguagem, lógica, análise de detalhes; controla o lado direito do corpo.",
@@ -107,10 +107,10 @@ details_map = {
     "Limite": "Jejum intermitente, sono polifásico, suspiro fisiológico."
 }
 
-# JSON para injetar no JS (serializado)
+# Serializa o mapa para injetar no JS
 details_json = json.dumps(details_map)
 
-# Template HTML/JS com placeholders seguros: {{MERMAID}} e {{DETAILS}}
+# Template HTML/JS seguro (sem f-strings com chaves JS)
 mermaid_template = """
 <div style="display:flex; gap:16px; align-items:flex-start;">
   <div style="flex:1; min-width:60%;">
@@ -124,7 +124,7 @@ mermaid_template = """
     </div>
     <div id="mermaid-container" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
       <div id="mermaid-diagram" class="mermaid">
-{{MERMAID}}
+MERMAID_SOURCE_PLACEHOLDER
       </div>
     </div>
   </div>
@@ -151,20 +151,21 @@ mermaid_template = """
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 <script>
-  // DETAILS placeholder será substituído pelo Python
-  const DETAILS = {{DETAILS}};
+  // Injetado pelo Python
+  const DETAILS = DETAILS_JSON_PLACEHOLDER;
 
-  // Inicializa mermaid sem startOnLoad para controlar render
+  // Inicializa mermaid sem startOnLoad
   mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
-  (async function renderMermaid() {
+  // Renderiza via mermaidAPI.render para garantir SVG pronto
+  (function renderMermaidSafe() {
     try {
-      const graphDefinition = `{MERMAID_RAW}`;
+      const graphDefinition = `MERMAID_RAW_PLACEHOLDER`;
       const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
-      mermaid.mermaidAPI.render(renderId, graphDefinition, (svgCode) => {
+      mermaid.mermaidAPI.render(renderId, graphDefinition, function(svgCode) {
         const container = document.getElementById('mermaid-container');
         container.innerHTML = svgCode;
-        initInteractivity();
+        setTimeout(initInteractivity, 60); // pequeno atraso para garantir DOM
       });
     } catch (err) {
       console.error('Erro ao renderizar Mermaid:', err);
@@ -179,7 +180,7 @@ mermaid_template = """
       return;
     }
 
-    // pan/zoom
+    // inicializa pan/zoom e guarda instância
     try {
       window._mz = svgPanZoom(svg, {
         zoomEnabled: true,
@@ -191,7 +192,7 @@ mermaid_template = """
       });
     } catch(e) { console.warn('svg-pan-zoom falhou', e); }
 
-    // selecionar nós de forma robusta
+    // seletores robustos para nós
     const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
     const nodes = nodeGroups.map(g => {
       const textEl = g.querySelector('text') || g.querySelector('tspan');
@@ -207,7 +208,7 @@ mermaid_template = """
       }));
     }
 
-    // clique em nó
+    // clique em nó: destacar, mostrar detalhes e atualizar URL com segurança
     nodes.forEach(n => {
       n.group.style.cursor = 'pointer';
       n.group.addEventListener('click', (ev) => {
@@ -223,7 +224,7 @@ mermaid_template = """
         document.getElementById('nodeTitle').innerText = title;
         document.getElementById('nodeDetail').innerText = detail;
 
-        // atualizar query params de forma segura
+        // atualizar query params de forma segura (pathname + search)
         try {
           const params = new URLSearchParams(window.location.search);
           params.set('selected_node', key);
@@ -237,7 +238,7 @@ mermaid_template = """
       });
     });
 
-    // busca
+    // busca: destaca e tenta centralizar
     document.getElementById('btnSearch').addEventListener('click', () => {
       const q = document.getElementById('searchBox').value.trim().toLowerCase();
       if (!q) return;
@@ -272,7 +273,7 @@ mermaid_template = """
       document.getElementById('searchBox').value = '';
     });
 
-    // collapse/expand
+    // collapse/expand (esconde nós não-top-level)
     const topLevelKeys = ['Guia de Biohacking e Neurofisiologia','Hemisférios','Autorregulação','QuímicaCerebral','Suplementação','Protocolos'];
     document.getElementById('btnCollapse').addEventListener('click', () => {
       nodes.forEach(n => {
@@ -286,7 +287,7 @@ mermaid_template = """
       nodes.forEach(n => n.group.style.display = '');
     });
 
-    // export PNG
+    // export PNG (SVG -> canvas)
     document.getElementById('btnExport').addEventListener('click', () => {
       try {
         const serializer = new XMLSerializer();
@@ -321,7 +322,7 @@ mermaid_template = """
       }
     });
 
-    // click background clears selection
+    // clique no fundo limpa seleção
     svg.addEventListener('click', (ev) => {
       if (ev.target === svg) {
         clearHighlights();
@@ -339,11 +340,11 @@ mermaid_template = """
 """
 
 # Substituições seguras: inserir o mermaid_source e o JSON details
-# Evita f-strings com chaves conflitantes
-mermaid_html = mermaid_template.replace("{{MERMAID}}", mermaid_source).replace("{{MERMAID_RAW}}", mermaid_source.replace("`", "\\`")).replace("{{DETAILS}}", details_json)
+mermaid_html = mermaid_template.replace("MERMAID_SOURCE_PLACEHOLDER", mermaid_source).replace("MERMAID_RAW_PLACEHOLDER", mermaid_source.replace("`", "\\`")).replace("DETAILS_JSON_PLACEHOLDER", details_json)
 
 # Render the component
-st.components.v1.html(mermaid_html, height=620, scrolling=True)
+st.components.v1.html(mermaid_html, height=640, scrolling=True)
+
 
 
 
