@@ -7,11 +7,11 @@ from matplotlib.patches import FancyBboxPatch, Rectangle
 import numpy as np
 
 OUT_PNG = Path("mindmap.png")
-W, H = 1920, 1080
-DPI = 200
+W, H = 1280, 720
+DPI = 150
 FONT_FAMILY = "DejaVu Sans"
 
-center = "Guia de Biohacking e Neurofisiologia"
+center = "Biohacking"
 branches = {
     "Hemisférios Cerebrais": [
         ("Lado Esquerdo (Analista)", "Lógica e Matemática; Linguagem e Fala; Análise de Detalhes; Controle Motor Direito"),
