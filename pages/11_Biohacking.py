@@ -68,7 +68,7 @@ if path_local:
         uploaded = None
 
 # --- abrir expander e exibir imagem se válida ---
-with st.expander("Upload do arquivo (opcional)"):
+with st.expander("Visualize o mapa mental"):
     if uploaded:
         try:
             # validação com Pillow
@@ -89,7 +89,7 @@ with st.expander("Upload do arquivo (opcional)"):
             try:
                 data = uploaded_file.getvalue()
                 img = Image.open(io.BytesIO(data)).convert("RGBA")
-                st.image(img, use_column_width=True, caption="Mapa mental enviado (upload)")
+                st.image(img, use_container_width=True, caption="Mapa mental enviado (upload)")
             except UnidentifiedImageError:
                 st.error("O arquivo enviado não é uma imagem válida.")
             except Exception as e:
