@@ -50,23 +50,14 @@ st.markdown(
 """
 )
 
-# Inserir este bloco no lugar do Mermaid atual em pages/11_Biohacking.py
-# Ele tenta extrair automaticamente descrições do PDF (se enviado),
-# cria details_map dinamicamente, adiciona interatividade (pan/zoom, busca, clique -> callback Python),
-# e implementa colapsar/expandir ramos no SVG gerado pelo Mermaid.
-
+# Substitua o bloco Mermaid anterior por este
 import streamlit as st
-import io
 import json
-import re
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo melhorado)")
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (Mermaid interativo robusto)")
 
-# --- Upload opcional do PDF (se o usuário quiser fornecer/atualizar o documento)
-pdf_file = st.file_uploader("Enviar PDF do dossiê (opcional) para mapear descrições automaticamente", type=["pdf"])
-
-# Se houver imagem local do mapa, exiba com use_container_width
-path_local = None  # "assets/mindmap.png"
+# (opcional) exibir imagem local se houver
+path_local = None
 if path_local:
     try:
         with open(path_local, "rb") as f:
@@ -76,7 +67,7 @@ if path_local:
 
 st.markdown("---")
 
-# Mermaid source (resumido do mapa)
+# Mermaid source (resumido)
 mermaid_source = """
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -99,112 +90,38 @@ mindmap
       Limite[Jejum intermitente; Sono polifásico; Suspiro fisiológico]
 """
 
-# Lista de chaves/nós que queremos mapear automaticamente
-node_keys = [
-    "Guia de Biohacking e Neurofisiologia", "Esquerdo", "Direito", "CorpoCaloso",
-    "RespiraçãoNasal", "ControleVisual", "Termorregulação",
-    "Neurotransmissores", "Hormônios",
-    "Nootrópicos", "Vitaminas", "Alimentos",
-    "Limite"
-]
-
-# Função para extrair texto do PDF (se PyPDF2 estiver disponível)
-def extract_text_from_pdf_bytes(pdf_bytes: bytes) -> str:
-    try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
-        pages = []
-        for p in reader.pages:
-            try:
-                pages.append(p.extract_text() or "")
-            except Exception:
-                pages.append("")
-        return "\n".join(pages)
-    except Exception:
-        # fallback: return empty string if PyPDF2 não disponível
-        return ""
-
-# Função que cria details_map procurando por termos no texto do PDF
-def build_details_map_from_text(text: str, keys: list) -> dict:
-    details = {}
-    lower_text = text.lower()
-    for k in keys:
-        # tentativa de localizar ocorrências exatas ou aproximadas
-        k_clean = k.lower()
-        # procurar por palavra-chave exata
-        idx = lower_text.find(k_clean)
-        if idx == -1:
-            # tentar variações (ex.: "respiração nasal" -> "respiração")
-            parts = re.split(r'[\s_\\-]+', k_clean)
-            found = False
-            for p in parts:
-                if len(p) > 3 and p in lower_text:
-                    idx = lower_text.find(p)
-                    found = True
-                    break
-            if not found:
-                idx = -1
-        if idx >= 0:
-            # extrair contexto: 200 chars antes e depois, limpar quebras
-            start = max(0, idx - 200)
-            end = min(len(text), idx + 200)
-            snippet = text[start:end].strip()
-            snippet = re.sub(r'\s+', ' ', snippet)
-            # se snippet muito curto, pegar a sentença inteira
-            details[k] = snippet
-        else:
-            details[k] = ""  # preencher vazio para posterior fallback
-    return details
-
-# Tentar construir details_map a partir do PDF enviado; se não houver, usar fallback embutido
-details_map = {}
-
-if pdf_file is not None:
-    pdf_bytes = pdf_file.read()
-    extracted = extract_text_from_pdf_bytes(pdf_bytes)
-    if extracted:
-        details_map = build_details_map_from_text(extracted, node_keys)
-
-# Fallback manual (conteúdo extraído do dossiê enviado anteriormente)
-fallback_map = {
+# details_map (pode ser gerado dinamicamente; aqui usamos fallback)
+details_map = {
     "Guia de Biohacking e Neurofisiologia": "Visão geral: Hemisférios, Autorregulação, Química, Suplementação, Protocolos.",
     "Esquerdo": "Hemisfério esquerdo: linguagem, lógica, análise de detalhes; controla o lado direito do corpo.",
     "Direito": "Hemisfério direito: criatividade, processamento espacial, linguagem não-verbal; controla o lado esquerdo do corpo.",
     "CorpoCaloso": "Corpo caloso: ponte de fibras que integra os dois hemisférios.",
     "RespiraçãoNasal": "Respiração nasal: narina direita tende a ativar o simpático (alerta); narina esquerda tende a ativar o parassimpático (calma).",
-    "ControleVisual": "Controle visual: visão foveal aumenta foco; visão panorâmica favorece criatividade; movimentos sacádicos ajudam a reduzir carga emocional.",
-    "Termorregulação": "Termorregulação: exposição ao frio aumenta dopamina e resiliência; calor (sauna) libera proteínas de choque térmico e favorece reparação.",
-    "Neurotransmissores": "Neurotransmissores chave: Dopamina (motivação), Noradrenalina (alerta), GABA (calma), Acetilcolina (aprendizado).",
-    "Hormônios": "Hormônios relevantes: Cortisol (stress/energia), Melatonina (sono), Ocitocina (vínculo).",
-    "Nootrópicos": "Nootrópicos: Cafeína+L-Teanina (foco limpo), Alfa-GPC (colina/acetilcolina), Magnésio (relaxamento), L-Tirosina (precursor de dopamina).",
-    "Vitaminas": "Vitaminas importantes: Complexo B (energia), Vitamina D (hormonal/imunidade), Vitamina C (antioxidante).",
-    "Alimentos": "Alimentos-chave: ovos (colina), fígado (multivitamínico), sardinha (ômega-3).",
-    "Limite": "Protocolos de limite: jejum intermitente (autofagia), sono polifásico (experimental), suspiro fisiológico (alívio de stress)."
+    "ControleVisual": "Visão foveal aumenta foco; visão panorâmica favorece criatividade; movimentos sacádicos reduzem stress.",
+    "Termorregulação": "Frio aumenta dopamina; calor favorece reparação celular.",
+    "Neurotransmissores": "Dopamina, Noradrenalina, GABA, Acetilcolina.",
+    "Hormônios": "Cortisol, Melatonina, Ocitocina.",
+    "Nootrópicos": "Cafeína+L-Teanina, Alfa-GPC, Magnésio, L-Tirosina.",
+    "Vitaminas": "Complexo B, Vitamina D, Vitamina C.",
+    "Alimentos": "Ovos (colina), fígado (multivitamínico), sardinha (ômega-3).",
+    "Limite": "Jejum intermitente, sono polifásico, suspiro fisiológico."
 }
 
-# Merge: se algum valor extraído estiver vazio, use fallback
-for k in node_keys:
-    val = details_map.get(k, "")
-    if not val:
-        details_map[k] = fallback_map.get(k, "")
-
-# Prepare JSON to inject into the client-side JS
+# JSON para injetar no JS
 details_json = json.dumps(details_map)
-
-# HTML + JS que renderiza o Mermaid e adiciona interatividade avançada
 mermaid_html = f"""
 <div style="display:flex; gap:16px; align-items:flex-start;">
   <div style="flex:1; min-width:60%;">
     <div style="margin-bottom:8px;">
       <input id="searchBox" placeholder="Buscar nó (ex.: Dopamina, RespiraçãoNasal)" style="width:60%; padding:6px;"/>
       <button id="btnSearch" style="margin-left:8px;padding:6px 10px;">Buscar</button>
-      <button id="btnClear" style="margin-left:6px;padding:6px 10px;">Limpar destaque</button>
+      <button id="btnClear" style="margin-left:6px;padding:6px 10px;">Limpar</button>
       <button id="btnCollapse" style="margin-left:6px;padding:6px 10px;">Colapsar ramos</button>
       <button id="btnExpand" style="margin-left:6px;padding:6px 10px;">Expandir ramos</button>
       <button id="btnExport" style="float:right;padding:6px 10px;">Exportar PNG</button>
     </div>
     <div id="mermaid-container" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
-      <div class="mermaid">
+      <div id="mermaid-diagram" class="mermaid">
 {mermaid_source}
       </div>
     </div>
@@ -217,11 +134,11 @@ mermaid_html = f"""
       <div id="nodeDetail" style="font-size:13px;color:#333;line-height:1.4;">Ao clicar em um nó, a descrição aparecerá aqui.</div>
       <hr style="margin:12px 0;">
       <div style="font-size:12px;color:#666;">
-        <strong>Dicas de interação</strong>
+        <strong>Dicas</strong>
         <ul style="padding-left:18px;margin:6px 0;">
-          <li>Use o mouse para arrastar e a roda para dar zoom.</li>
-          <li>Busque por rótulos com a caixa de busca.</li>
-          <li>Exporte o diagrama como PNG com o botão Exportar.</li>
+          <li>Arraste para mover; role para zoom.</li>
+          <li>Use busca para destacar nós.</li>
+          <li>Exporte como PNG.</li>
         </ul>
       </div>
     </div>
@@ -232,23 +149,37 @@ mermaid_html = f"""
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
 
 <script>
-  mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
+  // Configuração segura do Mermaid: não usar startOnLoad automático
+  mermaid.initialize({{ startOnLoad: false, theme: 'default', securityLevel: 'loose' }});
   const DETAILS = {details_json};
 
-  function waitForMermaidSVG(timeout = 4000) {{
-    return new Promise((resolve, reject) => {{
-      const start = Date.now();
-      (function check() {{
-        const svg = document.querySelector('#mermaid-container svg');
-        if (svg) return resolve(svg);
-        if (Date.now() - start > timeout) return reject(new Error('SVG não encontrado'));
-        requestAnimationFrame(check);
-      }})();
-    }});
-  }}
+  // Renderiza o diagrama via mermaidAPI.render para garantir que o SVG esteja disponível imediatamente
+  (async function renderMermaid() {{
+    try {{
+      const graphDefinition = `{mermaid_source.replace("`","\\`")}`;
+      // gerar id único
+      const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
+      // mermaidAPI.render retorna SVG string
+      mermaid.mermaidAPI.render(renderId, graphDefinition, (svgCode) => {{
+        const container = document.getElementById('mermaid-container');
+        // substituir conteúdo por SVG
+        container.innerHTML = svgCode;
+        initInteractivity();
+      }});
+    }} catch (err) {{
+      console.error('Erro ao renderizar Mermaid:', err);
+      document.getElementById('mermaid-container').innerText = 'Falha ao renderizar diagrama.';
+    }}
+  }})();
 
-  waitForMermaidSVG(6000).then(svg => {{
-    // init pan/zoom and keep instance global
+  function initInteractivity() {{
+    const svg = document.querySelector('#mermaid-container svg');
+    if (!svg) {{
+      console.warn('SVG do Mermaid não encontrado.');
+      return;
+    }}
+
+    // inicializar pan/zoom e manter instância global
     try {{
       window._mz = svgPanZoom(svg, {{
         zoomEnabled: true,
@@ -258,17 +189,18 @@ mermaid_html = f"""
         minZoom: 0.5,
         maxZoom: 4
       }});
-    }} catch(e){{ console.warn('svg-pan-zoom falhou', e); }}
+    }} catch(e) {{ console.warn('svg-pan-zoom falhou', e); }}
 
-    // collect node groups (Mermaid usually creates g[class*="node"])
-    const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node'));
+    // selecionar nós de forma robusta (várias variações de Mermaid)
+    const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
     const nodes = nodeGroups.map(g => {{
-      const textEl = g.querySelector('text');
+      // extrair texto (tspan/text)
+      const textEl = g.querySelector('text') || g.querySelector('tspan');
       const label = textEl ? textEl.textContent.trim() : null;
       return {{ group: g, label }};
     }}).filter(n => n.label);
 
-    // helper: clear highlights
+    // limpar destaques
     function clearHighlights() {{
       nodes.forEach(n => n.group.querySelectorAll('rect, ellipse, path').forEach(el => {{
         el.style.stroke = '';
@@ -277,7 +209,7 @@ mermaid_html = f"""
       }}));
     }}
 
-    // click handler: highlight and show details; also send selection to Streamlit via safe URL update
+    // clique em nó: destacar, mostrar detalhes e enviar seleção ao Streamlit (URL segura)
     nodes.forEach(n => {{
       n.group.style.cursor = 'pointer';
       n.group.addEventListener('click', (ev) => {{
@@ -293,7 +225,7 @@ mermaid_html = f"""
         document.getElementById('nodeTitle').innerText = title;
         document.getElementById('nodeDetail').innerText = detail;
 
-        // safe update of query params: use pathname + search
+        // atualizar query params de forma segura (pathname + search)
         try {{
           const params = new URLSearchParams(window.location.search);
           params.set('selected_node', key);
@@ -307,7 +239,7 @@ mermaid_html = f"""
       }});
     }});
 
-    // search: highlight nodes containing query
+    // busca: destaca nós que contenham o termo
     document.getElementById('btnSearch').addEventListener('click', () => {{
       const q = document.getElementById('searchBox').value.trim().toLowerCase();
       if (!q) return;
@@ -319,21 +251,16 @@ mermaid_html = f"""
             el.style.stroke = '#2b8cbe';
             el.style.strokeWidth = '2px';
           }});
-          // try to center on node using svg-pan-zoom instance
+          // centralizar no nó (se svg-pan-zoom disponível)
           try {{
             const bbox = n.group.getBBox();
             const cx = bbox.x + bbox.width/2;
             const cy = bbox.y + bbox.height/2;
             if (window._mz && typeof window._mz.pan === 'function') {{
-              // compute pan to center node (approx)
-              const pan = window._mz.getPan();
-              const zoom = window._mz.getZoom();
-              // center by setting pan so that node center maps to viewport center
               const vb = svg.viewBox.baseVal;
-              const viewW = vb.width;
-              const viewH = vb.height;
-              const newPanX = -cx * zoom + viewW/2;
-              const newPanY = -cy * zoom + viewH/2;
+              const zoom = window._mz.getZoom();
+              const newPanX = -cx * zoom + vb.width/2;
+              const newPanY = -cy * zoom + vb.height/2;
               window._mz.pan({{ x: newPanX, y: newPanY }});
             }}
           }} catch(e){{ console.warn(e); }}
@@ -348,12 +275,12 @@ mermaid_html = f"""
       document.getElementById('searchBox').value = '';
     }});
 
-    // collapse: hide all nodes except root and top-level headings
-    const topLevel = ['Guia de Biohacking e Neurofisiologia','Hemisférios','Autorregulação','QuímicaCerebral','Suplementação','Protocolos'];
+    // collapse/expand: esconder/exibir nós não-top-level
+    const topLevelKeys = ['Guia de Biohacking e Neurofisiologia','Hemisférios','Autorregulação','QuímicaCerebral','Suplementação','Protocolos'];
     document.getElementById('btnCollapse').addEventListener('click', () => {{
       nodes.forEach(n => {{
         const key = n.label.split('\\n')[0].trim();
-        if (!topLevel.includes(key)) {{
+        if (!topLevelKeys.includes(key)) {{
           n.group.style.display = 'none';
         }}
       }});
@@ -362,7 +289,7 @@ mermaid_html = f"""
       nodes.forEach(n => n.group.style.display = '');
     }});
 
-    // export SVG -> PNG
+    // exportar PNG (SVG -> canvas)
     document.getElementById('btnExport').addEventListener('click', () => {{
       try {{
         const serializer = new XMLSerializer();
@@ -397,7 +324,7 @@ mermaid_html = f"""
       }}
     }});
 
-    // click on background clears selection
+    // clique no fundo limpa seleção
     svg.addEventListener('click', (ev) => {{
       if (ev.target === svg) {{
         clearHighlights();
@@ -405,19 +332,17 @@ mermaid_html = f"""
         document.getElementById('nodeDetail').innerText = 'Ao clicar em um nó, a descrição aparecerá aqui.';
       }}
     }});
-
-  }}).catch(err => {{
-    console.warn('Não foi possível inicializar interatividade do Mermaid:', err);
-  }});
+  }}
 </script>
 
 <style>
   #mermaid-container {{ max-width: 100%; overflow: auto; padding: 8px 0; background:#fff; }}
-  .mermaid svg {{ max-width: 100%; height: auto; display:block; }}
+  #mermaid-container svg {{ max-width: 100%; height: auto; display:block; }}
 </style>
 """
 
-st.components.v1.html(mermaid_html, height=560, scrolling=True)
+st.components.v1.html(mermaid_html, height=600, scrolling=True)
+
 
 st.markdown("---")
 
