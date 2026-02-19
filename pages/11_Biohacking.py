@@ -61,9 +61,9 @@ cards = [
         "title": "Foco imediato",
         "summary": "Aumentar atenção e processamento analítico por curto período.",
         "items": [
-            "Tape a narina esquerda e respire pela direita por 60–120 segundos.",
-            "Olhar fixo em um ponto por 30–60 segundos (visão foveal).",
-            "Suplemento opcional: cafeína + L‑teanina (uso pontual).",
+            "Tape a narina esquerda e respire pela direita por 60-120 segundos.",
+            "Olhar fixo em um ponto por 30-60 segundos (visão foveal).",
+            "Suplemento opcional: cafeína + L-teanina (uso pontual).",
             "Técnica de SOS: tape a narina esquerda + respire vigorosamente por 60s."
         ]
     },
@@ -72,7 +72,7 @@ cards = [
         "title": "Calma imediata",
         "summary": "Reduzir ansiedade e ativar o sistema parassimpático.",
         "items": [
-            "Suspiro fisiológico: duas inspirações curtas pelo nariz + expiração longa pela boca (2–3 repetições).",
+            "Suspiro fisiológico: duas inspirações curtas pelo nariz + expiração longa pela boca (2-3 repetições).",
             "Expiração prolongada 1:2 (ex.: inspire 4s, expire 8s).",
             "Exposição breve ao frio (lavar o rosto com água gelada) para reflexo de mergulho.",
             "Técnica de SOS: suspiro fisiológico + movimentos oculares laterais."
@@ -83,7 +83,7 @@ cards = [
         "title": "Criatividade / insight",
         "summary": "Estimular pensamento holístico e geração de ideias.",
         "items": [
-            "Caminhada ao ar livre com fluxo óptico (olhar para o horizonte) por 10–20 minutos.",
+            "Caminhada ao ar livre com fluxo óptico (olhar para o horizonte) por 10-20 minutos.",
             "Respiração narina esquerda por 2 minutos para ativar relaxamento criativo.",
             "Relaxar o olhar (visão panorâmica) para integrar informações.",
             "Técnica de SOS: tape a narina direita e respire pela esquerda por 2 minutos."
@@ -94,8 +94,8 @@ cards = [
         "title": "Sono",
         "summary": "Melhorar início e qualidade do sono com higiene e rotinas.",
         "items": [
-            "Exposição à luz solar matinal 5–10 minutos para regular o ciclo circadiano.",
-            "Evitar luz azul 60–90 minutos antes de dormir; usar luzes quentes/alaranjadas.",
+            "Exposição à luz solar matinal 5-10 minutos para regular o ciclo circadiano.",
+            "Evitar luz azul 60-90 minutos antes de dormir; usar luzes quentes/alaranjadas.",
             "Banho morno 60 minutos antes de deitar para facilitar queda de temperatura corporal.",
             "Suplemento opcional: magnésio (bisglicinato/treonato) 1h antes, se indicado."
         ]
@@ -118,12 +118,12 @@ for i, card in enumerate(cards):
         st.markdown("---")
 
 # Supplement quick guide card
-st.header("Suplementação estratégica (resumo e segurança)")
+st.header("Suplementação estratégica")
 st.markdown(
     """
-**Foco/energia:** L‑Tirosina, cafeína (uso pontual), creatina.  
-**Calma/sono:** Magnésio (bisglicinato/treonato), inositol, L‑teanina.  
-**Memória/fluxo:** Alfa‑GPC (colina biodisponível).  
+**Foco/energia:** L-Tirosina, cafeína (uso pontual), creatina.  
+**Calma/sono:** Magnésio (bisglicinato/treonato), inositol, L-teanina.  
+**Memória/fluxo:** Alfa-GPC (colina biodisponível).  
 
 **Regras de segurança:** ciclagem; não combinar sem supervisão; cheque interações com medicações; consulte um profissional antes de iniciar.
 """
@@ -132,7 +132,7 @@ st.markdown(
 st.markdown("---")
 
 # Risk assessment (simple)
-st.header("Avaliação rápida de risco (orientativa)")
+st.header("Avaliação rápida de risco")
 rq1 = st.radio("Tem condição médica crônica?", ["Não", "Sim"], key="rq1")
 rq2 = st.radio("Usa medicação prescrita?", ["Não", "Sim"], key="rq2")
 rq3 = st.radio("Tem acompanhamento médico disponível?", ["Sim", "Não"], key="rq3")
@@ -250,7 +250,7 @@ st.markdown("---")
 st.header("Próximos passos sugeridos")
 st.markdown(
     """
-1. Escolha 1–2 biohacks do folheto e teste por 1–2 semanas.  
+1. Escolha 1-2 biohacks do folheto e teste por 1-2 semanas.  
 2. Meça sono/energia/funcionalidade com um diário simples (papel ou app).  
 3. Pare imediatamente se houver sinais adversos.  
 4. Consulte um profissional antes de suplementos fortes, hormônios ou procedimentos invasivos.
