@@ -93,33 +93,28 @@ mindmap
 
 # Template HTML/JS minimalista (sem controles, sem painel)
 mermaid_template = """
-<!-- Cole este bloco no seu st.components.v1.html(...) -->
 <div id="mermaid-wrapper" style="border:1px solid #eee; padding:8px; border-radius:6px; background:#fff;">
   <div id="mermaid-container"></div>
 </div>
 
 <script>
-  // URLs CDN (mude se precisar usar versão local)
   const MERMAID_URL = "https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js";
   const SVGPANZOOM_URL = "https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js";
 
   function loadScript(src) {
     return new Promise((resolve, reject) => {
-      // se já carregado, resolve imediatamente
       if (Array.from(document.scripts).some(s => s.src && s.src.indexOf(src) !== -1)) {
-        // esperar um tick para garantir execução
         return setTimeout(() => resolve(), 20);
       }
       const s = document.createElement('script');
       s.src = src;
       s.async = false;
       s.onload = () => resolve();
-      s.onerror = (e) => reject(new Error('Falha ao carregar ' + src));
+      s.onerror = () => reject(new Error('Falha ao carregar ' + src));
       document.head.appendChild(s);
     });
   }
 
-  // seu mermaid source (substitua pelo seu mermaid_source)
   const MERMAID_SOURCE = `
 mindmap
   root((Guia de Biohacking e Neurofisiologia))
@@ -145,31 +140,24 @@ mindmap
 
   (async function init() {
     try {
-      // 1) carregar Mermaid primeiro, depois svg-pan-zoom
       await loadScript(MERMAID_URL);
       await loadScript(SVGPANZOOM_URL);
 
-      if (typeof mermaid === 'undefined') throw new Error('Mermaid não disponível após carregamento');
-      // configurar mermaid sem startOnLoad
+      if (typeof mermaid === 'undefined') throw new Error('Mermaid não disponível');
       mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
 
-      // 2) renderizar via API (garante SVG pronto)
       const renderId = 'mmd_' + Math.random().toString(36).slice(2,9);
       mermaid.mermaidAPI.render(renderId, MERMAID_SOURCE, function(svgCode) {
         const container = document.getElementById('mermaid-container');
         container.innerHTML = svgCode;
 
-        // 3) garantir que o SVG esteja no DOM e inicializar interatividade
         const tryInit = () => {
           const svg = container.querySelector('svg');
           if (!svg) return setTimeout(tryInit, 40);
 
-          // inicializa pan/zoom
-          try {
-            window._mz = svgPanZoom(svg, { zoomEnabled:true, controlIconsEnabled:false, fit:true, center:true, minZoom:0.5, maxZoom:4 });
-          } catch(e) { console.warn('svg-pan-zoom falhou', e); }
+          try { window._mz = svgPanZoom(svg, { zoomEnabled:true, controlIconsEnabled:false, fit:true, center:true, minZoom:0.5, maxZoom:4 }); }
+          catch(e) { console.warn('svg-pan-zoom falhou', e); }
 
-          // seleção tolerante de nós e destaque simples
           const nodeGroups = Array.from(svg.querySelectorAll('g[class*="node"], g.node, g[class*="cluster"], g[class*="label"]'));
           nodeGroups.forEach(g => {
             g.style.cursor = 'pointer';
@@ -180,10 +168,9 @@ mindmap
             });
           });
 
-          // clique no fundo limpa
           svg.addEventListener('click', (ev) => { if (ev.target === svg) nodeGroups.forEach(x => x.querySelectorAll('rect, ellipse, path').forEach(el => { el.style.stroke=''; el.style.strokeWidth=''; })); });
 
-          console.log('Mermaid + interatividade inicializados. nodeGroups:', nodeGroups.length);
+          console.log('Mermaid inicializado com interatividade. nodeGroups:', nodeGroups.length);
         };
         tryInit();
       });
