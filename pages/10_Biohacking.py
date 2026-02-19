@@ -1,11 +1,11 @@
-# pages/11_Biohacking.py
+# pages/10_Biohacking.py
 import streamlit as st
 import pandas as pd
 import time
 from datetime import datetime, timedelta
 
 st.set_page_config(page_title="Biohacking — Guia prático", layout="wide")
-st.title("Biohacking — Guia prático, seguro e orientado por dados")
+st.title("Biohacking — 🧬")
 
 st.markdown("""
 **Objetivo:** oferecer um espaço educativo e prático para experimentar intervenções de baixo a médio risco, medir respostas e priorizar segurança.
