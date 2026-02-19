@@ -58,7 +58,7 @@ st.markdown("### Mapa mental interativo")
 st.markdown("Explore o mapa: clique em um nó para ver detalhes; use colapsar/expandir e exportar PNG.")
 
 # Read selected node from query params (callback from the Cytoscape component)
-params = st.experimental_get_query_params()
+params = st.query_params()
 selected_node_id = params.get("selected_node", [None])[0]
 
 # Detailed graph structure (expanded with sub-nodes)
