@@ -54,7 +54,7 @@ st.markdown(
 import streamlit as st
 import json
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia (versão limpa)")
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
 
 # (opcional) exibir imagem local se houver
 path_local = None
