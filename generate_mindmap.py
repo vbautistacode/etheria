@@ -30,7 +30,7 @@ branches = {
     "Suplementação e Nutrição": [
         ("Nootrópicos", "Cafeína + L-Teanina (Foco Limpo); Alfa-GPC (Acetilcolina); Magnésio (Relaxamento); L-Tirosina (Dopamina)"),
         ("Vitaminas", "Complexo B (Energia); Vitamina D (Hormonal/Imunidade); Vitamina C (Antioxidante)"),
-        ("Alimentos", "Ovos; Fígado; Sardinha")
+        ("Alimentos", "Ovos(Colina); Fígado(Multivitamínico); Peixe (Omega-3))")
     ],
     "Protocolos de Limite": [
         ("Jejum Intermitente", "Autofagia"),

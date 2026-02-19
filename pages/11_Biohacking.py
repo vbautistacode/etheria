@@ -1,4 +1,6 @@
 # pages/11_Biohacking.py
+from tkinter import Image
+from PIL import UnidentifiedImageError
 import streamlit as st
 import io
 from datetime import datetime
@@ -50,12 +52,12 @@ st.markdown(
 """
 )
 
+st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
+
 # Se quiser usar um arquivo local já presente no repositório, defina path_local = "assets/mindmap.png"
 path_local = "assets/mindmap.png"
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
-
-# upload do arquivo (opcional)
+# --- carregar arquivo local (compatível com seu código original) ---
 uploaded = None
 if path_local:
     try:
@@ -64,9 +66,33 @@ if path_local:
     except Exception:
         uploaded = None
 
-# Exibir imagem se houver
-if uploaded:
-    st.image(uploaded, use_container_width=True)
+# --- abrir expander e exibir imagem se válida ---
+with st.expander("Upload do arquivo (opcional)"):
+    if uploaded:
+        try:
+            # validação com Pillow
+            img = Image.open(io.BytesIO(uploaded))
+            img.verify()  # valida sem carregar totalmente
+            # reabrir para exibir (verify() deixa o objeto inválido)
+            img = Image.open(io.BytesIO(uploaded)).convert("RGBA")
+            st.image(img, use_column_width=True, caption="Mapa mental enviado")
+        except UnidentifiedImageError:
+            st.error("O arquivo local não é uma imagem válida ou está corrompido.")
+        except Exception as e:
+            st.error(f"Erro ao processar a imagem local: {e}")
+    else:
+        st.info("Nenhuma imagem local encontrada. Faça upload ou defina path_local.")
+        # opcional: permitir upload direto dentro do expander
+        uploaded_file = st.file_uploader("Envie um PNG/JPG (opcional)", type=["png", "jpg", "jpeg"])
+        if uploaded_file is not None:
+            try:
+                data = uploaded_file.getvalue()
+                img = Image.open(io.BytesIO(data)).convert("RGBA")
+                st.image(img, use_column_width=True, caption="Mapa mental enviado (upload)")
+            except UnidentifiedImageError:
+                st.error("O arquivo enviado não é uma imagem válida.")
+            except Exception as e:
+                st.error(f"Erro ao processar o upload: {e}")
 
 # Cards for objectives
 st.header("Escolha um objetivo e ative os biohacks correspondentes")
