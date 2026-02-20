@@ -11,7 +11,8 @@ st.title("Musicoterapia 🪉")
 st.markdown(
     """
     É o uso terapêutico do som para regular estados emocionais e promover
-    relaxamento ou foco. Utilize nossas sugestões de playlists, obras clássicas e sessões guiadas.
+    relaxamento ou foco.  
+    Utilize nossas sugestões de playlists, obras clássicas e sessões guiadas para cada objetivo.
     """
 )
 st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
