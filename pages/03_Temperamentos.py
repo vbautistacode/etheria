@@ -164,7 +164,7 @@ RECOMMENDATIONS = {
 # -------------------------
 # UI: iniciar / formulário
 # -------------------------
-left_col = st.columns([1])
+left_col, right_col = st.columns([3, 1])
 with left_col:
     st.markdown("Clique em **Iniciar** para abrir o questionário. Use valores de 0 (nunca) a 10 (sempre).")
 
