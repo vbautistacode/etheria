@@ -13,8 +13,11 @@ st.title("Temperamentos 🌑🌔🌕🌖")
 
 st.markdown("""
 Este autoestudo soma as características dos quatro grupos (A, B, C, D) e indica o temperamento dominante e secundário.  
+            
 **O que são os temperamentos:** trata‑se de um modelo clássico que descreve padrões estáveis de comportamento, emoção e energia corporal. Cada temperamento reúne um conjunto de tendências — maneiras preferidas de reagir, de se relacionar e de gerir a própria vitalidade — que ajudam a entender por que certas rotinas, alimentos e práticas funcionam melhor para algumas pessoas do que para outras.  
 
+Temperamentos:
+            
 - **Sanguíneo:** geralmente extrovertido, sociável e entusiasta; busca estímulos e variedade.  
 - **Bilioso (colérico):** orientado à ação, decidido e ambicioso; tende a respostas rápidas e foco em resultados.  
 - **Melancólico (nervoso):** introspectivo, detalhista e sensível; propenso à reflexão profunda e à cautela.  
