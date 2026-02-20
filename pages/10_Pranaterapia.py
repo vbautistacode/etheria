@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------
 st.title("Pranaterapia 🌬️")
 st.markdown(
-    "Pranaterapia — práticas guiadas de respiração e meditação focadas no prana (energia vital). "
+    "Práticas guiadas de respiração e meditação focadas no prana (energia vital)."  
     "Sessões curtas por intenção (calma, foco, sono) com exercícios para integrar respiração, corpo e presença."
 )
 
