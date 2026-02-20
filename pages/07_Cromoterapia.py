@@ -7,8 +7,8 @@ st.set_page_config(page_title="Cromoterapia", layout="wide")
 st.title("Cromoterapia 🌈")
 st.markdown(
     """
-    Cromoterapia: exploração das cores e suas frequências para modular humor e energia.
-    Ferramentas simples para exercícios visuais, paletas por intenção e recomendações
+    Introdução: Na cromoterapia, exploramos as cores e suas frequências para modular humor e energia.
+    Utilizando ferramentas simples para exercícios visuais, paletas por intenção e recomendações
     rápidas para o dia a dia.
     """
 )
