@@ -14,11 +14,14 @@ st.markdown(
     A Pranaterapia é uma prática que utiliza técnicas de respiração consciente para equilibrar o prana (energia vital) no corpo.  
     Sessões curtas por intenção (calma, foco, sono) com exercícios para integrar respiração, corpo e presença.
     """
-    )
+)
 
 st.caption(
-    "Selecione um chakra. Na opção “Respiração guiada” o áudio correspondente será carregado automaticamente. "
-    "Use o player nativo para iniciar, pausar ou parar; a esfera e a contagem sincronizam-se com o player."
+    """
+    Selecione um chakra no menu lateral.  
+    Na opção “Respiração guiada” o áudio correspondente será carregado automaticamente.  
+    Use o player para iniciar, pausar ou parar; a esfera e a contagem sincronizam-se com o player.
+    """    
 )
 
 # ---------------------------------------------------------
