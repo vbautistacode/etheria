@@ -7,7 +7,7 @@ st.set_page_config(page_title="Aromaterapia", layout="wide")
 st.title("Aromaterapia 🌿")
 st.markdown(
     """
-    Aromaterapia: guia introdutório sobre óleos essenciais, métodos de uso e receitas
+    Guia introdutório sobre óleos essenciais, métodos de uso e receitas
     seguras para relaxamento, foco e sono. Inclui avisos de segurança e contraindicações.
     """
 )
