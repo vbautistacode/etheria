@@ -164,31 +164,13 @@ for i, card in enumerate(cards):
 st.header("Suplementação estratégica")
 st.markdown(
     """
-**Foco/energia:** L-Tirosina, cafeína (uso pontual), creatina.  
-**Calma/sono:** Magnésio (bisglicinato/treonato), inositol, L-teanina.  
-**Memória/fluxo:** Alfa-GPC (colina biodisponível).  
+**Foco e Energia:** L-Tirosina, cafeína (uso pontual), creatina.  
+**Calma e Sono:** Magnésio (bisglicinato/treonato), inositol, L-teanina.  
+**Memória e Fluxo:** Alfa-GPC (colina biodisponível).  
 
 **Regras de segurança:** ciclagem; não combinar sem supervisão; cheque interações com medicações; consulte um profissional antes de iniciar.
 """
 )
-
-st.markdown("---")
-
-# Risk assessment (simple)
-st.header("Avaliação rápida de risco")
-rq1 = st.radio("Tem condição médica crônica?", ["Não", "Sim"], key="rq1")
-rq2 = st.radio("Usa medicação prescrita?", ["Não", "Sim"], key="rq2")
-rq3 = st.radio("Tem acompanhamento médico disponível?", ["Sim", "Não"], key="rq3")
-
-risk_score = 0
-if rq1 == "Sim": risk_score += 2
-if rq2 == "Sim": risk_score += 2
-if rq3 == "Não": risk_score += 2
-
-if risk_score >= 3:
-    st.warning("Risco aumentado: consulte um profissional antes de intervenções médicas ou experimentos invasivos.")
-else:
-    st.info("Risco baixo-moderado: priorize intervenções não invasivas e monitoramento.")
 
 st.markdown("---")
 
@@ -275,18 +257,6 @@ if st.button("Gerar PDF com biohacks selecionados"):
             st.download_button("Baixar folheto (PDF)", data=pdf_bytes, file_name="biohacks_selecionados.pdf", mime="application/pdf")
         except Exception as e:
             st.error(f"Falha ao gerar PDF: {e}")
-
-st.markdown("---")
-
-# Education and cautions (from attached document)
-st.header("Educação e mitos comuns")
-st.markdown(
-    """
-- **Mito:** "Sou cérebro esquerdo ou direito." A verdade: usamos ambos; há inclinações, não rótulos fixos.  
-- **Cuidado:** implantes, edição genética e auto-injeções são experimentais e de alto risco; evite fora de ambientes regulados.  
-- **Privacidade:** dados de wearables e testes são sensíveis — verifique políticas de armazenamento e compartilhamento.
-"""
-)
 
 st.markdown("---")
 
