@@ -558,7 +558,7 @@ with tab_influencias:
         
         st.dataframe(
             df_table.style.apply(
-                lambda row: ['background-color: #fff3b0' if row['Período atual'] else '' for _ in row],
+                lambda row: ['background-color: #008000' if row['Período atual'] else '' for _ in row],
                 axis=1
             ),
             use_container_width=True
