@@ -164,15 +164,13 @@ RECOMMENDATIONS = {
 # -------------------------
 # UI: iniciar / formulário
 # -------------------------
-left_col, right_col = st.columns([1, 1])
-with left_col:
-    st.markdown("Clique em **Iniciar** para abrir o questionário. Use valores de 0 (nunca) a 10 (sempre).")
+st.markdown("Clique em **Iniciar** para abrir o questionário. Use valores de 0 (nunca) a 10 (sempre).")
 
 if "started" not in st.session_state:
     st.session_state.started = False
 
 col1, col2 = st.columns([3, 1])
-with col2:
+with col1:
     if st.button("Iniciar"):
         st.session_state.started = True
         st.session_state.responses = {}
