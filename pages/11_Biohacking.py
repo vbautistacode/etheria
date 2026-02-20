@@ -50,7 +50,7 @@ st.markdown(
 """
 )
 
-st.markdown("### Mapa mental: Guia de Biohacking e Neurofisiologia")
+st.markdown("### Guia de Biohacking e Neurofisiologia: Mapa Mental")
 
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
