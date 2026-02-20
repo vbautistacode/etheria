@@ -10,9 +10,11 @@ import streamlit as st
 # ---------------------------------------------------------
 st.title("Pranaterapia 🌬️")
 st.markdown(
-    "Práticas guiadas de respiração e meditação focadas no prana (energia vital)."  
-    "Sessões curtas por intenção (calma, foco, sono) com exercícios para integrar respiração, corpo e presença."
-)
+    """
+    Práticas guiadas de respiração e meditação focadas no prana (energia vital).  
+    Sessões curtas por intenção (calma, foco, sono) com exercícios para integrar respiração, corpo e presença.
+    """
+    )
 
 st.caption(
     "Selecione um chakra. Na opção “Respiração guiada” o áudio correspondente será carregado automaticamente. "
