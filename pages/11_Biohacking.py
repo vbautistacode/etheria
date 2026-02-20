@@ -24,7 +24,7 @@ st.markdown(
 st.markdown("---")
 
 # Consent (no sidebar)
-consent = st.checkbox("Li o aviso: este conteúdo é informativo e não substitui avaliação médica", value=False)
+consent = st.checkbox("Confirme: Este conteúdo é informativo e não substitui avaliação médica", value=False)
 if not consent:
     st.warning("Marque a caixa de consentimento para desbloquear as ferramentas.")
     st.stop()
