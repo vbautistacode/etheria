@@ -11,7 +11,7 @@ import streamlit as st
 st.title("Pranaterapia 🌬️")
 st.markdown(
     """
-    Práticas guiadas de respiração e meditação focadas no prana (energia vital).  
+    A Pranaterapia é uma prática que utiliza técnicas de respiração consciente para equilibrar o prana (energia vital) no corpo.  
     Sessões curtas por intenção (calma, foco, sono) com exercícios para integrar respiração, corpo e presença.
     """
     )
