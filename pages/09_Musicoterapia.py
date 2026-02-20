@@ -10,8 +10,8 @@ st.set_page_config(page_title="Musicoterapia", layout="wide")
 st.title("Musicoterapia 🪉")
 st.markdown(
     """
-    Musicoterapia: uso terapêutico do som para regular estados emocionais e promover
-    relaxamento ou foco. Sugestões de playlists, obras clássicas e sessões guiadas.
+    É o uso terapêutico do som para regular estados emocionais e promover
+    relaxamento ou foco. Utilize nossas sugestões de playlists, obras clássicas e sessões guiadas.
     """
 )
 st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
