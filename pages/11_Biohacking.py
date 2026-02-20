@@ -50,7 +50,7 @@ st.markdown(
 """
 )
 
-st.markdown("### Guia de Biohacking e Neurofisiologia: Mapa Mental")
+st.markdown("### Guia de Biohacking e Neurofisiologia: Sinstese prática")
 
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
@@ -68,7 +68,7 @@ if path_local:
         uploaded = None
 
 # --- abrir expander e exibir imagem se válida ---
-with st.expander("Visualize o mapa mental"):
+with st.expander("Visualize o mapa mental completo (clique para expandir)"):
     if uploaded:
         try:
             # validação com Pillow
