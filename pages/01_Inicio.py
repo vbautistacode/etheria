@@ -67,20 +67,15 @@ st.markdown(
 
     O **Relógio Tátvico** mostra como esses movimentos dialogam com os cinco elementos sutis — 
     os *tátvvas*:  
-    - **Éter (Akasha)**: o espaço que acolhe todos os ritmos, a matriz silenciosa do ser.  
-    - **Ar (Vayu)**: o sopro das ideias e da comunicação, que acompanha Mercúrio e os ventos da mente.  
-    - **Fogo (Tejas)**: a chama da ação e da vontade, refletida nos ciclos solares e na energia de Marte.  
-    - **Água (Apas)**: o fluxo das emoções e da intuição, espelhado na Lua e em Vênus.  
-    - **Terra (Prithivi)**: a estabilidade e a forma, sustentada por Saturno e pelos ciclos de materialização.  
+    - **Éter (Akasha)**: o espaço que acolhe todos os ritmos, a matriz silenciosa do ser e do tempo, associada a Vênus e à expansão da consciência. 
+    - **Ar (Vayu)**: o sopro das ideias e da comunicação, que acompanha Saturno e os ventos da mente.  
+    - **Fogo (Tejas)**: a chama da ação e da vontade, refletida nos ciclos e na energia de Marte.  
+    - **Água (Apas)**: o fluxo das emoções e da intuição, espelhado na Lua.  
+    - **Terra (Prithivi)**: a estabilidade e a forma, sustentada pelo Sol e pelos ciclos de materialização.  
 
     Assim, cada transição astrológica desperta um tátvva correspondente, convidando você a alinhar 
-    práticas externas com estados internos.  
-    Mais do que observar símbolos, aqui você é chamado a vivenciá-los: transformar arquétipos em 
-    experiências, experiências em consciência, e consciência em presença.  
+    práticas externas com estados internos.
 
-    Este espaço é uma jornada de autoconhecimento, onde o relógio celeste e o relógio tátvico 
-    se sincronizam, revelando que cada instante é uma oportunidade de integração entre corpo, mente 
-    e espírito.
     """
 )
 
@@ -208,7 +203,7 @@ PLANET_STYLES = {
     "Lua":     {"color": "#EE82EE", "icon": "☾", "label_pt": "Lua",      "label_en": "Moon"},
     "Marte":   {"color": "#FF0000", "icon": "♂️", "label_pt": "Marte",    "label_en": "Mars"},
     "Mercúrio":{"color": "#FFD700", "icon": "☿️", "label_pt": "Mercúrio", "label_en": "Mercury"},
-    "Júpiter": {"color": "#0000FF", "icon": "♃", "label_pt": "Júpiter",  "label_en": "Jupiter"},
+    "Júpiter": {"color": "#4C4CFF", "icon": "♃", "label_pt": "Júpiter",  "label_en": "Jupiter"},
     "Vênus":   {"color": "#87CEEB", "icon": "♀️", "label_pt": "Vênus",    "label_en": "Venus"},
     "Saturno": {"color": "#008000", "icon": "♄", "label_pt": "Saturno",  "label_en": "Saturn"},
     "Urano":   {"color": "#7FFFD4", "icon": "⛢", "label_pt": "Urano",    "label_en": "Uranus"},
