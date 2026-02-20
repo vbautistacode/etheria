@@ -8,9 +8,8 @@ st.title("Cristaloterapia 💎")
 
 st.markdown(
     """
-    Introdução à Cristaloterapia: propriedades simbólicas e usos práticos dos cristais
-    para apoio emocional, foco e aterramento. Inclui orientações básicas de cuidado
-    e sugestões por intenção.
+    Introdução: A cirstaloterapia é a prática de usar cristais para apoio emocional, foco e aterramento. 
+    Aqui, você encontra orientações básicas de cuidado e sugestões por intenção.
     """
 )
 st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
