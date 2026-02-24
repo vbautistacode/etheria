@@ -182,12 +182,12 @@ if not st.session_state.started:
 if "responses" not in st.session_state:
     st.session_state.responses = {}
 
-# renderizar cada grupo dentro de um expander separado
+# renderizar cada grupo com o expander à esquerda
 for group, qs in QUESTIONS.items():
     exp_label = group.replace("_", " ")
-    # cria duas colunas; a segunda é estreita e conterá o expander
-    col_main, col_exp = st.columns([2, 1])  # ajuste as proporções conforme desejar
-    with col_exp:
+    # coluna esquerda estreita para o expander, coluna direita maior para conteúdo/descrição
+    col_left, col_right = st.columns([1, 3])  # ajuste proporção conforme desejar
+    with col_left:
         with st.expander(exp_label, expanded=True):
             # dentro do expander, use colunas internas para os sliders
             cols = st.columns(2)
@@ -196,9 +196,9 @@ for group, qs in QUESTIONS.items():
                 default = st.session_state.responses.get(key, 0)
                 val = cols[i % 2].slider(q, 0, 10, value=default, key=key)
                 st.session_state.responses[key] = val
-    # opcional: conteúdo adicional do grupo pode ficar em col_main
-    with col_main:
-        st.write("")  # espaço reservado; remova ou coloque resumo/descrição se quiser
+    # opcional: conteúdo adicional do grupo fica na coluna direita
+    with col_right:
+        st.write("")  # reserve espaço; substitua por descrição, instruções ou visualização
 
 # -------------------------
 # Botão calcular e lógica de resultado
