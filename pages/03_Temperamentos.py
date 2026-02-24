@@ -186,7 +186,7 @@ if "responses" not in st.session_state:
 for group, qs in QUESTIONS.items():
     exp_label = group.replace("_", " ")
     # coluna esquerda estreita para o expander, coluna direita maior para conteúdo/descrição
-    col_left, col_right = st.columns([3, 3])  # ajuste proporção conforme desejar
+    col_left, col_right = st.columns([5, 5])  # ajuste proporção conforme desejar
     with col_left:
         with st.expander(exp_label, expanded=False):
             # dentro do expander, use colunas internas para os sliders
