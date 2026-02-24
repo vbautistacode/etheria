@@ -75,7 +75,7 @@ PLANET_PERFUME_ENERGY = {
     "Plutão": "Notas Amadeiradas — apoiam transformação profunda e aterramento."
 }
 
-# --- Interface lateral (corrigido) ---
+# --- Interface lateral (ampliada) ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre"])
 
@@ -96,11 +96,18 @@ elif mode == "Por planeta regente":
     suggested_perfumes = PLANET_TO_PERFUMES.get(planet, [])
     suggested_perfume_energy = PLANET_PERFUME_ENERGY.get(planet)
 elif mode == "Por objetivo / uso":
-    objective = st.sidebar.selectbox("Escolha o objetivo", ["Relaxamento","Foco","Sono","Aterramento","Elevação de humor"])
+    objective = st.sidebar.selectbox(
+        "Escolha o objetivo",
+        [
+            "Relaxamento", "Foco", "Sono", "Aterramento", "Elevação de humor",
+            "Energia", "Concentração", "Memória", "Criatividade", "Alívio de dor",
+            "Equilíbrio emocional", "Despertar/Alerta"
+        ]
+    )
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
 
-# --- Painel principal (corrigido: filtragem por objetivo) ---
+# --- Painel principal (resumo do objetivo selecionado) ---
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -125,13 +132,7 @@ with col1:
     elif mode == "Por objetivo / uso":
         st.markdown(f"**Objetivo:** {objective}")
         st.markdown("**Filtro aplicado:**")
-        st.write({
-            "Relaxamento": "Calmante, Relaxamento, Sono",
-            "Foco": "Alerta, Foco, Clareza",
-            "Sono": "Sono, Relaxamento, Calmante",
-            "Aterramento": "Aterramento, Enraizamento, Aterramento",
-            "Elevação de humor": "Elevação de humor, Elevar, Alegria"
-        }.get(objective, "Nenhum filtro específico"))
+        st.write(objective)
     else:
         st.markdown("**Busca livre**")
         if query:
@@ -149,34 +150,63 @@ with col2:
     elif mode == "Por planeta regente" and suggested:
         df_display = df_display[df_display["Óleo"].isin(suggested)]
 
-    # Filtragem por objetivo / uso (corrigida e ampliada)
+    # Filtragem por objetivo / uso (ampliada)
     elif mode == "Por objetivo / uso" and objective:
         obj = objective.lower()
+
         if obj == "relaxamento":
-            pattern = r"calmante|relaxamento|sono|calma"
+            pattern = r"calmante|relaxamento|sono|calma|relax"
             df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
-        elif obj == "foco":
-            pattern = r"alerta|foco|clareza|atenção"
+
+        elif obj == "foco" or obj == "concentração":
+            pattern = r"alerta|foco|clareza|atenção|concentra"
             df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
         elif obj == "sono":
-            pattern = r"sono|relaxamento|calmante|dormir"
+            pattern = r"sono|dormir|insônia|adormecer|relaxamento|calmante"
             df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
         elif obj == "aterramento":
-            # 'Aterramento' pode não estar explicitado na coluna; usamos família/efeitos que sugerem enraizamento
-            pattern = r"aterramento|enraiz|aterrar|aterramento|aterrador|aterrizante"
-            # fallback: buscar por famílias/descrições que costumam indicar aterramento (amadeirado, aterramento)
+            # busca por palavras relacionadas e por famílias amadeiradas
             df_display = df_display[
-                df_display["Principais Efeitos"].str.contains(r"aterramento|enraiz|enraizamento", case=False, na=False) |
+                df_display["Principais Efeitos"].str.contains(r"aterramento|enraiz|enraizamento|enraizar", case=False, na=False) |
                 df_display["Família"].str.contains(r"Amadeirado|Amadeirado/Herbal|Amadeirado", case=False, na=False)
             ]
+
         elif obj == "elevação de humor":
-            pattern = r"elevação|elevar|humor|alegria|euforia|elevar o humor|elevar"
+            pattern = r"elevação|elevar|humor|alegria|euforia|uplift|elevat"
             df_display = df_display[
                 df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False) |
-                df_display["Óleo"].str.contains(r"laranja|lima|bergamota|cítrico|doce", case=False, na=False)
+                df_display["Óleo"].str.contains(r"laranja|bergamota|limão|cítrico|doce", case=False, na=False)
             ]
+
+        elif obj == "energia":
+            pattern = r"energia|vitalidade|estimula|revigora|vigor"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
+        elif obj == "memória":
+            pattern = r"memória|memoria|lembrar|recordar|memória|memoria"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)] \
+                         | df_display["Família"].str.contains(r"Herbal|Amadeirado|Floral", case=False, na=False)
+
+        elif obj == "criatividade":
+            pattern = r"criativ|insight|imagina|inov|abertura|fluxo"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
+        elif obj == "alívio de dor":
+            pattern = r"analgésico|dor|alívio|anti-inflamatório|anti-inflamatorio|reduz dor"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
+        elif obj == "equilíbrio emocional":
+            pattern = r"equilíbrio|equilibrar|emocional|estabilidade|ansiedade|humor"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
+        elif obj == "despertar/alerta" or obj == "despertar/alerta" or obj == "despertar":
+            pattern = r"alerta|despertar|estimula|vigilância|energia|clareza"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+
         else:
-            # caso não mapeado, mantém df completo
+            # fallback: mantém df completo
             df_display = df_display
 
     # Busca livre
