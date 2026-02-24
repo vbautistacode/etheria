@@ -509,28 +509,112 @@ def create_pdf_bytes(result: dict) -> bytes:
         raise
 
 # --- Helper: create_pdf_bytes_with_model_text (cole após _create_pdf_bytes_reportlab) ---
-# --- Substitua/cole esta versão de create_pdf_bytes_with_model_text ---
+import re
+from html import escape
+from datetime import datetime
+
+def _inline_md_to_html(text: str) -> str:
+    """
+    Converte padrões inline simples: **bold** -> <b>, *italic* -> <i>.
+    Recebe texto já escapado (HTML-escaped) e retorna com tags.
+    """
+    # bold: **text**
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    # italic: *text* (não conflitar com bold)
+    text = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'<i>\1</i>', text)
+    return text
+
+def sanitize_model_text_for_reportlab(model_text: str, prefer_markdown_to_html: bool = True) -> str:
+    """
+    Converte/limpa o texto do modelo para uso com reportlab. Retorna string com tags simples (<b>, <i>, <br/>, <ul><li>).
+    - Se 'prefer_markdown_to_html' e a lib 'markdown' estiver disponível, usa-a para converter Markdown -> HTML.
+    - Caso contrário, aplica substituições por regex para transformar **negrito**, *itálico*, e listas em HTML simples.
+    - Remove ocorrências soltas de '**' e normaliza quebras de linha.
+    """
+    if not model_text:
+        return ""
+
+    text = model_text.strip()
+    text = re.sub(r'\r\n?', '\n', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+
+    if prefer_markdown_to_html:
+        try:
+            import markdown as _md
+            html = _md.markdown(text, extensions=["nl2br", "sane_lists"])
+            html = html.replace("<strong>", "<b>").replace("</strong>", "</b>")
+            html = html.replace("<em>", "<i>").replace("</em>", "</i>")
+            html = re.sub(r'<([a-zA-Z0-9]+)(\s+[^>]*)>', r'<\1>', html)
+            return html
+        except Exception:
+            pass
+
+    lines = text.split("\n")
+    out_lines = []
+    in_ul = False
+    in_ol = False
+    for ln in lines:
+        s = ln.strip()
+        if re.match(r'^\*{1,2}$', s) or re.match(r'^\* \*$', s):
+            continue
+        m_ul = re.match(r'^[-\*\u2022]\s+(.*)', s)
+        m_ol = re.match(r'^\d+\.\s+(.*)', s)
+        if m_ul:
+            if not in_ul:
+                out_lines.append("<ul>")
+                in_ul = True
+            item = escape(m_ul.group(1))
+            item = _inline_md_to_html(item)
+            out_lines.append(f"<li>{item}</li>")
+            continue
+        elif m_ol:
+            if not in_ol:
+                out_lines.append("<ol>")
+                in_ol = True
+            item = escape(m_ol.group(1))
+            item = _inline_md_to_html(item)
+            out_lines.append(f"<li>{item}</li>")
+            continue
+        else:
+            if in_ul:
+                out_lines.append("</ul>")
+                in_ul = False
+            if in_ol:
+                out_lines.append("</ol>")
+                in_ol = False
+            line = escape(s)
+            line = _inline_md_to_html(line)
+            if line == "":
+                out_lines.append("<br/>")
+            else:
+                out_lines.append(line + "<br/>")
+
+    if in_ul:
+        out_lines.append("</ul>")
+    if in_ol:
+        out_lines.append("</ol>")
+
+    html_out = "\n".join(out_lines)
+    html_out = html_out.replace("**", "")
+    return html_out
+
 def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     """
-    Gera bytes de PDF que incluem:
+    Gera bytes de PDF incluindo:
       - scores, dominante/secundário,
-      - recomendações serializadas (dominant_rec / secondary_rec) se existirem,
-      - e, se presente, o texto do modelo em 'model_report_text'.
-
-    Esta versão PRIORIZA a inclusão de model_report_text: se ele existir e não for vazio,
-    gera um PDF que o contém. Caso contrário, tenta usar create_pdf_bytes(result) como fallback.
+      - recomendações (dominant_rec / secondary_rec) se existirem,
+      - e, se presente, o texto do modelo em 'model_report_text' (prioritário).
+    Usa reportlab; lança ImportError com instrução clara se não estiver instalado.
     """
-    # se não houver model text, tentar usar create_pdf_bytes (se existir)
     model_text = (result.get("model_report_text") or "").strip()
+    # fallback para create_pdf_bytes se não houver model_text
     if not model_text:
         if "create_pdf_bytes" in globals() and callable(globals().get("create_pdf_bytes")):
             try:
                 return create_pdf_bytes(result)
             except Exception:
-                # se falhar, prosseguir para fallback que gera PDF manualmente
                 pass
 
-    # Fallback / geração direta que inclui model_text
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.lib import colors
@@ -538,7 +622,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
         from io import BytesIO
     except Exception as e:
-        raise ImportError("reportlab não disponível para gerar PDF") from e
+        raise ImportError("reportlab não disponível para gerar PDF. Instale com: pip install reportlab") from e
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
@@ -549,10 +633,10 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
 
     story = []
 
-    # Cabeçalho
+    # Cabeçalho / título
     story.append(Paragraph("Introdução ao Perfil Bioenergético e Distribuição de Temperamentos", title_style))
     story.append(Spacer(1, 8))
-    ts = result.get("timestamp") or _dt.utcnow().isoformat()
+    ts = result.get("timestamp") or datetime.utcnow().isoformat()
     story.append(Paragraph(f"Gerado em: {ts}", normal))
     story.append(Spacer(1, 12))
 
@@ -561,7 +645,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
     if scores:
         data = [["Temperamento", "Pontuação"]]
         for k, v in scores.items():
-            label = k.replace("_", " ")
+            label = str(k).replace("_", " ")
             data.append([label, f"{v}"])
         table = Table(data, hAlign="LEFT", colWidths=[320, 80])
         table.setStyle(TableStyle([
@@ -582,7 +666,7 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
         story.append(Paragraph(f"<b>Temperamento secundário:</b> {result.get('secondary')} — {result.get('secondary_score')}", normal))
     story.append(Spacer(1, 12))
 
-    # Recomendações serializadas (dominant_rec / secondary_rec) se existirem
+    # Recomendações serializadas (dominant_rec / secondary_rec)
     def _append_rec_simple(rec_obj, title=None):
         if not rec_obj:
             return
@@ -607,13 +691,13 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
             story.append(Spacer(1, 6))
         dicas = rec_obj.get("dicas") or []
         if dicas:
-            story.append(Paragraph("Dicas práticas:", styles["Normal"]))
+            story.append(Paragraph("Dicas práticas:", normal))
             for d in dicas:
                 story.append(Paragraph(f"- {d}", normal))
             story.append(Spacer(1, 6))
         alimentacao = rec_obj.get("alimentacao", "") or ""
         if alimentacao.strip():
-            story.append(Paragraph("Alimentação (resumo):", styles["Normal"]))
+            story.append(Paragraph("Alimentação (resumo):", normal))
             paras = [p.strip() for p in alimentacao.split("\n\n") if p.strip()]
             if not paras:
                 paras = [p.strip() for p in alimentacao.split("\n") if p.strip()]
@@ -634,11 +718,14 @@ def create_pdf_bytes_with_model_text(result: dict) -> bytes:
         story.append(PageBreak())
         story.append(Paragraph("Relatório diagnóstico (modelo)", styles["Heading4"]))
         story.append(Spacer(1, 6))
-        paras = [p.strip() for p in model_text.split("\n\n") if p.strip()]
-        if not paras:
-            paras = [p.strip() for p in model_text.split("\n") if p.strip()]
+        clean_html = sanitize_model_text_for_reportlab(model_text, prefer_markdown_to_html=True)
+        # dividir em parágrafos por duplas quebras de linha ou por tags block-level
+        # se clean_html contém <ul> ou <ol>, mantemos como bloco único
+        # quebramos por duas quebras de linha para parágrafos
+        paras = [p.strip() for p in re.split(r'\n{2,}', clean_html) if p.strip()]
         for p in paras:
-            story.append(Paragraph(p.replace("\n", "<br/>"), normal))
+            # Paragraph aceita um subconjunto de HTML (b, i, br, ul, ol, li)
+            story.append(Paragraph(p, normal))
             story.append(Spacer(1, 6))
 
     # Observações finais / disclaimer
