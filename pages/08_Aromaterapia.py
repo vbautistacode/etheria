@@ -15,13 +15,37 @@ st.caption("Utilize o menu lateral para selecionar o modo de consulta.")
 
 # --- Dados de óleos e usos (exemplos) ---
 OILS_CSV = """Óleo,Família,Principais Efeitos,Modo de Uso,Contraindicações
-Lavanda,Floral,Calmante,Inalação/ Difusor/Topical (diluído),Evitar em alergia conhecida
-Hortelã-Pimenta,Cítrico/Herbal,Alerta e foco,Inalação/Topical (diluído),Evitar em crianças pequenas
-Laranja Doce,Cítrico,Elevação de humor,Difusor/Topical (diluído),Fotosensibilidade leve
-Camomila,Floral,Relaxamento,Inalação/Topical (diluído),Evitar se alérgico a Asteraceae
-Eucalipto,Herbal,Respiração clara,Inalação/Difusor,Evitar em bebês
-Rosa,Floral,Equilíbrio emocional,Topical (diluído),Custo elevado
-Cedro,Amadeirado,Aterramento,Difusor/Topical (diluído),Uso moderado
+Lavanda,Floral,Calmante; Relaxamento; Sono,Inalação/Difusor/Topical (diluído),Evitar em alergia conhecida
+Hortelã-Pimenta,Herbal/Mentolada,Alerta; Foco; Clareza mental,Inalação/Topical (diluído),Evitar em crianças pequenas; não aplicar puro
+Laranja Doce,Cítrico,Elevação de humor; Energizante,Difusor/Topical (diluído),Fotosensibilidade leve; evitar exposição solar direta
+Camomila,Floral,Relaxamento; Calmante; Sono,Inalação/Topical (diluído),Evitar se alérgico a Asteraceae
+Eucalipto,Herbal,Respiração clara; Descongestionante,Inalação/Difusor/Topical (diluído),Evitar em bebês; cuidado com asma
+Rosa,Floral,Equilíbrio emocional; Acalma; Afeto,Topical (diluído)/Inalação,Custo elevado; testar sensibilidade
+Cedro,Amadeirado,Aterramento; Enraizamento,Difusor/Topical (diluído),Uso moderado; evitar em excesso na pele sensível
+Alecrim,Herbal/Amadeirado,Memória; Concentração; Estímulo mental,Inalação/Topical (diluído),Evitar em hipertensão não controlada; não em gestantes
+Sândalo,Resinoso,Presença; Aterramento; Meditação,Inalação/Difusor/Topical (diluído),Uso moderado; custo elevado
+Bergamota,Cítrico,Elevação de humor; Relaxamento leve,Difusor/Topical (diluído),Fotosensibilidade; diluir bem
+Ylang Ylang,Floral,Afeto; Relaxamento; Equilíbrio emocional,Inalação/Topical (diluído),Pode baixar a pressão em pessoas sensíveis
+Jasmim,Floral,Sensibilidade; Introspecção; Afrodisíaco,Inalação/Topical (diluído),Custo alto; testar sensibilidade
+Tea Tree (Melaleuca),Herbal/Antisséptico,Antisséptico; Suporte imunológico; Pele,Topical (diluído)/Inalação,Evitar ingestão; diluir para uso tópico
+Gerânio,Floral/Herbal,Equilíbrio hormonal; Estabilidade emocional,Topical (diluído)/Difusor,Testar sensibilidade cutânea
+Lavandin,Floral/Herbal,Relaxamento; Alternativa à lavanda,Inalação/Difusor/Topical (diluído),Sem contraindicações específicas além de alergia
+Patchouli,Amadeirado,Aterramento; Estabilidade emocional,Difusor/Topical (diluído),Pode manchar roupas; uso moderado
+Limão,Cítrico,Energia; Clareza; Elevação de humor,Difusor/Topical (diluído),Fotosensibilidade; evitar sol direto após aplicação
+Lima (Lime),Cítrico,Refrescante; Estímulo; Elevação de humor,Difusor/Topical (diluído),Fotosensibilidade leve
+Gengibre,Herbal/Especiado,Estimulante; Aquecimento; Digestão,Topical (diluído)/Inalação,Evitar pele sensível; diluir bem
+Canela,Especiado,Estimulante; Aquecimento; Vitalidade,Topical (muito diluído)/Difusor,Potente irritante; não usar puro; evitar em gestantes
+Pimenta Preta,Especiado,Estímulo; Aquecimento; Alívio muscular,Topical (diluído)/Massagem,Evitar pele sensível; diluir bem
+Vetiver,Amadeirado,Aterramento profundo; Resiliência emocional,Difusor/Topical (diluído),Uso moderado; aroma intenso
+Néroli,Floral,Calmante; Equilíbrio emocional; Sono,Inalação/Topical (diluído),Caro; testar sensibilidade
+Cipreste,Amadeirado/Resinoso,Apoio circulatório; Aterramento,Inalação/Topical (diluído),Evitar em gestantes em alguns casos
+Tomilho,Herbal,Antisséptico; Estímulo respiratório,Inalação/Topical (diluído),Potente; diluir bem; evitar ingestão sem orientação
+Manjericão,Herbal,Clareza mental; Foco; Alívio de tensão,Inalação/Topical (diluído),Evitar em gestantes; diluir para uso tópico
+Olíbano (Frankincense),Resinoso,Meditação; Regulação emocional; Respiração profunda,Inalação/Difusor/Topical (diluído),Uso seguro em geral; testar sensibilidade
+Hissopo,Herbal,Respiração; Apoio respiratório,Inalação/Difusor,Evitar em gestantes e epilepsia
+Palmarosa,Floral/Herbal,Hidratação da pele; Equilíbrio emocional,Topical (diluído)/Difusor,Testar sensibilidade
+Cajeput,Herbal,Respiração clara; Antisséptico,Inalação/Difusor,Evitar em crianças pequenas
+Balsamo do Peru,Resinoso,Conforto; Acolhimento,Topical (diluído)/Difusor,Alto potencial alergênico; evitar em pele sensível
 """
 
 oils_df = pd.read_csv(StringIO(OILS_CSV))
@@ -97,12 +121,22 @@ elif mode == "Por planeta regente":
     suggested_perfume_energy = PLANET_PERFUME_ENERGY.get(planet)
 elif mode == "Por objetivo / uso":
     objective = st.sidebar.selectbox(
-        "Escolha o objetivo",
+       "Escolha o objetivo",
         [
-            "Relaxamento", "Foco", "Sono", "Aterramento", "Elevação de humor",
-            "Energia", "Concentração", "Memória", "Criatividade", "Alívio de dor",
-            "Equilíbrio emocional", "Despertar/Alerta"
+            "Alívio de dor",
+            "Aterramento",
+            "Concentração",
+            "Criatividade",
+            "Despertar/Alerta",
+            "Elevação de humor",
+            "Energia",
+            "Equilíbrio emocional",
+            "Foco",
+            "Memória",
+            "Relaxamento",
+            "Sono"
         ]
+
     )
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
