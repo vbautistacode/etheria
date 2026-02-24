@@ -75,7 +75,7 @@ PLANET_PERFUME_ENERGY = {
     "Plutão": "Notas Amadeiradas — apoiam transformação profunda e aterramento."
 }
 
-# --- Interface lateral ---
+# --- Interface lateral (corrigido) ---
 st.sidebar.header("Filtros")
 mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente", "Por objetivo / uso", "Busca livre"])
 
@@ -83,6 +83,8 @@ mode = st.sidebar.radio("Modo de consulta", ["Por signo", "Por planeta regente",
 suggested = []
 suggested_perfumes = []
 suggested_perfume_energy = None
+objective = None
+query = ""
 
 if mode == "Por signo":
     sign = st.sidebar.selectbox("Selecione o signo", list(SIGN_TO_OILS.keys()))
@@ -98,7 +100,7 @@ elif mode == "Por objetivo / uso":
 else:
     query = st.sidebar.text_input("Busca livre (óleo, efeito)")
 
-# --- Painel principal ---
+# --- Painel principal (corrigido: filtragem por objetivo) ---
 col1, col2 = st.columns([1, 2])
 
 with col1:
@@ -122,6 +124,14 @@ with col1:
             st.markdown(suggested_perfume_energy)
     elif mode == "Por objetivo / uso":
         st.markdown(f"**Objetivo:** {objective}")
+        st.markdown("**Filtro aplicado:**")
+        st.write({
+            "Relaxamento": "Calmante, Relaxamento, Sono",
+            "Foco": "Alerta, Foco, Clareza",
+            "Sono": "Sono, Relaxamento, Calmante",
+            "Aterramento": "Aterramento, Enraizamento, Aterramento",
+            "Elevação de humor": "Elevação de humor, Elevar, Alegria"
+        }.get(objective, "Nenhum filtro específico"))
     else:
         st.markdown("**Busca livre**")
         if query:
@@ -132,19 +142,47 @@ with col1:
 with col2:
     st.subheader("Fragrâncias")
     df_display = oils_df.copy()
+
+    # Filtragem por signo / planeta (mantém comportamento anterior)
     if mode == "Por signo" and suggested:
         df_display = df_display[df_display["Óleo"].isin(suggested)]
     elif mode == "Por planeta regente" and suggested:
         df_display = df_display[df_display["Óleo"].isin(suggested)]
-    elif mode == "Por objetivo / uso":
-        if objective == "Relaxamento":
-            df_display = df_display[df_display["Principais Efeitos"].str.contains("Calmante|Relaxamento|Sono", case=False, na=False)]
-        elif objective == "Foco":
-            df_display = df_display[df_display["Principais Efeitos"].str.contains("Alerta|foco|clareza", case=False, na=False)]
-    else:
-        if mode == "Busca livre" and query:
-            q = query.strip().lower()
-            df_display = df_display[df_display.apply(lambda r: q in str(r["Óleo"]).lower() or q in str(r["Principais Efeitos"]).lower(), axis=1)]
+
+    # Filtragem por objetivo / uso (corrigida e ampliada)
+    elif mode == "Por objetivo / uso" and objective:
+        obj = objective.lower()
+        if obj == "relaxamento":
+            pattern = r"calmante|relaxamento|sono|calma"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+        elif obj == "foco":
+            pattern = r"alerta|foco|clareza|atenção"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+        elif obj == "sono":
+            pattern = r"sono|relaxamento|calmante|dormir"
+            df_display = df_display[df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False)]
+        elif obj == "aterramento":
+            # 'Aterramento' pode não estar explicitado na coluna; usamos família/efeitos que sugerem enraizamento
+            pattern = r"aterramento|enraiz|aterrar|aterramento|aterrador|aterrizante"
+            # fallback: buscar por famílias/descrições que costumam indicar aterramento (amadeirado, aterramento)
+            df_display = df_display[
+                df_display["Principais Efeitos"].str.contains(r"aterramento|enraiz|enraizamento", case=False, na=False) |
+                df_display["Família"].str.contains(r"Amadeirado|Amadeirado/Herbal|Amadeirado", case=False, na=False)
+            ]
+        elif obj == "elevação de humor":
+            pattern = r"elevação|elevar|humor|alegria|euforia|elevar o humor|elevar"
+            df_display = df_display[
+                df_display["Principais Efeitos"].str.contains(pattern, case=False, na=False) |
+                df_display["Óleo"].str.contains(r"laranja|lima|bergamota|cítrico|doce", case=False, na=False)
+            ]
+        else:
+            # caso não mapeado, mantém df completo
+            df_display = df_display
+
+    # Busca livre
+    elif mode == "Busca livre" and query:
+        q = query.strip().lower()
+        df_display = df_display[df_display.apply(lambda r: q in str(r["Óleo"]).lower() or q in str(r["Principais Efeitos"]).lower(), axis=1)]
 
     # exibe apenas a tabela dentro do expander (oculta por padrão)
     with st.expander("Mostrar lista de óleos"):
