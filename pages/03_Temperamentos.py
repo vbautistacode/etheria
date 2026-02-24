@@ -185,13 +185,20 @@ if "responses" not in st.session_state:
 # renderizar cada grupo dentro de um expander separado
 for group, qs in QUESTIONS.items():
     exp_label = group.replace("_", " ")
-    with st.expander(exp_label, expanded=True):
-        cols = st.columns(2)
-        for i, q in enumerate(qs):
-            key = f"{group}_{i}"
-            default = st.session_state.responses.get(key, 0)
-            val = cols[i % 2].slider(q, 0, 10, value=default, key=key)
-            st.session_state.responses[key] = val
+    # cria duas colunas; a segunda é estreita e conterá o expander
+    col_main, col_exp = st.columns([3, 1])  # ajuste as proporções conforme desejar
+    with col_exp:
+        with st.expander(exp_label, expanded=True):
+            # dentro do expander, use colunas internas para os sliders
+            cols = st.columns(2)
+            for i, q in enumerate(qs):
+                key = f"{group}_{i}"
+                default = st.session_state.responses.get(key, 0)
+                val = cols[i % 2].slider(q, 0, 10, value=default, key=key)
+                st.session_state.responses[key] = val
+    # opcional: conteúdo adicional do grupo pode ficar em col_main
+    with col_main:
+        st.write("")  # espaço reservado; remova ou coloque resumo/descrição se quiser
 
 # -------------------------
 # Botão calcular e lógica de resultado
